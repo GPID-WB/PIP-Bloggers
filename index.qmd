@@ -1,0 +1,160 @@
+---
+title: "First Blog"
+---
+
+
+# Exception Handling Example
+
+The following is an example of how to use exception handling in R for our packages. In particular, I focus on using `tryCatch` . This is an example still in the making (so I will probably updated once I understand better the topic and I have created a final version for `pipdata` ), but for now, you all can already give it a try.
+
+## Load libraries and functions
+
+First, these are the main libraries I used.
+
+``` r
+# Load libraries
+library(metapip)
+library(data.table)
+```
+
+However, make sure to have installed the following packages as well: `cli` and `rlang` .
+
+The following is the example of the function I need to be "handle" with `tryCatch` . This function tries to check if there are duplicates in `dt` according to some `keyVar` and if there are duplicates it could abort and exit or continue without exiting. The function has another two parameters to decide the following:
+
+1\. `log_err` if we want the error to be included in a error-report log ( TRUE and FALSE)
+
+2\. `skip_err` if we want the error to be skipped ( TRUE and FALSE)
+
+``` r
+# Function to handle duplicated observations in pfw
+unq_pfw <- function(dt,
+                    keyVar,
+                    log_err = TRUE,
+                    skip_err = TRUE) {
+
+  tryCatch(
+
+    expr = {
+
+      if(uniqueN(dt, by = keyVar) != nrow(dt)){
+
+        dt_d <- dt[duplicated(dt, by = keyVar)]
+        n_rep <- nrow(dt_d)
+
+        cli::cli_abort(message = "There {?is/are} {n_rep} duplicates in `pfw`",
+                       class = c("dup_pfw", "piperr"),
+                       log = log_err,
+                       skip = skip_err,
+                       link =  unique(dt_d$link),
+                       call = sys.call())
+      }
+
+    },
+
+    dup_pfw = function(cnd){
+
+      if(cnd$log){ # Log the error
+
+        add_log(cnd)
+
+      }
+
+      if(!cnd$skip){ # Abort if you don't want to skip, but after logging
+
+        cli::cli_abort(cnd$message, call = cnd$call)
+
+      }
+
+    },
+
+    finally = {
+
+      dt <- unique(dt, by = keyVar) # eliminate duplicates
+
+    }
+
+  )
+
+
+  return(dt)
+
+}
+```
+
+If you run the lines within `expr ={ }` , this will probably crash and an error about duplicates will be shown. However, **what I want is to first record this error on a log, and then decide if to skip the error or not, and get a clean dataset**. That is why we need `tryCatch` . As you can see within the `finally` section, I also included a line that eliminates the duplicates and returns the new "clean" dataset. This is because I am going to "handle" the abort actions with `tryCatch` and after this, R will "finally" run these lines and give us the clean output we need (if we do not want to abort).
+
+Now let me explain the steps within the `tryCatch` . First, you might be wondering what are the parameters within `cli::cli_abort()` . I assume `message` is straightforward. However, `class` might be the most important. The class we give to this specific error, or condition, will be what makes it identifiable on our `tryCatch` . Since we gave a new `class` to the error called `dup_pfw` , the function `tryCatch`, instead of aborting and exiting the code when the error is found, will run the code within `dup_pfw = function(cnd){ }` instead. The parameter `cnd` then carries all the information we gave within `cil::cli_abort` ; the `class` , the `log/skip` actions, and the identifiers of the duplicates `link` .
+
+**Important:** The parameters `log` and `skip` within `cil::cli_abort` are my tools to decide how to handle this error and these are totally made up by me for this specific function. You can create any parameter you want within `cli::abort()` and this will carry on within the handler. For example, I created the parameter `link` which will carry the identifiers of those duplicated observations. These are needed for the error-report log.
+
+Talking about the log, before you run the code below, please load the following function `add_log` . This function will load some concatenated text on the file `log.txt` saved in your working directory and it is used within the handler.
+
+``` r
+# Function for logging
+add_log <- function(cnd) {
+
+  cat(
+    "[", class(cnd)[[1]], "-", class(cnd)[[2]], "] ",
+    cnd$message," for ",
+    cnd$link, "\n", sep = "",
+    file = "log.txt", append = TRUE
+  )
+
+}
+```
+
+## Load data and run code
+
+The data used for this example can be loaded with `pipload` and represents the auxiliary Price Frame Work, or `pfw` . Since I needed it to run over the error at some point, I also create another data frame with some duplicates, `pfw_d` .
+
+``` r
+# Load data
+pfw_t <- pip_load_aux("pfw")
+
+pfw_d <- rbind(pfw_t, pfw_t[rep(1, 5), ]) # Duplicate some rows from one country
+```
+
+Now, we will run the function and this should not give you any errors because the default value of `skip_err = TRUE` .
+
+``` r
+# Run tryCatch for unq_pwf function
+keyVar <- c("country_code", "surveyid_year", "survey_acronym")
+
+pfw <- unq_pfw(pfw_d, keyVar)
+```
+
+If the error was handled and skipped correctly (default parameters), the answer to the following code should give you `TRUE` and you will find a `log.txt` file with the new record of these error.
+
+``` r
+# Test
+
+uniqueN(pfw, by = keyVar) == nrow(pfw)
+```
+
+However, if you run the function without skipping the error, the abort function will come into action:
+
+``` r
+# Run tryCatch for unq_pwf function without skipping error
+
+pfw <- unq_pfw(pfw_d, keyVar, skip_err = FALSE)
+```
+
+Let me know if that is not the case, or if you have any questions about the example! Happy to talk about it and learn together 🙂
+
+## Sources
+
+A few websites I reviewed to learned more about this:
+
+1.  <https://adv-r.hadley.nz/conditions.html#conditions>
+2.  <https://medium.com/number-around-us/catch-me-if-you-can-exception-handling-in-r-2e0f6c473a28>
+3.  <https://cnuge.github.io/post/trycatch/>
+4.  <https://aryoda.github.io/tutorials/tryCatchLog/tryCatchLog-intro-slides.html#/> (still reviewing it)
+
+## 
+
+## Work in progress...
+
+A few things I am still figuring/working out are:
+
+1.  I still have to format the `add_log` function to allowed for more than one character on the `cnd$link` value, or to make it more general so it can be used in other handlers.
+
