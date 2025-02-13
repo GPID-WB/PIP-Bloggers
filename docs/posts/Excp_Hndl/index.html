@@ -6,8 +6,11 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Diana C. Garcia">
+<meta name="dcterms.date" content="2025-02-13">
+<meta name="description" content="Example for pipdata">
 
-<title>What’s new in PIP? – PIP-Bloggers</title>
+<title>Exception Handling – PIP-Bloggers</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,27 +23,59 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-listing/list.min.js"></script>
-<script src="site_libs/quarto-listing/quarto-listing.js"></script>
-<script src="site_libs/quarto-html/quarto.js"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -68,67 +103,9 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
-<script>
 
-  window.document.addEventListener("DOMContentLoaded", function (_event) {
-    const listingTargetEl = window.document.querySelector('#listing-listing .list');
-    if (!listingTargetEl) {
-      // No listing discovered, do not attach.
-      return; 
-    }
 
-    const options = {
-      valueNames: ['listing-date','listing-title','listing-author','listing-image','listing-description','listing-categories',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
-      
-      searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description","listing-categories"],
-    };
-
-    window['quarto-listings'] = window['quarto-listings'] || {};
-    window['quarto-listings']['listing-listing'] = new List('listing-listing', options);
-
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  });
-
-  window.addEventListener('hashchange',() => {
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  })
-  </script>
-
-  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
-
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-fixed">
@@ -138,7 +115,7 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">PIP-Bloggers</span>
     </a>
   </div>
@@ -149,11 +126,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="../../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
+    <a class="nav-link" href="../../about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -166,21 +143,42 @@ window.Quarto = {
 <!-- content -->
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
-    <div class="quarto-title column-page-left">
-      <h1 class="title">What’s new in PIP?</h1>
-                      </div>
+    <div class="quarto-title column-body">
+      <h1 class="title">Exception Handling</h1>
+                  <div>
+        <div class="description">
+          Example for pipdata
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Errors</div>
+                <div class="quarto-category">Warnings</div>
+              </div>
+                  </div>
   </div>
     
   
-  <div class="quarto-title-meta column-page-left">
+  <div class="quarto-title-meta">
 
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Diana C. Garcia </p>
+            </div>
+    </div>
       
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">February 13, 2025</p>
+      </div>
+    </div>
     
       
     </div>
     
   
-  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -188,67 +186,73 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#section" id="toc-section" class="nav-link active" data-scroll-target="#section"></a></li>
+  <li><a href="#load-libraries-and-functions" id="toc-load-libraries-and-functions" class="nav-link active" data-scroll-target="#load-libraries-and-functions">Load libraries and functions</a></li>
+  <li><a href="#load-data-and-run-code" id="toc-load-data-and-run-code" class="nav-link" data-scroll-target="#load-data-and-run-code">Load data and run code</a></li>
+  <li><a href="#sources" id="toc-sources" class="nav-link" data-scroll-target="#sources">Sources</a></li>
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
+  <li><a href="#work-in-progress" id="toc-work-in-progress" class="nav-link" data-scroll-target="#work-in-progress">Work in progress…</a></li>
   </ul>
 </nav>
-    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Errors">Errors <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Warnings">Warnings <span class="quarto-category-count">(1)</span></div></div></div>
+    </div>
 <!-- main -->
-<main class="content quarto-banner-title-block column-page-left" id="quarto-document-content">
+<main class="content quarto-banner-title-block" id="quarto-document-content">
 
 
 
 
 
-<section id="section" class="level1">
-<h1></h1>
-
+<p>The following is an example of how to use exception handling in R for our packages. In particular, I focus on using <code>tryCatch</code> . This is an example still in the making (so I will probably updated once I understand better the topic and I have created a final version for <code>pipdata</code> ), but for now, you all can already give it a try.</p>
+<section id="load-libraries-and-functions" class="level2">
+<h2 class="anchored" data-anchor-id="load-libraries-and-functions">Load libraries and functions</h2>
+<p>First, these are the main libraries I used.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load libraries library(metapip) library(data.table)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>However, make sure to have installed the following packages as well: <code>cli</code> and <code>rlang</code> .</p>
+<p>The following is the example of the function I need to be “handle” with <code>tryCatch</code> . This function tries to check if there are duplicates in <code>dt</code> according to some <code>keyVar</code> and if there are duplicates it could abort and exit or continue without exiting. The function has another two parameters to decide the following:</p>
+<p>1. <code>log_err</code> if we want the error to be included in a error-report log ( TRUE and FALSE)</p>
+<p>2. <code>skip_err</code> if we want the error to be skipped ( TRUE and FALSE)</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to handle duplicated observations in pfw unq_pfw &lt;- function(dt,                     keyVar,                     log_err = TRUE,                     skip_err = TRUE) {    tryCatch(      expr = {        if(uniqueN(dt, by = keyVar) != nrow(dt)){          dt_d &lt;- dt[duplicated(dt, by = keyVar)]         n_rep &lt;- nrow(dt_d)          cli::cli_abort(message = "There {?is/are} {n_rep} duplicates in `pfw`",                        class = c("dup_pfw", "piperr"),                        log = log_err,                        skip = skip_err,                        link =  unique(dt_d$link),                        call = sys.call())       }      },      dup_pfw = function(cnd){        if(cnd$log){ # Log the error          add_log(cnd)        }        if(!cnd$skip){ # Abort if you don't want to skip, but after logging          cli::cli_abort(cnd$message, call = cnd$call)        }      },      finally = {        dt &lt;- unique(dt, by = keyVar) # eliminate duplicates      }    )     return(dt)  }</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>If you run the lines within <code>expr ={ }</code> , this will probably crash and an error about duplicates will be shown. However, <strong>what I want is to first record this error on a log, and then decide if to skip the error or not, and get a clean dataset</strong>. That is why we need <code>tryCatch</code> . As you can see within the <code>finally</code> section, I also included a line that eliminates the duplicates and returns the new “clean” dataset. This is because I am going to “handle” the abort actions with <code>tryCatch</code> and after this, R will “finally” run these lines and give us the clean output we need (if we do not want to abort).</p>
+<p>Now let me explain the steps within the <code>tryCatch</code> . First, you might be wondering what are the parameters within <code>cli::cli_abort()</code> . I assume <code>message</code> is straightforward. However, <code>class</code> might be the most important. The class we give to this specific error, or condition, will be what makes it identifiable on our <code>tryCatch</code> . Since we gave a new <code>class</code> to the error called <code>dup_pfw</code> , the function <code>tryCatch</code>, instead of aborting and exiting the code when the error is found, will run the code within <code>dup_pfw = function(cnd){ }</code> instead. The parameter <code>cnd</code> then carries all the information we gave within <code>cil::cli_abort</code> ; the <code>class</code> , the <code>log/skip</code> actions, and the identifiers of the duplicates <code>link</code> .</p>
+<p><strong>Important:</strong> The parameters <code>log</code> and <code>skip</code> within <code>cil::cli_abort</code> are my tools to decide how to handle this error and these are totally made up by me for this specific function. You can create any parameter you want within <code>cli::abort()</code> and this will carry on within the handler. For example, I created the parameter <code>link</code> which will carry the identifiers of those duplicated observations. These are needed for the error-report log.</p>
+<p>Talking about the log, before you run the code below, please load the following function <code>add_log</code> . This function will load some concatenated text on the file <code>log.txt</code> saved in your working directory and it is used within the handler.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for logging add_log &lt;- function(cnd) {    cat(     "[", class(cnd)[[1]], "-", class(cnd)[[2]], "] ",     cnd$message," for ",     cnd$link, "\n", sep = "",     file = "log.txt", append = TRUE   )  }</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="load-data-and-run-code" class="level2">
+<h2 class="anchored" data-anchor-id="load-data-and-run-code">Load data and run code</h2>
+<p>The data used for this example can be loaded with <code>pipload</code> and represents the auxiliary Price Frame Work, or <code>pfw</code> . Since I needed it to run over the error at some point, I also create another data frame with some duplicates, <code>pfw_d</code> .</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load data pfw_t &lt;- pip_load_aux("pfw")  pfw_d &lt;- rbind(pfw_t, pfw_t[rep(1, 5), ]) # Duplicate some rows from one country</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Now, we will run the function and this should not give you any errors because the default value of <code>skip_err = TRUE</code> .</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tryCatch for unq_pwf function keyVar &lt;- c("country_code", "surveyid_year", "survey_acronym")  pfw &lt;- unq_pfw(pfw_d, keyVar)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>If the error was handled and skipped correctly (default parameters), the answer to the following code should give you <code>TRUE</code> and you will find a <code>log.txt</code> file with the new record of these error.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test  uniqueN(pfw, by = keyVar) == nrow(pfw)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>However, if you run the function without skipping the error, the abort function will come into action:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tryCatch for unq_pwf function without skipping error  pfw &lt;- unq_pfw(pfw_d, keyVar, skip_err = FALSE)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Let me know if that is not the case, or if you have any questions about the example! Happy to talk about it and learn together 🙂</p>
+</section>
+<section id="sources" class="level2">
+<h2 class="anchored" data-anchor-id="sources">Sources</h2>
+<p>A few websites I reviewed to learned more about this:</p>
+<ol type="1">
+<li><a href="https://adv-r.hadley.nz/conditions.html#conditions" class="uri">https://adv-r.hadley.nz/conditions.html#conditions</a></li>
+<li><a href="https://medium.com/number-around-us/catch-me-if-you-can-exception-handling-in-r-2e0f6c473a28" class="uri">https://medium.com/number-around-us/catch-me-if-you-can-exception-handling-in-r-2e0f6c473a28</a></li>
+<li><a href="https://cnuge.github.io/post/trycatch/" class="uri">https://cnuge.github.io/post/trycatch/</a></li>
+<li><a href="https://aryoda.github.io/tutorials/tryCatchLog/tryCatchLog-intro-slides.html#/" class="uri">https://aryoda.github.io/tutorials/tryCatchLog/tryCatchLog-intro-slides.html#/</a> (still reviewing it)</li>
+</ol>
+</section>
+<section id="section" class="level2">
+<h2 class="anchored" data-anchor-id="section"></h2>
+</section>
+<section id="work-in-progress" class="level2">
+<h2 class="anchored" data-anchor-id="work-in-progress">Work in progress…</h2>
+<p>A few things I am still figuring/working out are:</p>
+<ol type="1">
+<li>I still have to format the <code>add_log</code> function to allowed for more than one character on the <code>cnd$link</code> value, or to make it more general so it can be used in other handlers.</li>
+</ol>
 
 
 </section>
 
-<div class="quarto-listing quarto-listing-container-default" id="listing-listing">
-<div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="Errors,Warnings" data-listing-date-sort="1739422800000" data-listing-file-modified-sort="1739466448768" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="7" data-listing-word-count-sort="1259">
-<div class="thumbnail">
-<p><a href="./posts/Excp_Hndl/index.html" class="no-external"></a></p><a href="./posts/Excp_Hndl/index.html" class="no-external">
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-</a><p><a href="./posts/Excp_Hndl/index.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/Excp_Hndl/index.html" class="no-external">Exception Handling</a>
-</h3>
-<div class="listing-subtitle">
-<a href="./posts/Excp_Hndl/index.html" class="no-external"></a>
-</div>
-<div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('Errors'); return false;">
-Errors
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('Warnings'); return false;">
-Warnings
-</div>
-</div>
-<div class="listing-description">
-<a href="./posts/Excp_Hndl/index.html" class="no-external">Example for pipdata</a>
-</div>
-</div>
-<div class="metadata">
-<a href="./posts/Excp_Hndl/index.html" class="no-external">
-<div class="listing-date">
-Feb 13, 2025
-</div>
-<div class="listing-author">
-Diana C. Garcia
-</div>
-</a>
-</div>
-</div>
-</div>
-<div class="listing-no-matching d-none">
-No matching items
-</div>
-</div></main> <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
