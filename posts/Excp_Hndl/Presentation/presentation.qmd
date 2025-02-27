@@ -1,13 +1,11 @@
 ---
-title: "Conditions"
+title: "Condition Handling"
 subtitle: "Advance R Session"
 author: "Diana Garcia"
 format: 
   revealjs:
     theme: dark
     center: true
-execute: 
-  cache: true
 ---
 
 # Introduction {background-color="#0754b7"}
@@ -16,9 +14,9 @@ execute:
 
 ::: incremental
 1.  **Conditions**
-    -   Errors (severe): function cannot continue
-    -   Warnings (mild): something went wrong but can continue
-    -   Messages (mildest): inform of an action taken
+    -   Errors (severe): function should not continue
+    -   Warnings (mild): something went wrong but it will continue
+    -   Messages (mildest): inform the user of an action taken
 2.  **Signals** of conditions
     -   `stop()` or `rlang::abort()`,
     -   `warning()` or `rlang::warn()`,
@@ -29,15 +27,16 @@ execute:
 
 ::: incremental
 1.  Error:
-    -   It will stop the process
-    -   Message will show what is wrong and indicate where to fix the problem.
+    -   We need the process to stop.
+    -   Message should indicate what is wrong and where to fix the problem.
 2.  Warning:
-    -   The process will continue
-    -   They can be many and will be displayed in aggregate.
-    -   Some important change was done or missing info was found.
+    -   Warn of an issue and let the process continue.
+    -   These can be many per function and will be displayed in aggregate.
+    -   Message like important change was done or missing info was found.
     -   Better not to overuse it.
 3.  Messages:
-    -   Something is done on the behalf of the user, like default values used or progress on long process.
+    -   Usually when something is done on the behalf of the user
+    -   E.g. A default value was used or the progress on a long process.
     -   Better not to have many messages per function. They are immediately displayed.
 :::
 
@@ -46,7 +45,7 @@ execute:
 ::: callout-tip
 ### Question:
 
-Any ideas on how we can use this within our pipeline?
+Any ideas on where we can make use of these conditions within our pipeline?
 :::
 
 # Handling {background-color="#0754b7"}
@@ -114,8 +113,8 @@ Other ignoring conditions are:
 
 We can override or supplement the default behavior using:
 
-1.  `tryCatch`
-2.  `withCallingHandlres`
+1.  `tryCatch()`
+2.  `withCallingHandlres()`
 
 ## tryCatch {.smaller}
 
@@ -164,24 +163,6 @@ withCallingHandlers(
 ```
 
 After condition is captured, it returns where the condition was signaled.
-
-## Conditon objects {.smaller}
-
-Behind the scenes, objects are created when signaling a condition.
-
-```{r}
-#| echo: true
-#| error: true
-
-cnd <- rlang::catch_cnd(stop("An error"))
-
-str(cnd)
-```
-
-We can access the elements of this object using:
-
--   `condtionMessage()`
--   `conditionCall()`
 
 ## Exiting conditions {.smaller}
 
@@ -276,6 +257,24 @@ withCallingHandlers(
 
 [**Notice:**]{style="color:red;"} They are applied in order.
 
+## Conditon objects {.smaller}
+
+Behind the scenes, objects are created when signaling a condition.
+
+```{r}
+#| echo: true
+#| error: true
+
+cnd <- rlang::catch_cnd(stop("An error"))
+
+str(cnd)
+```
+
+We can access the elements of this object using:
+
+-   `condtionMessage()`
+-   `conditionCall()`
+
 ## Other topics about conditions {.smaller}
 
 1.  They can be nested -\> *muffle* the signal
@@ -287,13 +286,15 @@ If you want to learn more about them, check [Advanced R's 8.4.3 and 8.4.4 subsec
 
 ## Motivation {.smaller}
 
--   We need the Price Framework (`PFW`) data to understand the metadata behind each survey in Dataliweb (`DLW`).
+-   Price Framework data (`PFW`) is the 'metadata' behind each survey in Dataliweb (`DLW`).
 -   [Important]{style="color:red;"}: for ***each specific survey*** we should have ***only one record*** (or row/observation).
 
 ::: callout-warning
 ### Objective:
 
-Signal if there are duplicates of `PFW` per `country_code`,`surveyid_year` and `survey_acronym`, log which are the duplicates, but continue with the process using only unique values.
+1. Signal if there are duplicates of `PFW` per `country_code`,`surveyid_year` and `survey_acronym`.
+2. Log which are the duplicates
+3. And continue with the process using only unique values.
 :::
 
 Let's see structure of `PFW`...
@@ -360,12 +361,14 @@ unq_pfw <- function(dt,
 ## Result {.smaller}
 
 ```{r}
-#| echo: true
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Load Libraries   ---------
-
 library(rlang)
+
+```
+
+```{r}
+#| echo: true
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Load data  ---------
@@ -572,11 +575,9 @@ unq_pfw <- function(dt,
 
 ## Other applications {.smaller .incremental}
 
-1.  Failure value:
-    -   Return a default value if an error occurs.
-2.  Success and failure values:
+1.  Success and failure values:
     -   Return a value for success and another for failure.
-3.  Resignal and record
+2.  Resignal and record
     -   More informative error messages and record for later investigation
-4.  No default behavior:
+3.  No default behavior:
     -   Using `signal()` you can create a condition different from a `error`,`warning` or `message`.
