@@ -13,6 +13,8 @@ The following is an example of how to use exception handling in R for our packag
 First, these are the main libraries I used.
 
 ```{r}
+#| echo: true
+
 # Load libraries 
 library(metapip) 
 library(data.table)
@@ -27,6 +29,8 @@ The following is the example of the function I need to be "handle" with `tryCatc
 2\. `skip_err` if we want the error to be skipped ( TRUE and FALSE)
 
 ```{r}
+#| echo: true
+
 # Function to handle duplicated observations in pfw 
 unq_pfw <- function(dt,                     
                     keyVar,                     
@@ -87,6 +91,8 @@ add_log <- function(cnd) {
 The data used for this example can be loaded with `pipload` and represents the auxiliary Price Frame Work, or `pfw` . Since I needed it to run over the error at some point, I also create another data frame with some duplicates, `pfw_d` .
 
 ```{r}
+#| echo: true
+
 # Load data 
 pfw_t <- pip_load_aux("pfw")  
 
@@ -98,6 +104,9 @@ pfw_d <- rbind(pfw_t, pfw_t[rep(1, 5), ])
 Now, we will run the function and this should not give you any errors because the default value of `skip_err = TRUE` .
 
 ```{r}
+#| echo: true
+#| error: true
+
 # Run tryCatch for unq_pwf function 
 keyVar <- c("country_code", "surveyid_year", "survey_acronym")  
 pfw <- unq_pfw(pfw_d, keyVar)
@@ -106,6 +115,8 @@ pfw <- unq_pfw(pfw_d, keyVar)
 If the error was handled and skipped correctly (default parameters), the answer to the following code should give you `TRUE` and you will find a `log.txt` file with the new record of these error.
 
 ```{r}
+#| echo: true
+
 # Test  
 uniqueN(pfw, by = keyVar) == nrow(pfw)
 ```
@@ -113,6 +124,8 @@ uniqueN(pfw, by = keyVar) == nrow(pfw)
 However, if you run the function without skipping the error, the abort function will come into action:
 
 ```{r}
+#| echo: true
+#| error: true
 # Run tryCatch for unq_pwf function without skipping error  
 pfw <- unq_pfw(pfw_d, keyVar, skip_err = FALSE)
 ```

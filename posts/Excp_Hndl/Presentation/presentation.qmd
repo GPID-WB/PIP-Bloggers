@@ -14,63 +14,54 @@ execute:
 
 ## Important concepts {.smaller}
 
-::: {.incremental}
-1. **Conditions**
-    + Errors (severe): function cannot continue
-    + Warnings (mild): something went wrong but can continue
-    + Messages (mildest): inform of an action taken
-
-2. **Signals** of conditions 
-    + `stop()` or `rlang::abort()`,
-    + `warning()` or `rlang::warn()`,
-    + `message()`
-    
+::: incremental
+1.  **Conditions**
+    -   Errors (severe): function cannot continue
+    -   Warnings (mild): something went wrong but can continue
+    -   Messages (mildest): inform of an action taken
+2.  **Signals** of conditions
+    -   `stop()` or `rlang::abort()`,
+    -   `warning()` or `rlang::warn()`,
+    -   `message()`
 :::
-    
+
 ## When to use {.smaller}
 
-::: {.incremental}
-
-1. Error: 
-    + It will stop the process
-    + Message will show what is wrong and indicate where to fix the problem. 
-2. Warning: 
-    + The process will continue
-    + They can be many and will be displayed in aggregate.
-    + Some important change was done or missing info was found.
-    + Better not to overuse it. 
-3. Messages: 
-    + Something is done on the behalf of the user, like default values used or progress on long process. 
-    + Better not to have many messages per function. They are immediately displayed.
-
+::: incremental
+1.  Error:
+    -   It will stop the process
+    -   Message will show what is wrong and indicate where to fix the problem.
+2.  Warning:
+    -   The process will continue
+    -   They can be many and will be displayed in aggregate.
+    -   Some important change was done or missing info was found.
+    -   Better not to overuse it.
+3.  Messages:
+    -   Something is done on the behalf of the user, like default values used or progress on long process.
+    -   Better not to have many messages per function. They are immediately displayed.
 :::
 
 ## PIP Pipeline
 
-::: {.callout-tip}
-
+::: callout-tip
 ### Question:
 
 Any ideas on how we can use this within our pipeline?
-
 :::
 
 # Handling {background-color="#0754b7"}
 
 ## Ignoring conditions {.smaller}
 
+Unpopular opinion:
 
-Unpopular opinion: 
-
-- Simplest way to handling conditions is to  <span style="color:red;">ignore them</span>!
-
+-   Simplest way to handling conditions is to [ignore them]{style="color:red;"}!
 
 ## Ignoring conditions {.smaller}
 
 Example on `try()`:
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ### Without
 
 ```{r}
@@ -84,7 +75,6 @@ f1 <- function(x) {
 
 f1("x")
 ```
-
 
 ### With
 
@@ -117,15 +107,15 @@ f2("a")
 
 Other ignoring conditions are:
 
-- `suppressWarnings()` 
-- `suppressMessages()`
+-   `suppressWarnings()`
+-   `suppressMessages()`
 
 ## Handling conditions {.smaller}
 
 We can override or supplement the default behavior using:
 
-1. `tryCatch`
-2. `withCallingHandlres`
+1.  `tryCatch`
+2.  `withCallingHandlres`
 
 ## tryCatch {.smaller}
 
@@ -187,10 +177,11 @@ cnd <- rlang::catch_cnd(stop("An error"))
 
 str(cnd)
 ```
+
 We can access the elements of this object using:
 
-- `condtionMessage()`
-- `conditionCall()`
+-   `condtionMessage()`
+-   `conditionCall()`
 
 ## Exiting conditions {.smaller}
 
@@ -221,8 +212,7 @@ f3("x")
 
 `tryCatch` exits once the condition is signaled:
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ### Signal
 
 ```{r}
@@ -265,7 +255,7 @@ tryCatch(
 
 ## Calling conditions {.smaller}
 
-They help signal a problem and the code execution continues normally. 
+They help signal a problem and the code execution continues normally.
 
 ```{r}
 #| echo: true
@@ -284,23 +274,23 @@ withCallingHandlers(
 
 ```
 
-**<span style="color:red;">Notice:</span>** They are applied in order.
+[**Notice:**]{style="color:red;"} They are applied in order.
 
 ## Other topics about conditions {.smaller}
 
-1. They can be nested -> *muffle* the signal
-2. Call stacks -> error catching or debugging
+1.  They can be nested -\> *muffle* the signal
+2.  Call stacks -\> error catching or debugging
 
-If you want to learn more about them, check [Advanced R's 8.4.3 and 8.4.4 subsections](https://adv-r.hadley.nz/conditions.html#calling-handlers)! 
+If you want to learn more about them, check [Advanced R's 8.4.3 and 8.4.4 subsections](https://adv-r.hadley.nz/conditions.html#calling-handlers)!
 
 # PIP Example {background-color="#0754b7"}
 
 ## Motivation {.smaller}
 
-- We need the Price Framework (`PFW`) data to understand the metadata behind each survey in Dataliweb (`DLW`). 
-- <span style="color:red;">Important</span>: for ***each specific survey*** we should have ***only one record*** (or row/observation).  
+-   We need the Price Framework (`PFW`) data to understand the metadata behind each survey in Dataliweb (`DLW`).
+-   [Important]{style="color:red;"}: for ***each specific survey*** we should have ***only one record*** (or row/observation).
 
-:::{.callout-warning}
+::: callout-warning
 ### Objective:
 
 Signal if there are duplicates of `PFW` per `country_code`,`surveyid_year` and `survey_acronym`, log which are the duplicates, but continue with the process using only unique values.
@@ -337,7 +327,7 @@ unq_pfw <- function(dt,
 
 ## Toy solution {.smaller}
 
-1. Don't stop process:
+1.  Don't stop process:
 
 ```{r}
 #| echo: true
@@ -366,7 +356,6 @@ unq_pfw <- function(dt,
   return(dt)
 }
 ```
-
 
 ## Result {.smaller}
 
@@ -404,13 +393,13 @@ pfw_d <- rbind(pfw, pfw[rep(1, 5), ])
 
 pfw_f <- unq_pfw(pfw_d, keyVar)
 
-``` 
+```
 
 But the message is not that informative and what if I want to stop at any error?
 
 ## Signaling and Handling {.smaller}
 
-1. Let's use the condition object 
+1.  Let's use the condition object
 
 ```{r}
 #| echo: true
@@ -478,12 +467,13 @@ pfw_d <- rbind(pfw, pfw[rep(1, 5), ])
 
 pfw_f <- unq_pfw(pfw_d, keyVar)
 
-``` 
+```
+
 But what if I don't want it to be skipped?
 
 ## Handling {.smaller}
 
-2. Let's add another argument
+2.  Let's add another argument
 
 ```{r}
 #| echo: true
@@ -580,19 +570,13 @@ unq_pfw <- function(dt,
 }
 ```
 
-
 ## Other applications {.smaller .incremental}
 
-1. Failure value:
-    - Return a default value if an error occurs.
-2. Success and failure values:
-    - Return a value for success and another for failure.
-3. Resignal and record
-    - More informative error messages and record for later investigation
-5. No default behavior:
-    - Using `signal()` you can create a condition different from a `error`,`warning` or `message`.
-
-
-
-
-
+1.  Failure value:
+    -   Return a default value if an error occurs.
+2.  Success and failure values:
+    -   Return a value for success and another for failure.
+3.  Resignal and record
+    -   More informative error messages and record for later investigation
+4.  No default behavior:
+    -   Using `signal()` you can create a condition different from a `error`,`warning` or `message`.
