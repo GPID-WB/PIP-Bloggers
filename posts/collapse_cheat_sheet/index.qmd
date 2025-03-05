@@ -1,0 +1,250 @@
+---
+title: "Collapse Cheat sheet"
+description: "Syntax translation from dplyr and data.tablen to collapse"
+author: "PIP Technical team"
+date: "03/13/2025"
+categories: [collapse, data.table, dplyr, efficiency]
+format:
+  html:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+execute:
+  output: false
+---
+
+## Introduction
+
+This post is inpired in the Atreba's blog: [A data.table and dplyr tour](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/). The objective of this post is to complement Atreba's one with the syntax of the [`{collapse}`](https://sebkrantz.github.io/collapse/) R package.
+
+## Basic understanding of the three packages
+
+### dplyr
+
+blach
+
+### data.table
+
+blah
+
+### collapse
+
+blah
+
+## Data
+
+```{r}
+#| echo: true
+#| results: false
+#| message: false
+#| output: false
+#| label: setup
+#| warning: false
+
+library(dplyr)
+library(data.table)
+library(collapse)
+
+```
+
+```{r}
+#| label: data
+#| cache: true
+set.seed(42)
+
+# Number of rows
+n <- 10000
+
+# Generate fake data
+df <- data.frame(
+  id1 = 1:n,  # Unique ID
+  id2 = sample(1:500, n, replace = TRUE),  # Repeating ID
+  dt = seq.Date(from = as.Date("2023-01-01"), by = "day", length.out = n),  # Dates
+  tm = format(seq.POSIXt(from = as.POSIXct("2023-01-01 00:00:00"), 
+                         by = "hour", length.out = n), "%H:%M:%S"),  # Time
+  ch = sample(c("A", "B", "C", "D"), n, replace = TRUE),  # Character
+  int = sample(1:100, n, replace = TRUE),  # Integer
+  log = sample(c(TRUE, FALSE), n, replace = TRUE),  # Logical
+  realf = runif(n, 1, 100),  # Real (float),
+  reald = runif(n),  # Real ,
+  fct = factor(sample(c("X", "Y", "Z"), n, replace = TRUE))  # Factor
+)
+
+# Ensure uniqueness
+df <- unique(df, by = c("id1", "id2"))
+dt <- setDT(df)
+tb <- as_tibble(df)
+
+```
+
+## Basic use
+
+### Filtering rows
+
+#### Filter rows using indices
+::: panel-tabset
+
+
+## collapse
+
+```{r}
+
+# super efficient
+df |> 
+  ss(2:5)
+
+# efficient
+df |> 
+  fsubset(2:5)
+
+```
+
+
+## data.table
+
+```{r}
+dt[2:5]
+```
+
+
+## dplyr
+
+```{r}
+tb |> 
+  slice(2:5)
+
+# or using index like any data.frame
+tb[2:5,]
+
+# you need to add the comma. Otherwise, you get a different result
+tb[2:5]
+
+```
+
+:::
+
+
+#### Discard rows using negative indices  
+
+::: panel-tabset
+## collapse
+
+```{r}
+
+df |> 
+  ss(-c(2:5)) |> 
+  head(4)
+
+df |> 
+  ss(-c(2:5)) |> 
+  head(4)
+
+```
+
+
+## data.table
+
+```{r}
+dt[!2:5] |> 
+  head(4)
+```
+
+
+## dplyr
+
+```{r}
+tb |> 
+  slice(-(2:5)) |> 
+  head(4)
+
+```
+
+:::
+
+#### Filter rows using conditions
+
+
+::: panel-tabset
+
+```{r}
+# using named objects to filer data
+ch  <- "A" # data has this as variable name
+fct <- "A" # data has this as variable name
+x  <- "A"
+```
+
+
+## collapse
+```{r}
+df |> 
+  fsubset(ch == "A" & id1 == 6)
+
+df |> 
+  fsubset(ch == x & id1 == 6)
+
+# This works
+df |> 
+  fsubset(ch == ch & id1 == 6)
+
+# This does not work
+df |> 
+  fsubset(ch == fct & id1 == 6)
+
+# This through error
+df |> 
+  fsubset(ch == get(fct) & id1 == 6) |> 
+  try()
+
+# This works
+df |> 
+  fsubset(ch == get("fct", envir = -2) & id1 == 6) 
+
+# NOTE: is there a better way?
+
+```
+
+
+## data.table
+
+```{r}
+dt[ch == "A" & id1 == 6]
+
+dt[ch == x & id1 == 6]
+
+dt[ch ==ch & id1 == 6]
+
+# this does not work
+dt[ch == fct & id1 == 6]
+
+
+dt[ch == eval(fct) & id1 == 6]
+
+# These work but they are  verbose
+dt[ch == get("fct", envir = parent.frame()) & id1 == 6]
+dt[ch == get("fct", envir = -2) & id1 == 6]
+
+
+```
+
+## dplyr
+```{r}
+tb |> 
+  filter(ch == "A" & id1 == 6)
+
+tb |> 
+  filter(ch == x & id1 == 6)
+
+tb |> 
+  filter(ch == ch & id1 == 6)
+
+# does not work
+tb |> 
+  filter(ch == fct & id1 == 6)
+
+# works really well
+tb |> 
+  filter(ch == !!fct & id1 == 6)
+
+```
+
+:::

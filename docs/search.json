@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "What’s new in PIP?",
     "section": "",
-    "text": "Exception Handling\n\n\n\n\n\n\nErrors\n\n\nWarnings\n\n\n\nExample for pipdata\n\n\n\n\n\nFeb 13, 2025\n\n\nDiana C. Garcia\n\n\n\n\n\n\nNo matching items"
+    "text": "Collapse Cheat sheet\n\n\n\n\n\n\ncollapse\n\n\ndata.table\n\n\ndplyr\n\n\nefficiency\n\n\n\nSyntax translation from dplyr and data.tablen to collapse\n\n\n\n\n\nMar 13, 2025\n\n\nPIP Technical team\n\n\n\n\n\n\n\n\n\n\n\n\nException Handling\n\n\n\n\n\n\nErrors\n\n\nWarnings\n\n\n\nExample for pipdata\n\n\n\n\n\nFeb 13, 2025\n\n\nDiana C. Garcia\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "index.html#load-libraries-and-functions",
@@ -75,5 +75,40 @@
     "title": "Exception Handling",
     "section": "Work in progress…",
     "text": "Work in progress…\nA few things I am still figuring/working out are:\n\nI still have to format the add_log function to allowed for more than one character on the cnd$link value, or to make it more general so it can be used in other handlers."
+  },
+  {
+    "objectID": "posts/collapse_cheat_sheet/index.html",
+    "href": "posts/collapse_cheat_sheet/index.html",
+    "title": "Collapse Cheat sheet",
+    "section": "",
+    "text": "This post is inpired in the Atreba’s blog: A data.table and dplyr tour. The objective of this post is to complement Atreba’s one with the syntax of the {collapse} R package."
+  },
+  {
+    "objectID": "posts/collapse_cheat_sheet/index.html#introduction",
+    "href": "posts/collapse_cheat_sheet/index.html#introduction",
+    "title": "Collapse Cheat sheet",
+    "section": "",
+    "text": "This post is inpired in the Atreba’s blog: A data.table and dplyr tour. The objective of this post is to complement Atreba’s one with the syntax of the {collapse} R package."
+  },
+  {
+    "objectID": "posts/collapse_cheat_sheet/index.html#basic-understanding-of-the-three-packages",
+    "href": "posts/collapse_cheat_sheet/index.html#basic-understanding-of-the-three-packages",
+    "title": "Collapse Cheat sheet",
+    "section": "Basic understanding of the three packages",
+    "text": "Basic understanding of the three packages\n\ndplyr\nblach\n\n\ndata.table\nblah\n\n\ncollapse\nblah"
+  },
+  {
+    "objectID": "posts/collapse_cheat_sheet/index.html#data",
+    "href": "posts/collapse_cheat_sheet/index.html#data",
+    "title": "Collapse Cheat sheet",
+    "section": "Data",
+    "text": "Data\n\nlibrary(dplyr)\nlibrary(data.table)\nlibrary(collapse)\n\n\nset.seed(42)\n\n# Number of rows\nn &lt;- 10000\n\n# Generate fake data\ndf &lt;- data.frame(\n  id1 = 1:n,  # Unique ID\n  id2 = sample(1:500, n, replace = TRUE),  # Repeating ID\n  dt = seq.Date(from = as.Date(\"2023-01-01\"), by = \"day\", length.out = n),  # Dates\n  tm = format(seq.POSIXt(from = as.POSIXct(\"2023-01-01 00:00:00\"), \n                         by = \"hour\", length.out = n), \"%H:%M:%S\"),  # Time\n  ch = sample(c(\"A\", \"B\", \"C\", \"D\"), n, replace = TRUE),  # Character\n  int = sample(1:100, n, replace = TRUE),  # Integer\n  log = sample(c(TRUE, FALSE), n, replace = TRUE),  # Logical\n  realf = runif(n, 1, 100),  # Real (float),\n  reald = runif(n),  # Real ,\n  fct = factor(sample(c(\"X\", \"Y\", \"Z\"), n, replace = TRUE))  # Factor\n)\n\n# Ensure uniqueness\ndf &lt;- unique(df, by = c(\"id1\", \"id2\"))\ndt &lt;- setDT(df)\ntb &lt;- as_tibble(df)"
+  },
+  {
+    "objectID": "posts/collapse_cheat_sheet/index.html#basic-use",
+    "href": "posts/collapse_cheat_sheet/index.html#basic-use",
+    "title": "Collapse Cheat sheet",
+    "section": "Basic use",
+    "text": "Basic use\n\nFiltering rows\n\nFilter rows using indices\n\ncollapsedata.tabledplyr\n\n\n\n# super efficient\ndf |&gt; \n  ss(2:5)\n\n# efficient\ndf |&gt; \n  fsubset(2:5)\n\n\n\n\ndt[2:5]\n\n\n\n\ntb |&gt; \n  slice(2:5)\n\n# or using index like any data.frame\ntb[2:5,]\n\n# you need to add the comma. Otherwise, you get a different result\ntb[2:5]\n\n\n\n\n\n\nDiscard rows using negative indices\n\ncollapsedata.tabledplyr\n\n\n\ndf |&gt; \n  ss(-c(2:5)) |&gt; \n  head(4)\n\ndf |&gt; \n  ss(-c(2:5)) |&gt; \n  head(4)\n\n\n\n\ndt[!2:5] |&gt; \n  head(4)\n\n\n\n\ntb |&gt; \n  slice(-(2:5)) |&gt; \n  head(4)\n\n\n\n\n\n\nFilter rows using conditions\n\ncollapsedata.tabledplyr\n\n\n\ndf |&gt; \n  fsubset(ch == \"A\" & id1 == 6)\n\ndf |&gt; \n  fsubset(ch == x & id1 == 6)\n\n# This works\ndf |&gt; \n  fsubset(ch == ch & id1 == 6)\n\n# This does not work\ndf |&gt; \n  fsubset(ch == fct & id1 == 6)\n\n# This through error\ndf |&gt; \n  fsubset(ch == get(fct) & id1 == 6) |&gt; \n  try()\n\n# This works\ndf |&gt; \n  fsubset(ch == get(\"fct\", envir = -2) & id1 == 6) \n\n# NOTE: is there a better way?\n\n\n\n\ndt[ch == \"A\" & id1 == 6]\n\ndt[ch == x & id1 == 6]\n\ndt[ch ==ch & id1 == 6]\n\n# this does not work\ndt[ch == fct & id1 == 6]\n\n\ndt[ch == eval(fct) & id1 == 6]\n\n# These work but they are  verbose\ndt[ch == get(\"fct\", envir = parent.frame()) & id1 == 6]\ndt[ch == get(\"fct\", envir = -2) & id1 == 6]\n\n\n\n\ntb |&gt; \n  filter(ch == \"A\" & id1 == 6)\n\ntb |&gt; \n  filter(ch == x & id1 == 6)\n\ntb |&gt; \n  filter(ch == ch & id1 == 6)\n\n# does not work\ntb |&gt; \n  filter(ch == fct & id1 == 6)\n\n# works really well\ntb |&gt; \n  filter(ch == !!fct & id1 == 6)"
   }
 ]
