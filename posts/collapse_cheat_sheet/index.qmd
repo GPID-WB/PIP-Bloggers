@@ -284,10 +284,30 @@ tb |>
 ```
 :::
 
+## Helper functions
+
+::: panel-tabset
+
+## collapse
+
+The package includes `fsum`,`fprod`, `fmedian`, `fmode`, `fvar`, `fsd`, `fmin`,`fmax`,`fnth`, `ffirst`, `flast`,`fnobs`, and `fndistinct`. 
+
+## data.table
+
+The package includes `first`, `last` and `uniqueN`.
+
+## dplyr
+
+The package includes `first`, `last`, `n`, `nth`, and `n_distinct`.
+
+
+:::
+
 ## Other useful functions in collapse
 
 ```{r}
 # quick summary (From STATA summarize and xtsummarize)
+
 qsu(df, cols = c("realf"))
 
 
