@@ -15,21 +15,21 @@ execute:
 
 ## Introduction
 
-This post is inpired in the Atreba's blog: [A data.table and dplyr tour](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/). The objective of this post is to complement Atreba's one with the syntax of the [`{collapse}`](https://sebkrantz.github.io/collapse/) R package.
+This post is inspired in the Atreba's blog: [A data.table and dplyr tour](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/). The objective of this post is to complement Atreba's one with the syntax of the [`{collapse}`](https://sebkrantz.github.io/collapse/) R package.
 
 ## Basic understanding of the three packages
 
 ### dplyr
 
-blach
+A grammar of data manipulation in R which provides a consistent set of verbs to help you solve the most common data manipulation challenges. It is part of the `tidyverse` universe. [Click here for more information.](https://dplyr.tidyverse.org/).
 
 ### data.table
 
-blah
+A syntax to operate data manipulation operations, such as subset, group, update, join, etc. It reduces programming and compute time tremendously. [Click here for more information.](https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html)
 
 ### collapse
 
-blah
+A large C/C++ based package for data transformation and statistical computing in R. It aims to facilitate complex data transformations, explorations and computing tasks in R, while making code fast, flexible, parsimonious and programmer friendly. [Click here for more information.](https://sebkrantz.github.io/collapse/) 
 
 ## Data
 
@@ -82,9 +82,8 @@ tb <- as_tibble(df)
 ### Filtering rows
 
 #### Filter rows using indices
+
 ::: panel-tabset
-
-
 ## collapse
 
 ```{r}
@@ -99,13 +98,11 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
 dt[2:5]
 ```
-
 
 ## dplyr
 
@@ -120,11 +117,9 @@ tb[2:5,]
 tb[2:5]
 
 ```
-
 :::
 
-
-#### Discard rows using negative indices  
+#### Discard rows using negative indices
 
 ::: panel-tabset
 ## collapse
@@ -141,14 +136,12 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
 dt[!2:5] |> 
   head(4)
 ```
-
 
 ## dplyr
 
@@ -158,14 +151,11 @@ tb |>
   head(4)
 
 ```
-
 :::
 
 #### Filter rows using conditions
 
-
 ::: panel-tabset
-
 ```{r}
 # using named objects to filer data
 ch  <- "A" # data has this as variable name
@@ -173,8 +163,8 @@ fct <- "A" # data has this as variable name
 x  <- "A"
 ```
 
-
 ## collapse
+
 ```{r}
 df |> 
   fsubset(ch == "A" & id1 == 6)
@@ -203,7 +193,6 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
@@ -227,6 +216,7 @@ dt[ch == get("fct", envir = -2) & id1 == 6]
 ```
 
 ## dplyr
+
 ```{r}
 tb |> 
   filter(ch == "A" & id1 == 6)
@@ -246,5 +236,4 @@ tb |>
   filter(ch == !!fct & id1 == 6)
 
 ```
-
 :::
