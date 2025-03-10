@@ -368,27 +368,76 @@ tb |>
 
 ## collapse
 
-```{r}
-# slice with single indices
+```{r eval = FALSE}
+
 df |>
   fslice(n = 3)                 # First 3 rows
 df |>
-  fslice(n = 3, how = "last")   # Last 3 rows
+  fslice(n   = 3, 
+         how = "last")          # Last 3 rows
 df |>
-  fslice(n = 0.1)               # First 10% of rows
+  fslice(n = 0.1)               # Fraction of rows: first 10% of rows
 
-fslice(n = 3, how = "min", order.by = int)  # 3 obs with lowest int
+fslice(n        = 3, 
+       how      = "min", 
+       order.by = int)          # 3 obs with lowest int
+
+# TODO: add fslicev()
 
 ```
 
 
-
 ## data.table
+
+```{r}
+
+# Frist 3 rows
+dt[1:3, ]   # First 3 rows, all columns
+
+
+# Last 3 rows
+dt[(.N-2):.N]  # .N gives the total number of rows
+
+# Fraction of rows: first 10% of rows
+dt[1:(.N * 0.1)]
+
+
+# 3 obs with lowest int
+dt[order(int)][1:3]
+ 
+```
 
 
 ## dplyr
 
+```{r}
 
+# First 3 rows
+tb |>
+  slice_head(n = 3)
+
+# Last 3 rows
+tb |>
+  slice_tail(n = 3)
+
+# Fraction of rows: first 10% of rows
+tb |>
+  slice_head(prop = 0.1)
+
+# 3 obs with lowest int
+tb |>
+  slice_min(order_by = int, 
+            n        = 3) # all rows
+
+tb |>
+ slice_min(order_by = int, 
+           n        = 3, 
+           with_ties = FALSE) 
+
+```
 :::
 
+### Sort rows
 
+
+### Select columns
