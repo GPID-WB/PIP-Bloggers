@@ -55,20 +55,44 @@ set.seed(42)
 # Number of rows
 n <- 10000
 
-# Generate fake data
+# # Generate fake data
+# df <- data.frame(
+#   id1 = 1:n,  # Unique ID
+#   id2 = sample(1:500, n, replace = TRUE),  # Repeating ID
+#   dt = seq.Date(from = as.Date("2023-01-01"), by = "day", length.out = n),  # Dates
+#   tm = format(seq.POSIXt(from = as.POSIXct("2023-01-01 00:00:00"), 
+#                          by = "hour", length.out = n), "%H:%M:%S"),  # Time
+#   ch = sample(c("A", "B", "C", "D"), n, replace = TRUE),  # Character
+#   int = sample(1:100, n, replace = TRUE),  # Integer
+#   log = sample(c(TRUE, FALSE), n, replace = TRUE),  # Logical
+#   realf = runif(n, 1, 100),  # Real (float),
+#   reald = runif(n),  # Real ,
+#   fct = factor(sample(c("X", "Y", "Z"), n, replace = TRUE))  # Factor
+# )
+
+set.seed(42)
+
+# Number of rows
+n <- 10000
+
+# Generate fake data with some NAs
 df <- data.frame(
   id1 = 1:n,  # Unique ID
   id2 = sample(1:500, n, replace = TRUE),  # Repeating ID
-  dt = seq.Date(from = as.Date("2023-01-01"), by = "day", length.out = n),  # Dates
-  tm = format(seq.POSIXt(from = as.POSIXct("2023-01-01 00:00:00"), 
-                         by = "hour", length.out = n), "%H:%M:%S"),  # Time
-  ch = sample(c("A", "B", "C", "D"), n, replace = TRUE),  # Character
-  int = sample(1:100, n, replace = TRUE),  # Integer
-  log = sample(c(TRUE, FALSE), n, replace = TRUE),  # Logical
-  realf = runif(n, 1, 100),  # Real (float),
-  reald = runif(n),  # Real ,
-  fct = factor(sample(c("X", "Y", "Z"), n, replace = TRUE))  # Factor
+  dt = sample(c(seq.Date(from = as.Date("2023-01-01"), by = "day", length.out = n), NA), n, replace = TRUE),  # Dates with NAs
+  tm = sample(c(format(seq.POSIXt(from = as.POSIXct("2023-01-01 00:00:00"), 
+                                  by = "hour", length.out = n), "%H:%M:%S"), NA), n, replace = TRUE),  # Time with NAs
+  ch = sample(c("A", "B", "C", "D", NA), n, replace = TRUE, prob = c(0.24, 0.24, 0.24, 0.24, 0.04)),  # Character with some NAs
+  int = sample(c(1:100, NA), n, replace = TRUE),  # Integer with some NAs
+  log = sample(c(TRUE, FALSE, NA), n, replace = TRUE, prob = c(0.49, 0.49, 0.02)),  # Logical with some NAs
+  realf = sample(c(runif(n, 1, 100), NA), n, replace = TRUE),  # Real (float) with some NAs
+  reald = sample(c(runif(n), NA), n, replace = TRUE),  # Real with some NAs
+  fct = factor(sample(c("X", "Y", "Z", NA), n, replace = TRUE, prob = c(0.32, 0.32, 0.32, 0.04)))  # Factor with some NAs
 )
+
+# Print summary to check distribution of NAs
+summary(df)
+
 
 # Ensure uniqueness
 df <- unique(df, by = c("id1", "id2"))
@@ -82,9 +106,8 @@ tb <- as_tibble(df)
 ### Filtering rows
 
 #### Filter rows using indices
+
 ::: panel-tabset
-
-
 ## collapse
 
 ```{r}
@@ -99,13 +122,11 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
 dt[2:5]
 ```
-
 
 ## dplyr
 
@@ -120,11 +141,9 @@ tb[2:5,]
 tb[2:5]
 
 ```
-
 :::
 
-
-#### Discard rows using negative indices  
+#### Discard rows using negative indices
 
 ::: panel-tabset
 ## collapse
@@ -141,14 +160,12 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
 dt[!2:5] |> 
   head(4)
 ```
-
 
 ## dplyr
 
@@ -158,23 +175,20 @@ tb |>
   head(4)
 
 ```
-
 :::
 
 #### Filter rows using conditions
 
-
 ::: panel-tabset
-
 ```{r}
-# using named objects to filer data
+# using named objects to filter data
 ch  <- "A" # data has this as variable name
 fct <- "A" # data has this as variable name
 x  <- "A"
 ```
 
-
 ## collapse
+
 ```{r}
 df |> 
   fsubset(ch == "A" & id1 == 6)
@@ -203,7 +217,6 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
@@ -227,6 +240,7 @@ dt[ch == get("fct", envir = -2) & id1 == 6]
 ```
 
 ## dplyr
+
 ```{r}
 tb |> 
   filter(ch == "A" & id1 == 6)
@@ -246,5 +260,135 @@ tb |>
   filter(ch == !!fct & id1 == 6)
 
 ```
+:::
+
+#### Filter unique rows 
+
+::: panel-tabset
+```{r}
+# Removing duplicate rows based on the values of one or more columns 
+```
+
+## collapse
+
+```{r}
+
+# Remove duplicate rows
+df |>
+  funique()
+
+# Keeps only one row per unique value in id2
+df |>
+  funique(cols = "int") # selecting column by col name 
+df |>
+  funique(cols = 6)     # selecting column by indices
+df |>
+  funique(cols = names(df) %in% "int") # with logical condition
+```
+
+## data.table
+
+```{r}
+ 
+ # Remove duplicate rows
+dt |>
+  unique()
+
+# Keeps only one row per unique value in id2
+dt |>
+  unique(by = "id2")  
+```
+
+## dplyr
+
+```{r}
+
+# Remove duplicate rows
+tb |>
+  distinct()
+
+# Keeps only one row per unique id1
+tb |> distinct(id1, .keep_all = TRUE) # keep all col
+```
+:::
+
+#### Discard rows with missing values
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+# Discard rows with any NA value
+df |>
+  na_omit()
+
+# Discard rows with NA value for selected col
+df |>
+  na_omit(cols = "ch")
+
+# More flexible options:
+# Remove rows where more than 50% of values are missing
+df |>
+  na_omit(prop = 0.5)
+
+```
+
+
+## data.table
+```{r}
+
+# Discard rows with any NA value
+dt |>
+  na_omit()
+
+# Discard rows with NA value for selected col
+dt <- dt[!is.na(ch)]
+
+```
+
+
+## tidyverse
+```{r}
+
+# Discard rows with any NA value
+tb |>
+  tidyr::drop_na()
+
+# Discard rows with NA value for selected col
+tb |> 
+  tidyr::drop_na(ch)
+
+```
+:::
+
+#### Other filters: slice options
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+# slice with single indices
+df |>
+  fslice(n = 3)                 # First 3 rows
+df |>
+  fslice(n = 3, how = "last")   # Last 3 rows
+df |>
+  fslice(n = 0.1)               # First 10% of rows
+
+fslice(n = 3, how = "min", order.by = int)  # 3 obs with lowest int
+
+```
+
+
+
+## data.table
+
+
+## dplyr
+
 
 :::
+
+
