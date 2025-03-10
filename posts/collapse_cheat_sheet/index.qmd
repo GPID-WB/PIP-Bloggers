@@ -283,3 +283,12 @@ tb |>
 
 ```
 :::
+
+## Other useful functions in collapse
+
+```{r}
+# quick summary (From STATA summarize and xtsummarize)
+qsu(df, cols = c("realf"))
+
+
+```
