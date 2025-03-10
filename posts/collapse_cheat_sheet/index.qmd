@@ -31,7 +31,7 @@ A syntax to operate data manipulation operations, such as subset, group, update,
 
 A large C/C++ based package for data transformation and statistical computing in R. It aims to facilitate complex data transformations, explorations and computing tasks in R, while making code fast, flexible, parsimonious and programmer friendly. [Click here for more information.](https://sebkrantz.github.io/collapse/) 
 
-## Data
+## Load libraries
 
 ```{r}
 #| echo: true
@@ -46,6 +46,8 @@ library(data.table)
 library(collapse)
 
 ```
+
+## Data 
 
 ```{r}
 #| label: data
@@ -234,6 +236,50 @@ tb |>
 # works really well
 tb |> 
   filter(ch == !!fct & id1 == 6)
+
+```
+:::
+
+### Summarise data
+
+#### Summarise columns
+
+::: panel-tabset
+## collapse
+
+```{r}
+
+# efficient
+df |>
+  fsummarise(sum_rf = fsum(realf),
+             sd_rd = fsd(reald))
+
+# shorthand
+df |>
+  smr(sum_rf = fsum(realf),
+      sd_rd = fsd(reald))
+
+```
+
+## data.table
+
+```{r}
+dt[, sum(realf)] # returns a vector
+
+dt[, .(sum(realf))] # returns a data.table
+
+dt[, .(sum_rf = sum(realf), # returns a data.table with named columns
+       sd_rd = sd(reald))]
+```
+
+## dplyr
+
+```{r}
+summarise(tb, sum(realf)) # returns a tibble
+
+tb |> 
+  summarise(sum_rf = sum(realf), # returns a tibble
+            sd_rd = sd(reald))
 
 ```
 :::
