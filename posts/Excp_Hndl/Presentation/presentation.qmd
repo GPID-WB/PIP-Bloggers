@@ -533,10 +533,10 @@ unq_pfw <- function(dt,
                     log_err = TRUE,                     
                     skip_err = TRUE){
 
-  if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){
-
     tryCatch(
       expr = {
+        
+        if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){
         
         dt_d <- dt[duplicated(dt, by = keyVar)]         
         n_rep <- nrow(dt_d)          
@@ -546,7 +546,16 @@ unq_pfw <- function(dt,
                        skip = skip_err,
                        link =  unique(dt_d$link),
                        call = sys.call())
+        
+        }
+        
         },
+      error = function(cnd){
+        
+        cli::cli_abort(message = "Untracked error",
+                       call = cnd$call)
+        
+      },
       dup_pfw = function(cnd){
         
       if(cnd$log){ 
@@ -568,7 +577,7 @@ unq_pfw <- function(dt,
       
       } 
     )
-    }
+    
   return(dt)
 }
 ```

@@ -205,28 +205,123 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="load-libraries-and-functions" class="level2">
 <h2 class="anchored" data-anchor-id="load-libraries-and-functions">Load libraries and functions</h2>
 <p>First, these are the main libraries I used.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load libraries library(metapip) library(data.table)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load libraries </span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(metapip) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>-- Attaching packages ------------------------------------ metapip 0.0.0.9014 --</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Packages pipdata, pipr, and pipaux are not installed.
+i you may try `metapip::install_pip_packages(c("pipdata", "pipr", "pipaux"))`</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>v pipapi  1.2.0.9001 (dev)
+v pipload 0.2.1      (DEV_v2)
+v wbpip   0.1.3      (dev)
+v pipfun  0.0.2      (DEV)
+v pipster 0.0.0.9002 (PROD)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'data.table' was built under R version 4.3.3</code></pre>
+</div>
+</div>
 <p>However, make sure to have installed the following packages as well: <code>cli</code> and <code>rlang</code> .</p>
 <p>The following is the example of the function I need to be “handle” with <code>tryCatch</code> . This function tries to check if there are duplicates in <code>dt</code> according to some <code>keyVar</code> and if there are duplicates it could abort and exit or continue without exiting. The function has another two parameters to decide the following:</p>
 <p>1. <code>log_err</code> if we want the error to be included in a error-report log ( TRUE and FALSE)</p>
 <p>2. <code>skip_err</code> if we want the error to be skipped ( TRUE and FALSE)</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to handle duplicated observations in pfw unq_pfw &lt;- function(dt,                     keyVar,                     log_err = TRUE,                     skip_err = TRUE) {    tryCatch(      expr = {        if(uniqueN(dt, by = keyVar) != nrow(dt)){          dt_d &lt;- dt[duplicated(dt, by = keyVar)]         n_rep &lt;- nrow(dt_d)          cli::cli_abort(message = "There {?is/are} {n_rep} duplicates in `pfw`",                        class = c("dup_pfw", "piperr"),                        log = log_err,                        skip = skip_err,                        link =  unique(dt_d$link),                        call = sys.call())       }      },      dup_pfw = function(cnd){        if(cnd$log){ # Log the error          add_log(cnd)        }        if(!cnd$skip){ # Abort if you don't want to skip, but after logging          cli::cli_abort(cnd$message, call = cnd$call)        }      },      finally = {        dt &lt;- unique(dt, by = keyVar) # eliminate duplicates      }    )     return(dt)  }</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to handle duplicated observations in pfw </span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>unq_pfw <span class="ot">&lt;-</span> <span class="cf">function</span>(dt,                     </span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                    keyVar,                     </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                    <span class="at">log_err =</span> <span class="cn">TRUE</span>,                     </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                    <span class="at">skip_err =</span> <span class="cn">TRUE</span>) {    </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(      </span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> {        </span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">uniqueN</span>(dt, <span class="at">by =</span> keyVar) <span class="sc">!=</span> <span class="fu">nrow</span>(dt)){          </span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        dt_d <span class="ot">&lt;-</span> dt[<span class="fu">duplicated</span>(dt, <span class="at">by =</span> keyVar)]         </span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        n_rep <span class="ot">&lt;-</span> <span class="fu">nrow</span>(dt_d)          </span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        cli<span class="sc">::</span><span class="fu">cli_abort</span>(<span class="at">message =</span> <span class="st">"There {?is/are} {n_rep} duplicates in `pfw`"</span>,                         <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"dup_pfw"</span>, <span class="st">"piperr"</span>),</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                       <span class="at">log =</span> log_err,</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>                       <span class="at">skip =</span> skip_err,</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>                       <span class="at">link =</span>  <span class="fu">unique</span>(dt_d<span class="sc">$</span>link),</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>                       <span class="at">call =</span> <span class="fu">sys.call</span>())</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>      }      </span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">dup_pfw =</span> <span class="cf">function</span>(cnd){</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(cnd<span class="sc">$</span>log){ </span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Log the error</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">add_log</span>(cnd)</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="sc">!</span>cnd<span class="sc">$</span>skip){</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Abort if you don't want to skip, but after logging</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>        cli<span class="sc">::</span><span class="fu">cli_abort</span>(cnd<span class="sc">$</span>message, <span class="at">call =</span> cnd<span class="sc">$</span>call)        }</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    },      </span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">finally =</span> {</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>      dt <span class="ot">&lt;-</span> <span class="fu">unique</span>(dt, <span class="at">by =</span> keyVar)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="co"># eliminate duplicates      </span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    }    )     </span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(dt)  </span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>If you run the lines within <code>expr ={ }</code> , this will probably crash and an error about duplicates will be shown. However, <strong>what I want is to first record this error on a log, and then decide if to skip the error or not, and get a clean dataset</strong>. That is why we need <code>tryCatch</code> . As you can see within the <code>finally</code> section, I also included a line that eliminates the duplicates and returns the new “clean” dataset. This is because I am going to “handle” the abort actions with <code>tryCatch</code> and after this, R will “finally” run these lines and give us the clean output we need (if we do not want to abort).</p>
 <p>Now let me explain the steps within the <code>tryCatch</code> . First, you might be wondering what are the parameters within <code>cli::cli_abort()</code> . I assume <code>message</code> is straightforward. However, <code>class</code> might be the most important. The class we give to this specific error, or condition, will be what makes it identifiable on our <code>tryCatch</code> . Since we gave a new <code>class</code> to the error called <code>dup_pfw</code> , the function <code>tryCatch</code>, instead of aborting and exiting the code when the error is found, will run the code within <code>dup_pfw = function(cnd){ }</code> instead. The parameter <code>cnd</code> then carries all the information we gave within <code>cil::cli_abort</code> ; the <code>class</code> , the <code>log/skip</code> actions, and the identifiers of the duplicates <code>link</code> .</p>
 <p><strong>Important:</strong> The parameters <code>log</code> and <code>skip</code> within <code>cil::cli_abort</code> are my tools to decide how to handle this error and these are totally made up by me for this specific function. You can create any parameter you want within <code>cli::abort()</code> and this will carry on within the handler. For example, I created the parameter <code>link</code> which will carry the identifiers of those duplicated observations. These are needed for the error-report log.</p>
 <p>Talking about the log, before you run the code below, please load the following function <code>add_log</code> . This function will load some concatenated text on the file <code>log.txt</code> saved in your working directory and it is used within the handler.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for logging add_log &lt;- function(cnd) {    cat(     "[", class(cnd)[[1]], "-", class(cnd)[[2]], "] ",     cnd$message," for ",     cnd$link, "\n", sep = "",     file = "log.txt", append = TRUE   )  }</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for logging </span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>add_log <span class="ot">&lt;-</span> <span class="cf">function</span>(cnd) {    </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(     </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"["</span>, <span class="fu">class</span>(cnd)[[<span class="dv">1</span>]], <span class="st">"-"</span>, <span class="fu">class</span>(cnd)[[<span class="dv">2</span>]], <span class="st">"] "</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    cnd<span class="sc">$</span>message,<span class="st">" for "</span>,     </span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    cnd<span class="sc">$</span>link, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>, <span class="at">sep =</span> <span class="st">""</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">file =</span> <span class="st">"log.txt"</span>, <span class="at">append =</span> <span class="cn">TRUE</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    )  </span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 <section id="load-data-and-run-code" class="level2">
 <h2 class="anchored" data-anchor-id="load-data-and-run-code">Load data and run code</h2>
 <p>The data used for this example can be loaded with <code>pipload</code> and represents the auxiliary Price Frame Work, or <code>pfw</code> . Since I needed it to run over the error at some point, I also create another data frame with some duplicates, <code>pfw_d</code> .</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load data pfw_t &lt;- pip_load_aux("pfw")  pfw_d &lt;- rbind(pfw_t, pfw_t[rep(1, 5), ]) # Duplicate some rows from one country</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load data </span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>pfw_t <span class="ot">&lt;-</span> <span class="fu">pip_load_aux</span>(<span class="st">"pfw"</span>)  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>v Most recent version of data loaded:
+'pfw.qs'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>i no labels available for measure pfw</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>pfw_d <span class="ot">&lt;-</span> <span class="fu">rbind</span>(pfw_t, pfw_t[<span class="fu">rep</span>(<span class="dv">1</span>, <span class="dv">5</span>), ]) </span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Duplicate some rows from one country</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>Now, we will run the function and this should not give you any errors because the default value of <code>skip_err = TRUE</code> .</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tryCatch for unq_pwf function keyVar &lt;- c("country_code", "surveyid_year", "survey_acronym")  pfw &lt;- unq_pfw(pfw_d, keyVar)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tryCatch for unq_pwf function </span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>keyVar <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"country_code"</span>, <span class="st">"surveyid_year"</span>, <span class="st">"survey_acronym"</span>)  </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>pfw <span class="ot">&lt;-</span> <span class="fu">unq_pfw</span>(pfw_d, keyVar)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>If the error was handled and skipped correctly (default parameters), the answer to the following code should give you <code>TRUE</code> and you will find a <code>log.txt</code> file with the new record of these error.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test  uniqueN(pfw, by = keyVar) == nrow(pfw)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test  </span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">uniqueN</span>(pfw, <span class="at">by =</span> keyVar) <span class="sc">==</span> <span class="fu">nrow</span>(pfw)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
 <p>However, if you run the function without skipping the error, the abort function will come into action:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tryCatch for unq_pwf function without skipping error  pfw &lt;- unq_pfw(pfw_d, keyVar, skip_err = FALSE)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tryCatch for unq_pwf function without skipping error  </span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>pfw <span class="ot">&lt;-</span> <span class="fu">unq_pfw</span>(pfw_d, keyVar, <span class="at">skip_err =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `unq_pfw()`:
+! There are 5 duplicates in `pfw`</code></pre>
+</div>
+</div>
 <p>Let me know if that is not the case, or if you have any questions about the example! Happy to talk about it and learn together 🙂</p>
 </section>
 <section id="sources" class="level2">
