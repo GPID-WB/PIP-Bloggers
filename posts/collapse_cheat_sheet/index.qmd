@@ -284,7 +284,7 @@ tb |>
 ```
 :::
 
-## Helper functions
+#### Helper functions
 
 ::: panel-tabset
 
@@ -300,6 +300,72 @@ The package includes `first`, `last` and `uniqueN`.
 
 The package includes `first`, `last`, `n`, `nth`, and `n_distinct`.
 
+:::
+
+### Manipulations of columns
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+ # Add one oe several columns (can also use ftransform)
+df <- df |>
+  fmutate(log_rf = log(realf)) 
+
+df <- df |>
+  fmutate(log_rd = log(reald),
+           sqrt_rd = sqrt(reald))
+
+# Create one column and eliminate others
+fcompute(df, log2_rf = log_rf*2) 
+
+ # remove columns
+df <- df |>
+  fselect(-log_rf,-log_rd,-sqrt_rd)
+
+```
+
+## data.table
+
+```{r}
+
+# Add one column
+dt[, log_rf := log(realf)] 
+
+# Add several columns
+dt[, ':=' (log_rd = log(reald), 
+           sqrt_rd = sqrt(reald))]
+
+# Create one column and eliminate others
+dt[, .(log2_rf = log_rf*2)] 
+
+# remove columns
+dt[, c("log_rf", "log_rd", "sqrt_rd") := NULL] 
+
+```
+
+## dplyr
+
+```{r}
+
+# Add one or several column
+tb <- tb |> 
+  mutate(log_rf = log(realf))
+
+tb <- tb |> 
+  mutate(log_rd = log(reald), 
+           sqrt_rd = sqrt(reald))
+
+# Create one column and eliminate others
+transmute(tb, log2_rf = log_rf*2)
+
+# remove columns
+tb <- tb |> 
+  select(-log_rf,-log_rd,-sqrt_rd)
+  
+```
 
 :::
 
