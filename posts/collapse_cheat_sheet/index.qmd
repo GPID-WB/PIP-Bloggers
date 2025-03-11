@@ -439,5 +439,55 @@ tb |>
 
 ### Sort rows
 
+#### Sort rows by column(s)
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+df |>
+  roworder(id1)  
+
+df |>
+  roworder(-id2)      # Sort by decreasing order of id2
+
+df |>
+  roworder(id1, -id2) # Sort by multiple cols 
+
+```
+
+
+## data.table
+
+```{r}
+
+dt[order(id2)]    # This makes a copy
+
+setorder(dt, id2) # To modify by reference  
+
+dt[order(-id2)]   # Sort by decreasing order
+
+dt[order(id1, -id2)] # Sort by multiple cols 
+
+```
+
+## dplyr
+
+```{r}
+
+tb |>
+  arrange(id2)
+
+tb |>
+  arrange(desc(id2)) # Sort by decreasing order
+
+# Sort by multiple cols 
+df |>
+   arrange(id1, desc(id2))
+
+```
+
+::: 
 
 ### Select columns
