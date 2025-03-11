@@ -369,7 +369,7 @@ tb <- tb |>
 
 :::
 
-## by
+### by
 
 ::: panel-tabset
 
@@ -445,6 +445,130 @@ add_count(tb, ch)
 ```
 
 :::
+
+## Going further
+
+### Advanced columns manipulation
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+# Summarize columns
+df |>
+  fsummarise(across(c("realf", "reald"),
+            fmean))
+
+# Summarize using a condition
+df |>
+  fsummarise(across(is.numeric, # different from dplyr due to across
+                   fmean))
+
+# Modify all the columns
+df |> 
+  fmutate(across(NULL,rev))
+
+# Modify several columns
+df |> 
+  fcomputev(vars = c("realf", "reald"), # dropping the other columns
+                  sqrt)
+
+df <- df |>
+  ftransformv(vars = c("realf", "reald"), # keeping the other columns
+                sqrt)
+
+df <- df |>
+  ftransformv(vars = c("realf", "reald"), # reverting for consistency
+                FUN = function(x){ x^2 })
+
+# Modify columns using a condition 
+
+df |>
+  fcomputev(is.numeric,
+           FUN = function(x){x - 1})
+
+```
+
+## data.table
+
+```{r}
+
+# Summarize columns
+dt[, lapply(.SD, mean),
+   .SDcols = c("realf", "reald")]
+
+# Summarize using a condition
+dt[, lapply(.SD, mean),
+     .SDcols = is.numeric]
+
+# Modify all the columns
+dt[, lapply(.SD, rev)]
+
+# Modify several columns
+dt[, lapply(.SD, sqrt), # dropping the other columns
+     .SDcols = realf:reald]
+
+cols <- c("realf", "reald")
+
+dt[, (cols) := lapply(.SD, sqrt), # keeping the other columns
+     .SDcols = cols]
+
+dt[, (cols) := lapply(.SD, "^", 2L), # reverting for consistency
+     .SDcols = cols]
+
+# Modify columns using a condition 
+dt[, .SD - 1,
+     .SDcols = is.numeric] 
+
+rm(cols)
+
+```
+
+## dplyr
+
+```{r}
+
+# Summarize columns
+tb |>
+  summarise(across(c("realf", "reald"),
+            mean))
+
+# Summarize using a condition
+tb |>
+  summarise(across(where(is.numeric),
+                   mean))
+
+# Modify all the columns
+tb |> 
+  mutate(across(everything(),
+                rev))
+
+# Modify several columns
+tb |>
+  transmute(across(c("realf", "reald"), # dropping the other columns
+                  sqrt))
+
+tb <- tb |>
+  mutate(across(all_of(c("realf", "reald")), # keeping the other columns
+                sqrt))
+
+tb <- tb |>
+  mutate(across(all_of(c("realf", "reald")), # reverting for consistency
+                ~ "^"(.x, 2L)))
+
+# Modify columns using a condition 
+
+tb |>
+  transmute(across(where(is.numeric), 
+                   ~ '-'(., 1L)))
+
+```
+
+:::
+
+
 
 ## Other useful functions in collapse
 
