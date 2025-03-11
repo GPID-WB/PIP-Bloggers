@@ -124,5 +124,12 @@
     "title": "Collapse Cheat sheet",
     "section": "Other useful functions in collapse",
     "text": "Other useful functions in collapse\n\n# quick summary (From STATA summarize and xtsummarize)\n\nqsu(df, cols = c(\"realf\"))"
+  },
+  {
+    "objectID": "posts/collapse_cheat_sheet/index.html#by",
+    "href": "posts/collapse_cheat_sheet/index.html#by",
+    "title": "Collapse Cheat sheet",
+    "section": "by",
+    "text": "by\n\ncollapsedata.tabledplyr\n\n\n\ndf |&gt; \n  fgroup_by(ch)|&gt;\n  fsummarise(sumrf = fsum(realf)) # ordered and indexed results\n\n# Assigned column name\n\ndf |&gt; \n  fgroup_by(abc = tolower(ch))|&gt;\n  fsummarise(sumrf = fsum(realf))\n\n# Add a column with number of observations for each group\n\ndf |&gt;\n  fgroup_by(ch)|&gt;\n  fcount(add = TRUE)\n\n\n\n\ndt[, .(sumrf = sum(realf)), by = \"ch\"] # unordered results\n\n# Reordered and indented:\n\ndt[, keyby = ch,\n     .(sumrf = sum(realf))]\n\n# Assigning column name\n\ndt[, keyby = .(abc = tolower(ch)),\n     .(sumrf = sum(realf))]\n\n# Add a column with number of observations for each group\n\ndt[, n := .N, by = ch][]\ndt[, n := NULL] # remove for consistency\n\n\n\n\ntb |&gt; \n  group_by(ch)|&gt;\n  summarise(sumrf = sum(realf)) # ordered results\n\n# Assigned column name\n\ntb |&gt; \n  group_by(abc = tolower(ch))|&gt;\n  summarise(sumrf = sum(realf))\n\n# Add a column with number of observations for each group\n\ntb |&gt;\n  group_by(ch)|&gt;\n  add_tally()\n\n# or...\n\nadd_count(tb, ch)"
   }
 ]

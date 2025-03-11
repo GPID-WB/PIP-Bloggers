@@ -369,6 +369,83 @@ tb <- tb |>
 
 :::
 
+## by
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+df |> 
+  fgroup_by(ch)|>
+  fsummarise(sumrf = fsum(realf)) # ordered and indexed results
+
+# Assigned column name
+
+df |> 
+  fgroup_by(abc = tolower(ch))|>
+  fsummarise(sumrf = fsum(realf))
+
+# Add a column with number of observations for each group
+
+df |>
+  fgroup_by(ch)|>
+  fcount(add = TRUE)
+
+```
+
+## data.table
+
+```{r}
+
+dt[, .(sumrf = sum(realf)), by = "ch"] # unordered results
+
+# Reordered and indented:
+
+dt[, keyby = ch,
+     .(sumrf = sum(realf))]
+
+# Assigning column name
+
+dt[, keyby = .(abc = tolower(ch)),
+     .(sumrf = sum(realf))]
+
+# Add a column with number of observations for each group
+
+dt[, n := .N, by = ch][]
+dt[, n := NULL] # remove for consistency
+
+```
+
+## dplyr
+
+```{r}
+
+tb |> 
+  group_by(ch)|>
+  summarise(sumrf = sum(realf)) # ordered results
+
+# Assigned column name
+
+tb |> 
+  group_by(abc = tolower(ch))|>
+  summarise(sumrf = sum(realf))
+
+# Add a column with number of observations for each group
+
+tb |>
+  group_by(ch)|>
+  add_tally()
+
+# or...
+
+add_count(tb, ch)
+
+```
+
+:::
+
 ## Other useful functions in collapse
 
 ```{r}
