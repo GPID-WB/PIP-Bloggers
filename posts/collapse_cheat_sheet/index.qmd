@@ -593,28 +593,63 @@ df |>
 ## collapse
 
 ```{r}
-# By column names 
+# Exclude columns by column names 
 df |>
   fselect(-dt, -tm)
 
 # Using a character vector 
+cols <- c("dt", "tm")
 
+df |>
+  fselect(-cols)  # does not work 
+
+df |>
+  fselect(!cols) # does not work 
+
+# what is a better way to do this?
 
 ```
 
 
 ## data.table
+
 ```{r}
+
+# Exclude columns by column names 
 dt[, !c("dt", "tm")]
+
+# Using a character vector 
+cols <- c("dt", "tm")
+
+dt[, ..cols] 
+# .. prefix means 'one-level up', as cols is outside the parent environment 
+
+dt[, !..cols] # or dt[, -..cols]
+
 ```
 
 
 ## dplyr
+
 ```{r}
 
+# Exclude columns by column names 
 tb |>
   select( -dt, -tm)
+
+# Using a character vector 
+cols <- c("dt", "tm")
+
+tb |>
+  select(all_of(cols))
+
+tb |>
+  select(-all_of(cols))
+
 ```
 
-
 :::
+
+#### Other selections - not sure it is relevant, to check 
+
+
