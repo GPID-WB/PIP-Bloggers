@@ -491,3 +491,130 @@ df |>
 ::: 
 
 ### Select columns
+
+#### Select one or more columns
+
+::: panel-tabset 
+
+```{r}
+# select one column using an index, not recommended, or column name
+# select multiple columns 
+```
+
+## collapse
+
+```{r}
+
+## Select one column   ####
+# _________________________ 
+
+# by index
+df |>
+  fselect(2)
+
+df |>
+  slt(2) # shorthand for fselect
+
+# by name
+
+df |>
+  fselect(id2)  # returns a dataframe 
+
+## Select multiple columns ####
+# _____________________________ 
+
+df |>
+  fselect(id1, id2, fct)
+
+df |>
+  fselect(id1, ch:fct)
+
+```
+
+
+## data.table
+
+```{r}
+
+## Select one column   ####
+# _________________________ 
+
+# by index
+dt[[3]]  # returns a vector
+dt[, 3]  # returns a data.table
+
+# by name
+dt[, list(id2)] # returns a data.table
+dt[, .(id2)]    # returns a data.table (. is an alias for list)
+dt[, "id2"]     # returns a data.table
+dt[, id2]       # returns a vector
+dt[["id2"]]     # returns a vector
+
+## Select multiple columns ####
+# _____________________________ 
+dt[, .(id1, id2, int)]
+dt[, list(id1, id2, int)]
+dt[, id2:int] # select columns between id2 and int
+
+```
+
+
+## dplyr
+
+```{r}
+
+## Select one column   ####
+# _________________________ 
+
+tb |>
+  select(id2)               # returns a tibble
+
+pull(tb, id2, name = ch)    # returns a (named) vector
+tb[, "id2"]                 # returns a tibble
+tb[["id2"]]                 # returns a vector
+
+## Select multiple columns ####
+# _____________________________ 
+
+df |>
+  select(id1, id2, ch)
+df |>
+  select(id1, ch:fct)
+
+```
+
+
+:::
+
+#### Exclude columns 
+
+::: panel-tabset 
+
+## collapse
+
+```{r}
+# By column names 
+df |>
+  fselect(-dt, -tm)
+
+# Using a character vector 
+
+
+```
+
+
+## data.table
+```{r}
+dt[, !c("dt", "tm")]
+```
+
+
+## dplyr
+```{r}
+
+tb |>
+  select( -dt, -tm)
+```
+
+
+:::
