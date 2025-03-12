@@ -74,7 +74,7 @@ df <- data.frame(
 
 # Ensure uniqueness
 df <- unique(df, by = c("id1", "id2"))
-dt <- setDT(df)
+dt <- copy(setDT(df))
 tb <- as_tibble(df)
 
 ```
@@ -568,7 +568,138 @@ tb |>
 
 :::
 
+### Chain expressions 
 
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+df |>
+  fgroup_by(ch)|>
+  fsummarise(sumrf = fsum(realf))|>
+  fsubset(sumrf < 129000)
+
+```
+
+## data.table
+
+```{r}
+
+dt[, by = ch,
+   .(sumrf = sum(realf))][
+     sumrf < 129000
+   ]
+
+```
+
+## dplyr
+
+```{r}
+
+tb |>
+  group_by(ch)|>
+  summarise(sumrf = sum(realf))|>
+  filter(sumrf < 129000)
+
+```
+
+:::
+
+### Indexing and keys (not sure it applies)
+
+### set modifications
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+# Replace values (recommendation to use set of data.table)
+
+set(df, i = 1L, j = 2L, value = 30L) 
+
+# Reorder rows
+
+df <- roworder(df, id2, -id1)
+
+df <- roworder(df, id1) # reversal for consistency
+
+# Modify column names
+
+df <- frename(df, dt = date)
+
+df <- frename(df, date = dt) # reversal for consistency
+
+# reorder columns
+
+df <- colorder(df, id1, id2, ch)
+
+```
+
+## data.table
+
+```{r}
+
+# Replace values
+
+set(dt, i = 1L, j = 2L, value = 30L)
+
+# Reorder rows
+
+setorder(dt, id2, -id1)
+
+setorder(dt, id1) # reversal for consistency
+
+# Modify column names
+
+setnames(dt, old = "dt", new = "date")
+
+setnames(dt, old = "date", new = "dt")  # reversal for consistency
+
+# reorder columns
+
+setcolorder(dt, c("id1","id2","ch"))
+
+```
+
+## dplyr
+
+```{r}
+
+# Replace values
+
+tb[1,2] <- 30L
+
+# Reorder rows
+
+tb <- arrange(tb, id2, desc(id1))
+
+tb <- arrange(tb, id1) # reversal for consistency
+
+# Modify column names
+
+tb <- rename(tb, date = dt)
+
+tb <- rename(tb, dt = date) # reversal for consistency
+
+# reorder columns
+
+tb <- relocate(tb, c("id1", "id2", "ch"))
+
+```
+
+:::
+
+### Advanced use of by (maybe)
+
+## Join/Bind data sets
+
+### Bind (focus on this)
+
+## Efficient functions (maybe)
 
 ## Other useful functions in collapse
 
