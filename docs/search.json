@@ -144,7 +144,7 @@
     "href": "posts/collapse_cheat_sheet/index.html#joinbind-data-sets",
     "title": "Collapse Cheat sheet",
     "section": "Join/Bind data sets",
-    "text": "Join/Bind data sets\n\nBind (focus on this)"
+    "text": "Join/Bind data sets\n\nBind\n\ncollapsedata.tabledplyr\n\n\n\nx &lt;- data.table(1:3)\ny &lt;- data.table(4:6)\nz &lt;- data.table(7:9, 0L)\n\n# bind rows\n\nrowbind(x, y, fill = TRUE) # always fills\n\n# bind rows using a list\n\nrowbind(list(x, y), idcol = \"id\")\n\n# bind columns\n\nbase::cbind(x, y)\n\nadd_vars(x) &lt;- y # modifies x but keeps data structure and attributes\n\n\n\n\nx &lt;- data.table(1:3)\ny &lt;- data.table(4:6)\nz &lt;- data.table(7:9, 0L)\n\n# bind rows\n\nrbind(x, y, fill = TRUE)\n\n# bind rows using a list\n\nrbindlist(list(x, y), idcol = \"id\")\n\n# bind columns\n\nbase::cbind(x, y)\n\nx &lt;- base::cbind(x, y) # modifies x but column names are not changed\n\n\n\n\nx &lt;- data.table(1:3)\ny &lt;- data.table(4:6)\nz &lt;- data.table(7:9, 0L)\n\n# bind rows\n\nbind_rows(x, y) # always fills\n\n# bind rows using a list\n\nbind_rows(list(x, y), .id = \"id\")\n\n# bind columns\n\nbind_cols(x, y)\n\nx &lt;- bind_cols(x, y) # modifies x and replace names"
   },
   {
     "objectID": "posts/collapse_cheat_sheet/index.html#efficient-functions-maybe",

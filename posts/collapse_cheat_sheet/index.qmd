@@ -697,7 +697,85 @@ tb <- relocate(tb, c("id1", "id2", "ch"))
 
 ## Join/Bind data sets
 
-### Bind (focus on this)
+### Bind
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+x <- data.table(1:3)
+y <- data.table(4:6)
+z <- data.table(7:9, 0L)
+
+# bind rows
+
+rowbind(x, y, fill = TRUE) # always fills
+
+# bind rows using a list
+
+rowbind(list(x, y), idcol = "id")
+
+# bind columns
+
+base::cbind(x, y)
+
+add_vars(x) <- y # modifies x but keeps data structure and attributes
+
+```
+
+## data.table
+
+```{r}
+
+x <- data.table(1:3)
+y <- data.table(4:6)
+z <- data.table(7:9, 0L)
+
+# bind rows
+
+rbind(x, y, fill = TRUE)
+
+# bind rows using a list
+
+rbindlist(list(x, y), idcol = "id")
+
+# bind columns
+
+base::cbind(x, y)
+
+x <- base::cbind(x, y) # modifies x but column names are not changed
+
+```
+
+## dplyr
+
+```{r}
+
+x <- data.table(1:3)
+y <- data.table(4:6)
+z <- data.table(7:9, 0L)
+
+# bind rows
+
+bind_rows(x, y) # always fills
+
+# bind rows using a list
+
+bind_rows(list(x, y), .id = "id")
+
+# bind columns
+
+bind_cols(x, y)
+
+x <- bind_cols(x, y) # modifies x and replace names
+
+```
+
+
+:::
+
 
 ## Efficient functions (maybe)
 
