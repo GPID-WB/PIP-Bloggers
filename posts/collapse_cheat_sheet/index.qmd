@@ -15,23 +15,23 @@ execute:
 
 ## Introduction
 
-This post is inpired in the Atreba's blog: [A data.table and dplyr tour](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/). The objective of this post is to complement Atreba's one with the syntax of the [`{collapse}`](https://sebkrantz.github.io/collapse/) R package.
+This post is inspired in the Atreba's blog: [A data.table and dplyr tour](https://atrebas.github.io/post/2019-03-03-datatable-dplyr/). The objective of this post is to complement Atreba's one with the syntax of the [`{collapse}`](https://sebkrantz.github.io/collapse/) R package.
 
 ## Basic understanding of the three packages
 
 ### dplyr
 
-blach
+A grammar of data manipulation in R which provides a consistent set of verbs to help you solve the most common data manipulation challenges. It is part of the `tidyverse` universe. [Click here for more information.](https://dplyr.tidyverse.org/).
 
 ### data.table
 
-blah
+A syntax to operate data manipulation operations, such as subset, group, update, join, etc. It reduces programming and compute time tremendously. [Click here for more information.](https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html)
 
 ### collapse
 
-blah
+A large C/C++ based package for data transformation and statistical computing in R. It aims to facilitate complex data transformations, explorations and computing tasks in R, while making code fast, flexible, parsimonious and programmer friendly. [Click here for more information.](https://sebkrantz.github.io/collapse/) 
 
-## Data
+## Load libraries
 
 ```{r}
 #| echo: true
@@ -46,6 +46,8 @@ library(data.table)
 library(collapse)
 
 ```
+
+## Data 
 
 ```{r}
 #| label: data
@@ -72,7 +74,7 @@ df <- data.frame(
 
 # Ensure uniqueness
 df <- unique(df, by = c("id1", "id2"))
-dt <- setDT(df)
+dt <- copy(setDT(df))
 tb <- as_tibble(df)
 
 ```
@@ -82,9 +84,8 @@ tb <- as_tibble(df)
 ### Filtering rows
 
 #### Filter rows using indices
+
 ::: panel-tabset
-
-
 ## collapse
 
 ```{r}
@@ -99,13 +100,11 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
 dt[2:5]
 ```
-
 
 ## dplyr
 
@@ -120,11 +119,9 @@ tb[2:5,]
 tb[2:5]
 
 ```
-
 :::
 
-
-#### Discard rows using negative indices  
+#### Discard rows using negative indices
 
 ::: panel-tabset
 ## collapse
@@ -141,14 +138,12 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
 dt[!2:5] |> 
   head(4)
 ```
-
 
 ## dplyr
 
@@ -158,14 +153,11 @@ tb |>
   head(4)
 
 ```
-
 :::
 
 #### Filter rows using conditions
 
-
 ::: panel-tabset
-
 ```{r}
 # using named objects to filer data
 ch  <- "A" # data has this as variable name
@@ -173,8 +165,8 @@ fct <- "A" # data has this as variable name
 x  <- "A"
 ```
 
-
 ## collapse
+
 ```{r}
 df |> 
   fsubset(ch == "A" & id1 == 6)
@@ -203,7 +195,6 @@ df |>
 
 ```
 
-
 ## data.table
 
 ```{r}
@@ -227,6 +218,7 @@ dt[ch == get("fct", envir = -2) & id1 == 6]
 ```
 
 ## dplyr
+
 ```{r}
 tb |> 
   filter(ch == "A" & id1 == 6)
@@ -246,5 +238,553 @@ tb |>
   filter(ch == !!fct & id1 == 6)
 
 ```
+:::
+
+### Summarise data
+
+#### Summarise columns
+
+::: panel-tabset
+## collapse
+
+```{r}
+
+# efficient
+df |>
+  fsummarise(sum_rf = fsum(realf),
+             sd_rd = fsd(reald))
+
+# shorthand
+df |>
+  smr(sum_rf = fsum(realf),
+      sd_rd = fsd(reald))
+
+```
+
+## data.table
+
+```{r}
+dt[, sum(realf)] # returns a vector
+
+dt[, .(sum(realf))] # returns a data.table
+
+dt[, .(sum_rf = sum(realf), # returns a data.table with named columns
+       sd_rd = sd(reald))]
+```
+
+## dplyr
+
+```{r}
+summarise(tb, sum(realf)) # returns a tibble
+
+tb |> 
+  summarise(sum_rf = sum(realf), # returns a tibble
+            sd_rd = sd(reald))
+
+```
+:::
+
+#### Helper functions
+
+::: panel-tabset
+
+## collapse
+
+The package includes `fsum`,`fprod`, `fmedian`, `fmode`, `fvar`, `fsd`, `fmin`,`fmax`,`fnth`, `ffirst`, `flast`,`fnobs`, and `fndistinct`. 
+
+## data.table
+
+The package includes `first`, `last` and `uniqueN`.
+
+## dplyr
+
+The package includes `first`, `last`, `n`, `nth`, and `n_distinct`.
 
 :::
+
+### Manipulations of columns
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+ # Add one oe several columns (can also use ftransform)
+df <- df |>
+  fmutate(log_rf = log(realf)) 
+
+df <- df |>
+  fmutate(log_rd = log(reald),
+           sqrt_rd = sqrt(reald))
+
+# Create one column and eliminate others
+fcompute(df, log2_rf = log_rf*2) 
+
+ # remove columns
+df <- df |>
+  fselect(-log_rf,-log_rd,-sqrt_rd)
+
+```
+
+## data.table
+
+```{r}
+
+# Add one column
+dt[, log_rf := log(realf)] 
+
+# Add several columns
+dt[, ':=' (log_rd = log(reald), 
+           sqrt_rd = sqrt(reald))]
+
+# Create one column and eliminate others
+dt[, .(log2_rf = log_rf*2)] 
+
+# remove columns
+dt[, c("log_rf", "log_rd", "sqrt_rd") := NULL] 
+
+```
+
+## dplyr
+
+```{r}
+
+# Add one or several column
+tb <- tb |> 
+  mutate(log_rf = log(realf))
+
+tb <- tb |> 
+  mutate(log_rd = log(reald), 
+           sqrt_rd = sqrt(reald))
+
+# Create one column and eliminate others
+transmute(tb, log2_rf = log_rf*2)
+
+# remove columns
+tb <- tb |> 
+  select(-log_rf,-log_rd,-sqrt_rd)
+  
+```
+
+:::
+
+### by
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+df |> 
+  fgroup_by(ch)|>
+  fsummarise(sumrf = fsum(realf)) # ordered and indexed results
+
+# Assigned column name
+
+df |> 
+  fgroup_by(abc = tolower(ch))|>
+  fsummarise(sumrf = fsum(realf))
+
+# Add a column with number of observations for each group
+
+df |>
+  fgroup_by(ch)|>
+  fcount(add = TRUE)
+
+```
+
+## data.table
+
+```{r}
+
+dt[, .(sumrf = sum(realf)), by = "ch"] # unordered results
+
+# Reordered and indented:
+
+dt[, keyby = ch,
+     .(sumrf = sum(realf))]
+
+# Assigning column name
+
+dt[, keyby = .(abc = tolower(ch)),
+     .(sumrf = sum(realf))]
+
+# Add a column with number of observations for each group
+
+dt[, n := .N, by = ch][]
+dt[, n := NULL] # remove for consistency
+
+```
+
+## dplyr
+
+```{r}
+
+tb |> 
+  group_by(ch)|>
+  summarise(sumrf = sum(realf)) # ordered results
+
+# Assigned column name
+
+tb |> 
+  group_by(abc = tolower(ch))|>
+  summarise(sumrf = sum(realf))
+
+# Add a column with number of observations for each group
+
+tb |>
+  group_by(ch)|>
+  add_tally()
+
+# or...
+
+add_count(tb, ch)
+
+```
+
+:::
+
+## Going further
+
+### Advanced columns manipulation
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+# Summarize columns
+df |>
+  fsummarise(across(c("realf", "reald"),
+            fmean))
+
+# Summarize using a condition
+df |>
+  fsummarise(across(is.numeric, # different from dplyr due to across
+                   fmean))
+
+# Modify all the columns
+df |> 
+  fmutate(across(NULL,rev))
+
+# Modify several columns
+df |> 
+  fcomputev(vars = c("realf", "reald"), # dropping the other columns
+                  sqrt)
+
+df <- df |>
+  ftransformv(vars = c("realf", "reald"), # keeping the other columns
+                sqrt)
+
+df <- df |>
+  ftransformv(vars = c("realf", "reald"), # reverting for consistency
+                FUN = function(x){ x^2 })
+
+# Modify columns using a condition 
+
+df |>
+  fcomputev(is.numeric,
+           FUN = function(x){x - 1})
+
+```
+
+## data.table
+
+```{r}
+
+# Summarize columns
+dt[, lapply(.SD, mean),
+   .SDcols = c("realf", "reald")]
+
+# Summarize using a condition
+dt[, lapply(.SD, mean),
+     .SDcols = is.numeric]
+
+# Modify all the columns
+dt[, lapply(.SD, rev)]
+
+# Modify several columns
+dt[, lapply(.SD, sqrt), # dropping the other columns
+     .SDcols = realf:reald]
+
+cols <- c("realf", "reald")
+
+dt[, (cols) := lapply(.SD, sqrt), # keeping the other columns
+     .SDcols = cols]
+
+dt[, (cols) := lapply(.SD, "^", 2L), # reverting for consistency
+     .SDcols = cols]
+
+# Modify columns using a condition 
+dt[, .SD - 1,
+     .SDcols = is.numeric] 
+
+rm(cols)
+
+```
+
+## dplyr
+
+```{r}
+
+# Summarize columns
+tb |>
+  summarise(across(c("realf", "reald"),
+            mean))
+
+# Summarize using a condition
+tb |>
+  summarise(across(where(is.numeric),
+                   mean))
+
+# Modify all the columns
+tb |> 
+  mutate(across(everything(),
+                rev))
+
+# Modify several columns
+tb |>
+  transmute(across(c("realf", "reald"), # dropping the other columns
+                  sqrt))
+
+tb <- tb |>
+  mutate(across(all_of(c("realf", "reald")), # keeping the other columns
+                sqrt))
+
+tb <- tb |>
+  mutate(across(all_of(c("realf", "reald")), # reverting for consistency
+                ~ "^"(.x, 2L)))
+
+# Modify columns using a condition 
+
+tb |>
+  transmute(across(where(is.numeric), 
+                   ~ '-'(., 1L)))
+
+```
+
+:::
+
+### Chain expressions 
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+df |>
+  fgroup_by(ch)|>
+  fsummarise(sumrf = fsum(realf))|>
+  fsubset(sumrf < 129000)
+
+```
+
+## data.table
+
+```{r}
+
+dt[, by = ch,
+   .(sumrf = sum(realf))][
+     sumrf < 129000
+   ]
+
+```
+
+## dplyr
+
+```{r}
+
+tb |>
+  group_by(ch)|>
+  summarise(sumrf = sum(realf))|>
+  filter(sumrf < 129000)
+
+```
+
+:::
+
+### Indexing and keys (not sure it applies)
+
+### set modifications
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+# Replace values (recommendation to use set of data.table)
+
+set(df, i = 1L, j = 2L, value = 30L) 
+
+# Reorder rows
+
+df <- roworder(df, id2, -id1)
+
+df <- roworder(df, id1) # reversal for consistency
+
+# Modify column names
+
+df <- frename(df, dt = date)
+
+df <- frename(df, date = dt) # reversal for consistency
+
+# reorder columns
+
+df <- colorder(df, id1, id2, ch)
+
+```
+
+## data.table
+
+```{r}
+
+# Replace values
+
+set(dt, i = 1L, j = 2L, value = 30L)
+
+# Reorder rows
+
+setorder(dt, id2, -id1)
+
+setorder(dt, id1) # reversal for consistency
+
+# Modify column names
+
+setnames(dt, old = "dt", new = "date")
+
+setnames(dt, old = "date", new = "dt")  # reversal for consistency
+
+# reorder columns
+
+setcolorder(dt, c("id1","id2","ch"))
+
+```
+
+## dplyr
+
+```{r}
+
+# Replace values
+
+tb[1,2] <- 30L
+
+# Reorder rows
+
+tb <- arrange(tb, id2, desc(id1))
+
+tb <- arrange(tb, id1) # reversal for consistency
+
+# Modify column names
+
+tb <- rename(tb, date = dt)
+
+tb <- rename(tb, dt = date) # reversal for consistency
+
+# reorder columns
+
+tb <- relocate(tb, c("id1", "id2", "ch"))
+
+```
+
+:::
+
+### Advanced use of by (maybe)
+
+## Join/Bind data sets
+
+### Bind
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+
+x <- data.table(1:3)
+y <- data.table(4:6)
+z <- data.table(7:9, 0L)
+
+# bind rows
+
+rowbind(x, y, fill = TRUE) # always fills
+
+# bind rows using a list
+
+rowbind(list(x, y), idcol = "id")
+
+# bind columns
+
+base::cbind(x, y)
+
+add_vars(x) <- y # modifies x but keeps data structure and attributes
+
+```
+
+## data.table
+
+```{r}
+
+x <- data.table(1:3)
+y <- data.table(4:6)
+z <- data.table(7:9, 0L)
+
+# bind rows
+
+rbind(x, y, fill = TRUE)
+
+# bind rows using a list
+
+rbindlist(list(x, y), idcol = "id")
+
+# bind columns
+
+base::cbind(x, y)
+
+x <- base::cbind(x, y) # modifies x but column names are not changed
+
+```
+
+## dplyr
+
+```{r}
+
+x <- data.table(1:3)
+y <- data.table(4:6)
+z <- data.table(7:9, 0L)
+
+# bind rows
+
+bind_rows(x, y) # always fills
+
+# bind rows using a list
+
+bind_rows(list(x, y), .id = "id")
+
+# bind columns
+
+bind_cols(x, y)
+
+x <- bind_cols(x, y) # modifies x and replace names
+
+```
+
+
+:::
+
+
+## Efficient functions (maybe)
+
+## Other useful functions in collapse
+
+```{r}
+# quick summary (From STATA summarize and xtsummarize)
+
+qsu(df, cols = c("realf"))
+
+
+```
