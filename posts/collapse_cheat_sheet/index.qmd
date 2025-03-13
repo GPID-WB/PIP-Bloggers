@@ -29,7 +29,7 @@ A syntax to operate data manipulation operations, such as subset, group, update,
 
 ### collapse
 
-A large C/C++ based package for data transformation and statistical computing in R. It aims to facilitate complex data transformations, explorations and computing tasks in R, while making code fast, flexible, parsimonious and programmer friendly. [Click here for more information.](https://sebkrantz.github.io/collapse/) 
+A large C/C++ based package for data transformation and statistical computing in R. It aims to facilitate complex data transformations, explorations and computing tasks in R, while making code fast, flexible, parsimonious and programmer friendly. [Click here for more information.](https://sebkrantz.github.io/collapse/)
 
 ## Load libraries
 
@@ -44,10 +44,11 @@ A large C/C++ based package for data transformation and statistical computing in
 library(dplyr)
 library(data.table)
 library(collapse)
+library(tidyverse)
 
 ```
 
-## Data 
+## Data
 
 ```{r}
 #| label: data
@@ -57,20 +58,44 @@ set.seed(42)
 # Number of rows
 n <- 10000
 
-# Generate fake data
+# # Generate fake data
+# df <- data.frame(
+#   id1 = 1:n,  # Unique ID
+#   id2 = sample(1:500, n, replace = TRUE),  # Repeating ID
+#   dt = seq.Date(from = as.Date("2023-01-01"), by = "day", length.out = n),  # Dates
+#   tm = format(seq.POSIXt(from = as.POSIXct("2023-01-01 00:00:00"), 
+#                          by = "hour", length.out = n), "%H:%M:%S"),  # Time
+#   ch = sample(c("A", "B", "C", "D"), n, replace = TRUE),  # Character
+#   int = sample(1:100, n, replace = TRUE),  # Integer
+#   log = sample(c(TRUE, FALSE), n, replace = TRUE),  # Logical
+#   realf = runif(n, 1, 100),  # Real (float),
+#   reald = runif(n),  # Real ,
+#   fct = factor(sample(c("X", "Y", "Z"), n, replace = TRUE))  # Factor
+# )
+
+set.seed(42)
+
+# Number of rows
+n <- 10000
+
+# Generate fake data with some NAs
 df <- data.frame(
   id1 = 1:n,  # Unique ID
   id2 = sample(1:500, n, replace = TRUE),  # Repeating ID
-  dt = seq.Date(from = as.Date("2023-01-01"), by = "day", length.out = n),  # Dates
-  tm = format(seq.POSIXt(from = as.POSIXct("2023-01-01 00:00:00"), 
-                         by = "hour", length.out = n), "%H:%M:%S"),  # Time
-  ch = sample(c("A", "B", "C", "D"), n, replace = TRUE),  # Character
-  int = sample(1:100, n, replace = TRUE),  # Integer
-  log = sample(c(TRUE, FALSE), n, replace = TRUE),  # Logical
-  realf = runif(n, 1, 100),  # Real (float),
-  reald = runif(n),  # Real ,
-  fct = factor(sample(c("X", "Y", "Z"), n, replace = TRUE))  # Factor
+  dt = sample(c(seq.Date(from = as.Date("2023-01-01"), by = "day", length.out = n), NA), n, replace = TRUE),  # Dates with NAs
+  tm = sample(c(format(seq.POSIXt(from = as.POSIXct("2023-01-01 00:00:00"), 
+                                  by = "hour", length.out = n), "%H:%M:%S"), NA), n, replace = TRUE),  # Time with NAs
+  ch = sample(c("A", "B", "C", "D", NA), n, replace = TRUE, prob = c(0.24, 0.24, 0.24, 0.24, 0.04)),  # Character with some NAs
+  int = sample(c(1:100, NA), n, replace = TRUE),  # Integer with some NAs
+  log = sample(c(TRUE, FALSE, NA), n, replace = TRUE, prob = c(0.49, 0.49, 0.02)),  # Logical with some NAs
+  realf = sample(c(runif(n, 1, 100), NA), n, replace = TRUE),  # Real (float) with some NAs
+  reald = sample(c(runif(n), NA), n, replace = TRUE),  # Real with some NAs
+  fct = factor(sample(c("X", "Y", "Z", NA), n, replace = TRUE, prob = c(0.32, 0.32, 0.32, 0.04)))  # Factor with some NAs
 )
+
+# Print summary to check distribution of NAs
+summary(df)
+
 
 # Ensure uniqueness
 df <- unique(df, by = c("id1", "id2"))
@@ -159,7 +184,7 @@ tb |>
 
 ::: panel-tabset
 ```{r}
-# using named objects to filer data
+# using named objects to filter data
 ch  <- "A" # data has this as variable name
 fct <- "A" # data has this as variable name
 x  <- "A"
@@ -240,6 +265,514 @@ tb |>
 ```
 :::
 
+#### Filter unique rows
+
+::: panel-tabset
+```{r}
+# Removing duplicate rows based on the values of one or more columns 
+```
+
+## collapse
+
+```{r}
+
+# Remove duplicate rows
+df |>
+  funique()
+
+# Keeps only one row per unique value in id2
+df |>
+  funique(cols = "int") # selecting column by col name 
+df |>
+  funique(cols = 6)     # selecting column by indices
+df |>
+  funique(cols = names(df) %in% "int") # with logical condition
+```
+
+## data.table
+
+```{r}
+ 
+ # Remove duplicate rows
+dt |>
+  unique()
+
+# Keeps only one row per unique value in id2
+dt |>
+  unique(by = "id2")  
+```
+
+## dplyr
+
+```{r}
+
+# Remove duplicate rows
+tb |>
+  distinct()
+
+# Keeps only one row per unique id1
+tb |> distinct(id1, .keep_all = TRUE) # keep all col
+```
+:::
+
+#### Discard rows with missing values
+
+::: panel-tabset
+## collapse
+
+```{r}
+
+# Discard rows with any NA value
+df |>
+  na_omit()
+
+# Discard rows with NA value for selected col
+df |>
+  na_omit(cols = "ch")
+
+# More flexible options:
+# Remove rows where more than 50% of values are missing
+df |>
+  na_omit(prop = 0.5)
+
+```
+
+## data.table
+
+```{r}
+
+# Discard rows with any NA value
+dt |>
+  na_omit()
+
+# Discard rows with NA value for selected col
+dt <- dt[!is.na(ch)]
+
+```
+
+## tidyverse
+
+```{r}
+
+# Discard rows with any NA value
+tb |>
+  tidyr::drop_na()
+
+# Discard rows with NA value for selected col
+tb |> 
+  tidyr::drop_na(ch)
+
+```
+:::
+
+#### Other filters: slice options
+
+::: panel-tabset
+## collapse
+
+```{r eval = FALSE}
+
+df |>
+  fslice(n = 3)                 # First 3 rows
+df |>
+  fslice(n   = 3, 
+         how = "last")          # Last 3 rows
+df |>
+  fslice(n = 0.1)               # Fraction of rows: first 10% of rows
+
+fslice(n        = 3, 
+       how      = "min", 
+       order.by = int)          # 3 obs with lowest int
+
+# TODO: add fslicev()
+
+```
+
+## data.table
+
+```{r}
+
+# Frist 3 rows
+dt[1:3, ]   # First 3 rows, all columns
+
+
+# Last 3 rows
+dt[(.N-2):.N]  # .N gives the total number of rows
+
+# Fraction of rows: first 10% of rows
+dt[1:(.N * 0.1)]
+
+
+# 3 obs with lowest int
+dt[order(int)][1:3]
+ 
+```
+
+## dplyr
+
+```{r}
+
+# First 3 rows
+tb |>
+  slice_head(n = 3)
+
+# Last 3 rows
+tb |>
+  slice_tail(n = 3)
+
+# Fraction of rows: first 10% of rows
+tb |>
+  slice_head(prop = 0.1)
+
+# 3 obs with lowest int
+tb |>
+  slice_min(order_by = int, 
+            n        = 3) # all rows
+
+tb |>
+ slice_min(order_by = int, 
+           n        = 3, 
+           with_ties = FALSE) 
+
+```
+:::
+
+### Sort rows
+
+#### Sort rows by column(s)
+
+::: panel-tabset
+## collapse
+
+```{r}
+df |>
+  roworder(id1)  
+
+df |>
+  roworder(-id2)      # Sort by decreasing order of id2
+
+df |>
+  roworder(id1, -id2) # Sort by multiple cols 
+
+```
+
+## data.table
+
+```{r}
+
+dt[order(id2)]    # This makes a copy
+
+setorder(dt, id2) # To modify by reference  
+
+dt[order(-id2)]   # Sort by decreasing order
+
+dt[order(id1, -id2)] # Sort by multiple cols 
+
+```
+
+## dplyr
+
+```{r}
+
+tb |>
+  arrange(id2)
+
+tb |>
+  arrange(desc(id2)) # Sort by decreasing order
+
+# Sort by multiple cols 
+df |>
+   arrange(id1, desc(id2))
+
+```
+:::
+
+### Select columns
+
+#### Select one or more columns
+
+::: panel-tabset
+```{r}
+# select one column using an index, not recommended, or column name
+# select multiple columns 
+```
+
+## collapse
+
+```{r}
+
+## Select one column   ####
+# _________________________ 
+
+# by index
+df |>
+  fselect(2)
+
+df |>
+  slt(2) # shorthand for fselect
+
+# by name
+
+df |>
+  fselect(id2)  # returns a dataframe 
+
+## Select multiple columns ####
+# _____________________________ 
+
+df |>
+  fselect(id1, id2, fct)
+
+df |>
+  fselect(id1, ch:fct)
+
+```
+
+## data.table
+
+```{r}
+
+## Select one column   ####
+# _________________________ 
+
+# by index
+dt[[3]]  # returns a vector
+dt[, 3]  # returns a data.table
+
+# by name
+dt[, list(id2)] # returns a data.table
+dt[, .(id2)]    # returns a data.table (. is an alias for list)
+dt[, "id2"]     # returns a data.table
+dt[, id2]       # returns a vector
+dt[["id2"]]     # returns a vector
+
+## Select multiple columns ####
+# _____________________________ 
+
+dt[, .(id1, id2, int)]
+dt[, list(id1, id2, int)]
+dt[, id2:int] # select columns between id2 and int
+
+```
+
+## dplyr
+
+```{r}
+
+## Select one column   ####
+# _________________________ 
+
+tb |>
+  select(id2)               # returns a tibble
+
+pull(tb, id2, name = ch)    # returns a (named) vector
+tb[, "id2"]                 # returns a tibble
+tb[["id2"]]                 # returns a vector
+
+## Select multiple columns ####
+# _____________________________ 
+
+df |>
+  select(id1, id2, ch)
+df |>
+  select(id1, ch:fct)
+
+```
+:::
+
+#### Exclude columns
+
+::: panel-tabset
+## collapse
+
+```{r, error = TRUE}
+# Exclude columns by column names 
+df |>
+  fselect(-dt, -tm)
+
+# Using a character vector 
+cols <- c("dt", "tm")
+
+df |>
+  fselect(-cols)  # does not work 
+
+df |>
+  fselect(!cols) # does not work 
+
+# what is a better way to do this?
+
+```
+
+## data.table
+
+```{r}
+
+# Exclude columns by column names 
+dt[, !c("dt", "tm")]
+
+# Using a character vector 
+cols <- c("dt", "tm")
+
+dt[, ..cols] 
+# .. prefix means 'one-level up', as cols is outside the parent environment 
+
+dt[, !..cols] # or dt[, -..cols]
+
+```
+
+## dplyr
+
+```{r}
+
+# Exclude columns by column names 
+tb |>
+  select( -dt, -tm)
+
+# Using a character vector 
+cols <- c("dt", "tm")
+
+tb |>
+  select(all_of(cols))
+
+tb |>
+  select(-all_of(cols))
+
+```
+:::
+
+#### Other selections - not sure it is relevant, to check
+
+### Miscellaneous
+
+#### Read & write data
+
+##### Write
+
+::: panel-tabset
+## collapse
+
+```{r}
+# no specific functions for reading and writing data 
+```
+
+## data.table
+
+```{r}
+fwrite(dt, 
+       "DT.csv")                # write to csv
+
+
+fwrite(dt, 
+       "DT.txt", 
+       sep = "\t")              # write to a tab-delimited file
+```
+
+## dplyr
+
+```{r}
+readr::write_csv(tb, 
+                 "tb.csv")  # write to csv
+
+readr::write_delim(tb, 
+                   "tb.txt", 
+                   delim = "\t")  # write to a tab-delimited file
+```
+:::
+
+##### Read
+
+::: panel-tabset
+## collapse
+
+```{r}
+# no specific functions for reading and writing data 
+
+```
+
+## data.table
+
+```{r}
+ 
+fread("dt.csv")   # read csv
+# fread("DT.csv", verbose = TRUE) # full details
+
+fread("dt.txt", sep = "\t") # read tab-delimited file
+
+# Read and rbind several files
+rbindlist(
+  lapply(c("dt.csv", "dt.csv"), 
+         fread))
+```
+
+## dplyr
+
+```{r}
+readr::read_csv("tb.csv")  # read csv
+
+readr::read_delim("tb.txt", 
+                  delim = "\t")  # read tab-delimited file
+
+# Read and rbind several files
+c("tb.csv",  "tb.csv") |>
+  purrr::map_dfr(readr::read_csv)
+```
+:::
+
+#### Reshape data
+
+::: panel-tabset
+## collapse
+
+```{r}
+# ---- Long to Wide ----
+wide_pivot <- pivot(df, 
+                    ids    = c("id1", "id2", "dt"),  # Columns to keep
+                    values = "int",              # Column with values
+                    names  = "ch",   # Column whose values become new cols
+                    how    = "wider")               # Reshape to wide format
+
+# ---- Wide to Long ----
+long_pivot <- pivot(wide_pivot, 
+                    ids    = c("id1", "id2", "dt"),  
+                    values = NULL,  
+                    names  = list("ch", "int"),  
+                    how    = "longer")     
+```
+
+## data.table
+
+```{r}
+# ---- Long to Wide ----
+wide_dt <- dcast(dt, 
+                 id1 + id2 + dt ~ ch, 
+                 value.var = "int")
+
+# ---- Wide to Long ----
+long_dt <- melt(wide_dt, 
+                id.vars       = c("id1", "id2", "dt"), 
+                variable.name = "ch", 
+                value.name    = "int")
+
+```
+
+## dplyr
+
+```{r}
+# ---- Long to Wide ----
+tb_wide <- tb |>
+  # rm NAs
+  filter(!is.na(ch)) |>
+  pivot_wider(names_from  = ch, 
+              values_from = int)
+
+# ---- Wide to Long ----
+tb_long <- tb_wide |>
+  pivot_longer(cols      = c("A", "D", "C", "B"),
+               values_to = "int",
+               names_to  = "ch")
+
+```
+:::
+
 ### Summarise data
 
 #### Summarise columns
@@ -287,10 +820,9 @@ tb |>
 #### Helper functions
 
 ::: panel-tabset
-
 ## collapse
 
-The package includes `fsum`,`fprod`, `fmedian`, `fmode`, `fvar`, `fsd`, `fmin`,`fmax`,`fnth`, `ffirst`, `flast`,`fnobs`, and `fndistinct`. 
+The package includes `fsum`,`fprod`, `fmedian`, `fmode`, `fvar`, `fsd`, `fmin`,`fmax`,`fnth`, `ffirst`, `flast`,`fnobs`, and `fndistinct`.
 
 ## data.table
 
@@ -299,13 +831,11 @@ The package includes `first`, `last` and `uniqueN`.
 ## dplyr
 
 The package includes `first`, `last`, `n`, `nth`, and `n_distinct`.
-
 :::
 
 ### Manipulations of columns
 
 ::: panel-tabset
-
 ## collapse
 
 ```{r}
@@ -366,13 +896,11 @@ tb <- tb |>
   select(-log_rf,-log_rd,-sqrt_rd)
   
 ```
-
 :::
 
 ### by
 
 ::: panel-tabset
-
 ## collapse
 
 ```{r}
@@ -443,7 +971,6 @@ tb |>
 add_count(tb, ch)
 
 ```
-
 :::
 
 ## Going further
@@ -451,7 +978,6 @@ add_count(tb, ch)
 ### Advanced columns manipulation
 
 ::: panel-tabset
-
 ## collapse
 
 ```{r}
@@ -565,13 +1091,11 @@ tb |>
                    ~ '-'(., 1L)))
 
 ```
-
 :::
 
-### Chain expressions 
+### Chain expressions
 
 ::: panel-tabset
-
 ## collapse
 
 ```{r}
@@ -604,7 +1128,6 @@ tb |>
   filter(sumrf < 129000)
 
 ```
-
 :::
 
 ### Indexing and keys (not sure it applies)
@@ -612,7 +1135,6 @@ tb |>
 ### set modifications
 
 ::: panel-tabset
-
 ## collapse
 
 ```{r}
@@ -690,7 +1212,6 @@ tb <- rename(tb, dt = date) # reversal for consistency
 tb <- relocate(tb, c("id1", "id2", "ch"))
 
 ```
-
 :::
 
 ### Advanced use of by (maybe)
@@ -700,7 +1221,6 @@ tb <- relocate(tb, c("id1", "id2", "ch"))
 ### Bind
 
 ::: panel-tabset
-
 ## collapse
 
 ```{r}
@@ -772,10 +1292,7 @@ bind_cols(x, y)
 x <- bind_cols(x, y) # modifies x and replace names
 
 ```
-
-
 :::
-
 
 ## Efficient functions (maybe)
 
