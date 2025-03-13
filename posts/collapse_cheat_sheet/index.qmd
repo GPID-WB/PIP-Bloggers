@@ -44,6 +44,7 @@ blah
 library(dplyr)
 library(data.table)
 library(collapse)
+library(tidyverse)
 
 ```
 
@@ -552,6 +553,7 @@ dt[["id2"]]     # returns a vector
 
 ## Select multiple columns ####
 # _____________________________ 
+
 dt[, .(id1, id2, int)]
 dt[, list(id1, id2, int)]
 dt[, id2:int] # select columns between id2 and int
@@ -592,7 +594,7 @@ df |>
 
 ## collapse
 
-```{r}
+```{r, error = TRUE}
 # Exclude columns by column names 
 df |>
   fselect(-dt, -tm)
@@ -652,4 +654,146 @@ tb |>
 
 #### Other selections - not sure it is relevant, to check 
 
+### Miscellaneous
 
+#### Read & write data
+
+##### Write 
+
+::: panel-tabset
+
+## collapse
+
+```{r}
+# no specific functions for reading and writing data 
+```
+
+## data.table
+```{r}
+fwrite(dt, 
+       "DT.csv")                # write to csv
+
+
+fwrite(dt, 
+       "DT.txt", 
+       sep = "\t")              # write to a tab-delimited file
+```
+
+
+## dplyr
+```{r}
+readr::write_csv(tb, 
+                 "tb.csv")  # write to csv
+
+readr::write_delim(tb, 
+                   "tb.txt", 
+                   delim = "\t")  # write to a tab-delimited file
+```
+
+:::
+
+##### Read
+
+::: panel-tabset
+
+## collapse
+```{r}
+# no specific functions for reading and writing data 
+
+```
+
+## data.table
+```{r}
+ 
+fread("dt.csv")   # read csv
+# fread("DT.csv", verbose = TRUE) # full details
+
+fread("dt.txt", sep = "\t") # read tab-delimited file
+
+# Read and rbind several files
+rbindlist(
+  lapply(c("dt.csv", "dt.csv"), 
+         fread))
+```
+
+
+## dplyr
+```{r}
+readr::read_csv("tb.csv")  # read csv
+
+readr::read_delim("tb.txt", 
+                  delim = "\t")  # read tab-delimited file
+
+# Read and rbind several files
+c("tb.csv",  "tb.csv") |>
+  purrr::map_dfr(readr::read_csv)
+```
+
+:::
+
+#### Reshape data 
+
+::: panel-tabset
+
+## collapse
+```{r}
+# ---- Long to Wide ----
+wide_pivot <- pivot(df, 
+                    ids    = c("id1", "id2", "dt"),  # Columns to keep
+                    values = "int",              # Column with values
+                    names  = "ch",   # Column whose values become new cols
+                    how    = "wider")               # Reshape to wide format
+
+# ---- Wide to Long ----
+long_pivot <- pivot(wide_pivot, 
+                    ids    = c("id1", "id2", "dt"),  
+                    values = NULL,  
+                    names  = list("ch", "int"),  
+                    how    = "longer")     
+```
+
+
+## data.table
+```{r}
+# ---- Long to Wide ----
+wide_dt <- dcast(dt, 
+                 id1 + id2 + dt ~ ch, 
+                 value.var = "int")
+
+# ---- Wide to Long ----
+long_dt <- melt(wide_dt, 
+                id.vars       = c("id1", "id2", "dt"), 
+                variable.name = "ch", 
+                value.name    = "int")
+
+```
+
+
+
+## dplyr
+```{r}
+# ---- Long to Wide ----
+tb_wide <- tb |>
+  # rm NAs
+  filter(!is.na(ch)) |>
+  pivot_wider(names_from  = ch, 
+              values_from = int)
+
+# ---- Wide to Long ----
+tb_long <- tb_wide |>
+  pivot_longer(cols      = c("A", "D", "C", "B"),
+               values_to = "int",
+               names_to  = "ch")
+
+```
+
+:::
+
+
+#### Data Conversion
+
+TBD
+
+#### Global options affecting package operation - only in {collapse}
+
+TBD
