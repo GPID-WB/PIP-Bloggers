@@ -1,0 +1,15 @@
+---
+title: "Check the arguments of your function"
+description: "Create a function that checks the arguments of anothe function"
+author: "R.Andres Castaneda"
+date: "03/25/2025"
+categories: [R Programming,  efficiency]
+format:
+  html:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+execute:
+  output: false
+---
+
