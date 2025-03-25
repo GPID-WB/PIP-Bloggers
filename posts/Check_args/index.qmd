@@ -1,9 +1,9 @@
 ---
-title: "Check the arguments of your function"
-description: "Create a function that checks the arguments of anothe function"
+title: "How to Create Robust Argument Checking in R Functions"
+description: "Create a function that checks the arguments of another function"
 author: "R.Andres Castaneda"
 date: "03/25/2025"
-categories: [R Programming,  efficiency]
+categories: ["R programming", "Best practices"]
 format:
   html:
     toc: true
@@ -12,4 +12,97 @@ editor_options:
 execute:
   output: false
 ---
+
+## Intro
+
+When developing functions in R, it's essential to ensure that inputs meet specific criteria. One common and effective practice is creating an auxiliary function dedicated exclusively to validating arguments passed to another function. This approach helps to maintain clean, readable, and robust code.
+
+## Why Create a Separate Argument Checking Function?
+
+Separating argument checking from your primary function logic provides several benefits:
+
+- **Code readability**: Separating validation logic keeps your main functions concise and easy to understand.
+- **Reusability**: Validation logic can often be reused across multiple functions.
+- **Maintainability**: Updating validation rules in one place is simpler and reduces the risk of inconsistencies.
+
+## How It Works
+
+Here's a straightforward and effective way to implement argument checking using an auxiliary function.
+
+## Practical Example
+
+Below is an example demonstrating how one function (`goo()`) can validate the arguments of another function (`foo()`):
+
+```{r}
+foo <- function(x, y = 2, z = "a", ...) {
+  # Capture explicitly defined arguments
+  args <- as.list(environment())
+
+  # Capture additional arguments from ...
+  args <- c(args, list(...))
+
+  # Pass args list to goo
+  goo(args)
+}
+
+# Argument checking function
+goo <- function(args) {
+  # Expand arguments directly into goo's environment
+  list2env(args, envir = environment())
+
+  # Perform validation
+  stopifnot(
+    is.numeric(x),
+    is.numeric(y),
+    is.character(z)
+  )
+
+  # Additional checks for extra arguments in ...
+  if (exists("w")) {
+    stopifnot(is.logical(w))
+  }
+
+  cat("All checks passed!\n")
+}
+```
+
+## How Does This Work?
+
+Let's break down the logic:
+
+1. **Capture arguments**: The primary function (`foo()`) captures explicitly defined arguments and the additional arguments passed via the ellipsis (`...`) into a list.
+
+2. **Pass arguments for checking**: The argument list (`args`) is passed to the auxiliary checking function (`goo()`).
+
+3. **Expand and validate arguments**: Inside `goo()`, we expand this list of arguments into its own environment using `list2env()`. This allows direct reference by their original names.
+
+4. **Argument checks**: We perform validation checks using `stopifnot()` to ensure each argument meets our criteria.
+
+## Examples of Usage
+
+Let's demonstrate with some examples:
+
+```{r}
+#| error: true
+#| 
+# Example: correct arguments
+foo(x = 1, y = 3, z = "test") # passes validation
+
+# Example: extra argument 'w' correctly specified as logical
+foo(x = 1, w = TRUE) # passes validation
+
+# Example: incorrect 'x' argument type
+foo(x = "wrong") # triggers error, x is not numeric
+
+# Example: incorrect additional argument 'w'
+foo(x = 1, w = "wrong") # triggers error, w is not logical
+```
+
+## Benefits and Best Practices
+
+- Always clearly define your argument types and validations.
+- Centralize your argument checking logic for consistency.
+- Consider reusing or extending your argument checking function (`goo()`) for similar functions.
+
+Adopting this pattern greatly enhances your R programming practice by ensuring robustness, clarity, and efficiency.
 
