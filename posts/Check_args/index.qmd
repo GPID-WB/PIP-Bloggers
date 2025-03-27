@@ -21,9 +21,9 @@ When developing functions in R, it's essential to ensure that inputs meet specif
 
 Separating argument checking from your primary function logic provides several benefits:
 
-- **Code readability**: Separating validation logic keeps your main functions concise and easy to understand.
-- **Reusability**: Validation logic can often be reused across multiple functions.
-- **Maintainability**: Updating validation rules in one place is simpler and reduces the risk of inconsistencies.
+-   **Code readability**: Separating validation logic keeps your main functions concise and easy to understand.
+-   **Reusability**: Validation logic can often be reused across multiple functions.
+-   **Maintainability**: Updating validation rules in one place is simpler and reduces the risk of inconsistencies.
 
 ## How It Works
 
@@ -70,13 +70,13 @@ goo <- function(args) {
 
 Let's break down the logic:
 
-1. **Capture arguments**: The primary function (`foo()`) captures explicitly defined arguments and the additional arguments passed via the ellipsis (`...`) into a list.
+1.  **Capture arguments**: The primary function (`foo()`) captures explicitly defined arguments and the additional arguments passed via the ellipsis (`...`) into a list.
 
-2. **Pass arguments for checking**: The argument list (`args`) is passed to the auxiliary checking function (`goo()`).
+2.  **Pass arguments for checking**: The argument list (`args`) is passed to the auxiliary checking function (`goo()`).
 
-3. **Expand and validate arguments**: Inside `goo()`, we expand this list of arguments into its own environment using `list2env()`. This allows direct reference by their original names.
+3.  **Expand and validate arguments**: Inside `goo()`, we expand this list of arguments into its own environment using `list2env()`. This allows direct reference by their original names.
 
-4. **Argument checks**: We perform validation checks using `stopifnot()` to ensure each argument meets our criteria.
+4.  **Argument checks**: We perform validation checks using `stopifnot()` to ensure each argument meets our criteria.
 
 ## Examples of Usage
 
@@ -100,9 +100,8 @@ foo(x = 1, w = "wrong") # triggers error, w is not logical
 
 ## Benefits and Best Practices
 
-- Always clearly define your argument types and validations.
-- Centralize your argument checking logic for consistency.
-- Consider reusing or extending your argument checking function (`goo()`) for similar functions.
+-   Always clearly define your argument types and validations.
+-   Centralize your argument checking logic for consistency.
+-   Consider reusing or extending your argument checking function (`goo()`) for similar functions.
 
 Adopting this pattern greatly enhances your R programming practice by ensuring robustness, clarity, and efficiency.
-
