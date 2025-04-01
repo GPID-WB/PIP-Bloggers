@@ -1,0 +1,151 @@
+---
+title: "Comparative Analysis and Benchmarking of R Packages: qs vs. qs2"
+author: "Zander Prinsloo"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Introduction
+
+The `qs` package has been a popular choice for its speed and versatility. Its successor, `qs2`, aims to enhance these attributes further. This report provides a detailed comparison of the functionalities of `qs` and `qs2`, followed by benchmarking analyses to evaluate their performance in object serialization and deserialization.
+
+## Functional Comparison
+
+### Overview of `qs`
+
+The `qs` package offers rapid serialization and deserialization of R objects, serving as a faster alternative to base R's `saveRDS` and `readRDS` functions. It supports various compression algorithms, including `lz4` and `zstd`, and is capable of handling complex R objects with attributes and object references. Notably, `qs` can serialize any R object, providing both speed and generality.
+
+### Overview of `qs2`
+
+`qs2` is designed as the successor to `qs`, aiming for reliable and fast performance in saving and loading R objects. It utilizes R's native serialization via the `R_Serialize`/`R_Unserialize` C API while enhancing underlying compression and disk I/O patterns. The usage remains similar to `qs`, with functions like `qs_save()` and `qs_read()`. Importantly, `qs2` introduces the `.qs2` file extension to distinguish its files from those of `qs`, and it is not compatible with the original `qs` format.
+
+### Key Differences
+
+1.  **Serialization Method**:
+    -   *qs*: Implements custom serialization techniques, allowing for optimizations tailored to R objects.
+    -   *qs2*: Leverages R's native serialization functions, potentially enhancing compatibility with base R but possibly at the expense of some custom optimizations.
+2.  **Compression and Performance**:
+    -   *qs*: Offers multiple compression options (`lz4`, `zstd`) and is known for its speed in both serialization and deserialization processes.
+    -   *qs2*: Claims improvements in compression and disk I/O patterns, which may lead to better performance, though empirical benchmarking is necessary to confirm this.
+3.  **File Compatibility**:
+    -   *qs*: Uses the `.qs` file extension.
+    -   *qs2*: Introduces the `.qs2` file extension to differentiate from `qs` files. Notably, `qs2` is not backward compatible with `qs`, meaning files saved with one cannot be read by the other.
+4.  **Multithreading Support**:
+    -   *qs*: Provides multithreading capabilities to enhance performance on multi-core systems.
+    -   *qs2*: Also supports multithreading, utilizing the Intel Thread Building Blocks framework via the `RcppParallel` package. Compilation from source with specific flags is required to enable this feature on certain systems.
+5.  **Attribute Handling**:
+    -   Both packages aim to preserve object attributes during serialization. However, due to differences in serialization methods (`qs`'s custom approach vs. `qs2`'s use of R's native functions), there may be subtle differences in how attributes are handled, especially for complex or custom objects.
+
+## Benchmarking Analysis
+
+To evaluate the performance of `qs` and `qs2`, we conducted benchmarking tests focusing on serialization (writing) and deserialization (reading) speeds. The `microbenchmark` package was used to measure execution times for these operations on a sample dataset.
+
+### Benchmarking Setup
+
+```{r setup, include=FALSE}
+
+# Load necessary libraries
+library(qs)
+library(qs2)
+library(microbenchmark)
+library(ggplot2)
+
+# Create a sample dataset
+set.seed(123)
+sample_data <- data.frame(
+  x = rnorm(1e6),
+  y = rnorm(1e6),
+  z = rnorm(1e6))
+
+# Define file paths for temporary storage
+qs_file  <- tempfile(fileext = ".qs")
+qs2_file <- tempfile(fileext = ".qs2")
+
+# Functions for qs
+save_qs <- function() {
+  qs::qsave(sample_data, qs_file)
+}
+load_qs <- function() {
+  qs::qread(qs_file)
+}
+
+# Functions for qs2
+save_qs2 <- function() {
+  qs2::qs_save(sample_data, qs2_file)
+}
+load_qs2 <- function() {
+  qs2::qs_read(qs2_file)
+}
+
+```
+
+```{r}
+# Perform benchmarking
+benchmark_results <- microbenchmark(
+  qs_save  = save_qs(),
+  qs_load  = load_qs(),
+  qs2_save = save_qs2(),
+  qs2_load = load_qs2(),
+  times    = 100)
+
+# Display results
+print(benchmark_results)
+
+```
+
+```{r}
+if (requireNamespace("highcharter")) {
+  hc_bench <- highcharter::data_to_boxplot(benchmark_results,
+                                           time,
+                                           expr,
+                                           add_outliers = FALSE,
+                                           name = "Benchmark Efficiency"
+  )
+  highcharter::highchart() |>
+    highcharter::hc_xAxis(type = "category") |>
+    highcharter::hc_chart(inverted=TRUE) |>
+    highcharter::hc_add_series_list(hc_bench)
+  
+} else {
+  boxplot(benchmark, outline = FALSE)
+}
+
+```
+
+## Attribute Handling in `qs` and `qs2`
+
+Efficient serialization in R necessitates the preservation of object attributes, which encompass metadata such as variable names, factor levels, and class information. This section delves into how the `qs` and `qs2` packages manage attribute serialization and deserialization, providing practical examples and performance benchmarks.
+
+### Attribute Preservation Capabilities
+
+#### `qs` Package
+
+The `qs` package is designed to serialize and deserialize a wide array of R objects while maintaining their attributes. It offers the `qattributes()` function, enabling users to extract attributes directly from serialized files without fully reading the object into memory. This feature is particularly advantageous for large datasets where inspecting metadata without loading the entire object is desirable.
+
+*Example Usage of `qattributes()`:*
+
+```{r}
+# Save the mtcars dataset with attributes
+file <- tempfile()
+qsave(mtcars, file)
+
+# Retrieve attributes from the serialized file
+attrs <- qattributes(file)
+print(attrs)
+```
+
+#### `qs2` Package
+
+the qs2 package does not offer a function to load only the attributes of a serialized object without reading the entire object into memory. This contrasts with the qs package, which provides the qattributes() function for this purpose. In qs2, to access an object's attributes, you need to load the full object and then inspect its attributes using base R functions like attributes() or attr().
+
+*Example Usage of Attribute Preservation:*
+
+```{r}
+# Save and reload using qs2
+file_qs2      <- tempfile(fileext = ".qs2")
+qs2::qs_save(mtcars, file_qs2)
+mtcars_loaded <- qs2::qs_read(file_qs2)
+
+# Check attribute equivalence
+identical(attributes(mtcars), attributes(mtcars_loaded))
+```
