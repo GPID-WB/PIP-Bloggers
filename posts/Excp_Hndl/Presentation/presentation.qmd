@@ -1,0 +1,592 @@
+---
+title: "Condition Handling"
+subtitle: "Advance R Session"
+author: "Diana Garcia"
+format: 
+  revealjs:
+    theme: dark
+    center: true
+---
+
+# Introduction {background-color="#0754b7"}
+
+## Important concepts {.smaller}
+
+::: incremental
+1.  **Conditions**
+    -   Errors (severe): function should not continue
+    -   Warnings (mild): something went wrong but it will continue
+    -   Messages (mildest): inform the user of an action taken
+2.  **Signals** of conditions
+    -   `stop()` or `rlang::abort()`,
+    -   `warning()` or `rlang::warn()`,
+    -   `message()`
+:::
+
+## When to use {.smaller}
+
+::: incremental
+1.  Error:
+    -   We need the process to stop.
+    -   Message should indicate what is wrong and where to fix the problem.
+2.  Warning:
+    -   Warn of an issue and let the process continue.
+    -   These can be many per function and will be displayed in aggregate.
+    -   Message like important change was done or missing info was found.
+    -   Better not to overuse it.
+3.  Messages:
+    -   Usually when something is done on the behalf of the user
+    -   E.g. A default value was used or the progress on a long process.
+    -   Better not to have many messages per function. They are immediately displayed.
+:::
+
+## PIP Pipeline
+
+::: callout-tip
+### Question:
+
+Any ideas on where we can make use of these conditions within our pipeline?
+:::
+
+# Handling {background-color="#0754b7"}
+
+## Ignoring conditions {.smaller}
+
+Unpopular opinion:
+
+-   Simplest way to handling conditions is to [ignore them]{style="color:red;"}!
+
+## Ignoring conditions {.smaller}
+
+Example on `try()`:
+
+::: panel-tabset
+### Without
+
+```{r}
+#| echo: true
+#| error: true
+
+f1 <- function(x) {
+  log(x)
+  10
+}
+
+f1("x")
+```
+
+### With
+
+```{r}
+#| echo: true
+
+f2 <- function(x) {
+  try(log(x))
+  10
+}
+
+f2("a")
+```
+
+### Silent
+
+```{r}
+#| echo: true
+
+f2 <- function(x) {
+  try(log(x), silent = TRUE)
+  10
+}
+
+f2("a")
+```
+:::
+
+## Ignoring conditions {.smaller}
+
+Other ignoring conditions are:
+
+-   `suppressWarnings()`
+-   `suppressMessages()`
+
+## Handling conditions {.smaller}
+
+We can override or supplement the default behavior using:
+
+1.  `tryCatch()`
+2.  `withCallingHandlres()`
+
+## tryCatch {.smaller}
+
+It is used for **exiting handlers** and more suitable for errors.
+
+```{r}
+#| echo: true
+#| eval: false
+tryCatch(
+  
+  error = function(cnd) {
+    # code to run when error is thrown
+  },
+  
+  expr = {
+    code_to_run_while_handlers_are_active
+  }
+  
+)
+
+```
+
+When condition is handled it returns to where `tryCatch` was called.
+
+## withCallingHandlers {.smaller}
+
+It is used for **calling handlers** and more suitable for non-errors conditions.
+
+```{r}
+#| echo: true
+#| eval: false
+withCallingHandlers(
+  
+  warning = function(cnd) {
+    # code to run when warning is signalled
+  },
+  
+  message = function(cnd) {
+    # code to run when message is signalled
+  },
+  
+  expr = {
+    code_to_run_while_handlers_are_active
+  }
+)
+```
+
+After condition is captured, it returns where the condition was signaled.
+
+## Exiting conditions {.smaller}
+
+We could override the default error
+
+```{r}
+#| echo: true
+#| error: true
+
+f3 <- function(x) {
+  tryCatch(
+    
+    error = function(cnd) 
+      NA,
+    
+    expr = {
+      log(x)
+    }
+    
+  )
+}
+
+f3("x")
+
+```
+
+## Exiting conditions {.smaller}
+
+`tryCatch` exits once the condition is signaled:
+
+::: panel-tabset
+### Signal
+
+```{r}
+#| echo: true
+#| message: true
+#| error: true
+
+tryCatch(
+  
+  message = function(cnd) 
+    "There",
+  
+  expr = {
+    message("Here")
+    stop("This code is never run!")
+  }
+)
+```
+
+### No signal
+
+```{r}
+#| echo: true
+#| message: true
+#| error: true
+
+tryCatch(
+  
+  error = function(cnd) 
+    10,
+  
+  expr = {
+    message("Hi!")
+    1 + 1
+  }
+)
+
+```
+:::
+
+## Calling conditions {.smaller}
+
+They help signal a problem and the code execution continues normally.
+
+```{r}
+#| echo: true
+#| message: true
+
+withCallingHandlers(
+  
+  message = function(cnd) 
+    cat("Caught a message!\n"), 
+  
+  expr = {
+    message("Someone there?")
+    message("Why, yes!")
+  }
+)
+
+```
+
+[**Notice:**]{style="color:red;"} They are applied in order.
+
+## Conditon objects {.smaller}
+
+Behind the scenes, objects are created when signaling a condition.
+
+```{r}
+#| echo: true
+#| error: true
+
+cnd <- rlang::catch_cnd(stop("An error"))
+
+str(cnd)
+```
+
+We can access the elements of this object using:
+
+-   `condtionMessage()`
+-   `conditionCall()`
+
+## Other topics about conditions {.smaller}
+
+1.  They can be nested -\> *muffle* the signal
+2.  Call stacks -\> error catching or debugging
+
+If you want to learn more about them, check [Advanced R's 8.4.3 and 8.4.4 subsections](https://adv-r.hadley.nz/conditions.html#calling-handlers)!
+
+# PIP Example {background-color="#0754b7"}
+
+## Motivation {.smaller}
+
+-   Price Framework data (`PFW`) is the 'metadata' behind each survey in Dataliweb (`DLW`).
+-   [Important]{style="color:red;"}: for ***each specific survey*** we should have ***only one record*** (or row/observation).
+
+::: callout-warning
+### Objective:
+
+1. Signal if there are duplicates of `PFW` per `country_code`,`surveyid_year` and `survey_acronym`.
+2. Log which are the duplicates
+3. And continue with the process using only unique values.
+:::
+
+Let's see structure of `PFW`...
+
+## What to do? {.smaller}
+
+```{r}
+#| echo: true
+#| eval: false
+
+# Function to handle duplicated observations in pfw 
+unq_pfw <- function(dt,                     
+                    keyVar) {    
+    tryCatch(      
+    expr = {   
+      
+      "???"
+        
+    },
+    
+    error = function(cnd){
+      
+      "???"
+        
+    }  
+    )     
+  
+  return(dt)  
+}
+```
+
+## Toy solution {.smaller}
+
+1.  Don't stop process:
+
+```{r}
+#| echo: true
+
+# Function to handle duplicated observations in pfw
+unq_pfw <- function(dt,
+                    keyVar){
+
+  if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){
+
+    tryCatch(
+      expr = {
+
+        cli::cli_abort()
+
+      },
+      error = function(cnd){
+
+        message("There are duplicates in `pfw`")
+
+      }
+    )
+
+    dt <- unique(dt, by = keyVar)
+  }
+  return(dt)
+}
+```
+
+## Result {.smaller}
+
+```{r}
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Load Libraries   ---------
+library(rlang)
+
+```
+
+```{r}
+#| echo: true
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Load data  ---------
+
+pfw <- pipload::pip_load_aux("pfw")
+
+keyVar <- c("country_code",
+            "surveyid_year",
+            "survey_acronym")
+
+```
+
+```{r}
+#| echo: true
+#| error: true
+#| message: true
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Duplicate one value    ---------
+
+pfw_d <- rbind(pfw, pfw[rep(1, 5), ])
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Use function  ---------
+
+pfw_f <- unq_pfw(pfw_d, keyVar)
+
+```
+
+But the message is not that informative and what if I want to stop at any error?
+
+## Signaling and Handling {.smaller}
+
+1.  Let's use the condition object
+
+```{r}
+#| echo: true
+
+# Function to handle duplicated observations in pfw
+unq_pfw <- function(dt,
+                    keyVar){
+
+  if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){
+
+    tryCatch(
+      expr = {
+        
+        dt_d <- dt[duplicated(dt, by = keyVar)]         
+        n_rep <- nrow(dt_d)          
+        cli::cli_abort(message = "There {?is/are} {n_rep} duplicates in `pfw`",
+                       class = c("piperr"),
+                       link =  unique(dt_d$link))
+
+      },
+      piperr = function(cnd){
+
+        msg <- cat("[", class(cnd)[[1]], "] ",
+            cnd$message," for ", cnd$link, "\n", sep = "")
+        
+        message(msg)
+
+      }
+    )
+
+    dt <- unique(dt, by = keyVar)
+  }
+  return(dt)
+}
+```
+
+## Result {.smaller}
+
+```{r}
+#| echo: true
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Load data  ---------
+
+pfw <- pipload::pip_load_aux("pfw")
+
+keyVar <- c("country_code",
+            "surveyid_year",
+            "survey_acronym")
+
+```
+
+```{r}
+#| echo: true
+#| error: true
+#| message: true
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Duplicate one value    ---------
+
+pfw_d <- rbind(pfw, pfw[rep(1, 5), ])
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Use function  ---------
+
+pfw_f <- unq_pfw(pfw_d, keyVar)
+
+```
+
+But what if I don't want it to be skipped?
+
+## Handling {.smaller}
+
+2.  Let's add another argument
+
+```{r}
+#| echo: true
+
+# Function to handle duplicated observations in pfw
+unq_pfw <- function(dt,
+                    keyVar,                    
+                    skip_err = TRUE){
+
+  if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){
+
+    tryCatch(
+      expr = {
+        
+        dt_d <- dt[duplicated(dt, by = keyVar)]         
+        n_rep <- nrow(dt_d)          
+        cli::cli_abort(message = "There {?is/are} {n_rep} duplicates in `pfw`",
+                       class = c("piperr"),
+                       skip = skip_err,
+                       link =  unique(dt_d$link),
+                       call = sys.call())
+        },
+      piperr = function(cnd){
+
+      msg <- cat("[", class(cnd)[[1]], "] ",
+            cnd$message," for ", cnd$link, "\n", sep = "")
+        
+        message(msg)
+        
+      if(!cnd$skip){
+        # Abort if you don't want to skip, but after logging
+        cli::cli_abort(cnd$message, 
+                       call = cnd$call)
+      }
+        
+        } 
+    )
+
+    dt <- unique(dt, by = keyVar)
+  
+    }
+  return(dt)
+}
+```
+
+## My solution {.smaller}
+
+```{r}
+#| echo: true
+
+# Function to handle duplicated observations in pfw
+unq_pfw <- function(dt,
+                    keyVar,                     
+                    log_err = TRUE,                     
+                    skip_err = TRUE){
+
+    tryCatch(
+      expr = {
+        
+        if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){
+        
+        dt_d <- dt[duplicated(dt, by = keyVar)]         
+        n_rep <- nrow(dt_d)          
+        cli::cli_abort(message = "There {?is/are} {n_rep} duplicates in `pfw`",
+                       class = c("dup_pfw", "piperr"),
+                       log = log_err,
+                       skip = skip_err,
+                       link =  unique(dt_d$link),
+                       call = sys.call())
+        
+        }
+        
+        },
+      error = function(cnd){
+        
+        cli::cli_abort(message = "Untracked error",
+                       call = cnd$call)
+        
+      },
+      dup_pfw = function(cnd){
+        
+      if(cnd$log){ 
+        # Log the error
+        add_log(cnd)
+      }
+      
+      if(!cnd$skip){
+        # Abort if you don't want to skip, but after logging
+        cli::cli_abort(cnd$message, 
+                       call = cnd$call)
+      }
+        
+        },  
+      
+      finally = {
+        
+      dt <- unique(dt, by = keyVar)
+      
+      } 
+    )
+    
+  return(dt)
+}
+```
+
+## Other applications {.smaller .incremental}
+
+1.  Success and failure values:
+    -   Return a value for success and another for failure.
+2.  Resignal and record
+    -   More informative error messages and record for later investigation
+3.  No default behavior:
+    -   Using `signal()` you can create a condition different from a `error`,`warning` or `message`.
