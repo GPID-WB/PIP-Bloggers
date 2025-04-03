@@ -1,6 +1,6 @@
 ---
 title: "Condition Handling"
-subtitle: "Advance R Session"
+subtitle: "Advance R Session 1"
 author: "Diana Garcia"
 format: 
   revealjs:
@@ -292,9 +292,9 @@ If you want to learn more about them, check [Advanced R's 8.4.3 and 8.4.4 subsec
 ::: callout-warning
 ### Objective:
 
-1. Signal if there are duplicates of `PFW` per `country_code`,`surveyid_year` and `survey_acronym`.
-2. Log which are the duplicates
-3. And continue with the process using only unique values.
+1.  Signal if there are duplicates of `PFW` per `country_code`,`surveyid_year` and `survey_acronym`.
+2.  Log which are the duplicates
+3.  And continue with the process using only unique values.
 :::
 
 Let's see structure of `PFW`...
