@@ -1,0 +1,70 @@
+---
+title: "Catching Errors Inside lapply(): Nested tryCatch and Clean Error Reporting in R"
+description: "Learn how to trace, classify, and report nested errors inside functional pipelines using tryCatch(), rlang, and cli."
+author: "R. Andres Castañeda"
+date: "2025-04-09"
+categories: [R, Error Handling, Functional Programming]
+format:
+  html:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+execute:
+  output: true
+---
+
+## Introduction
+
+Functional programming in R often leads us to use `lapply()` or `purrr::map()` to process many elements safely. To make our code robust, we usually wrap our functions in `tryCatch()` to handle errors gracefully.
+
+But what happens when the real problem is *inside* the function?
+
+Imagine this:
+
+-   You’re looping over a list of inputs with `lapply()`.
+-   Each item calls `foo()`, a composite function that internally calls `bar()`, `baz()`, and `goo()`.
+-   One of those inner functions fails — but all you get is a generic error message from the top-level `tryCatch()`.
+
+There’s no trace of which inner function was responsible, or what the input was. Debugging becomes a guessing game.
+
+In this post, we’ll explore a clean, modular solution using nested `tryCatch()` blocks, `rlang::abort()`, and `cli` alerts — building up step by step toward a robust and informative logging system.
+
+## Step 1: The Naive Setup
+
+Let’s simulate a real situation: a list of inputs that we want to process using `foo()`.
+
+Here’s a basic setup:
+
+```{r}
+#| error: true
+
+# Three inner functions
+bar <- function(x) x + 1
+baz <- function(x) stop("baz failed!")
+goo <- function(x) x * 2
+
+# A composite function
+foo <- function(x) {
+  bar(x) + baz(x) + goo(x)
+}
+
+# List of inputs (this could be files, datasets, IDs, etc.)
+inputs <- list(1, 2, 3)
+
+# Wrap each call to foo() in a top-level tryCatch()
+results <- lapply(inputs, function(x) {
+  tryCatch(
+    foo(x),
+    error = function(e) {
+      message("Something failed at top level")
+      NULL
+    }
+  )
+})
+```
+
+That’s… not very helpful.
+
+What input failed? Which internal function failed? Was it recoverable?
+
+We’ve successfully caught the error — but lost all the useful context.
