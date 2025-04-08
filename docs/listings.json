@@ -3,6 +3,7 @@
     "listing": "/index.html",
     "items": [
       "/posts/Check_args/index.html",
+      "/posts/SysCall/index.html",
       "/posts/collapse_cheat_sheet/index.html",
       "/posts/Excp_Hndl/index.html"
     ]
