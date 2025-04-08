@@ -130,37 +130,72 @@ foo <- function(x) {
 foo()
 ```
 
-## Use Case: Getting the Name of the Caller
 
-Let’s say you want a function to include its caller’s name in a message:
+
+## Use case: Identifying the Calling Function (for Errors and Logs)
+
+Knowing the name of the function that called you can be genuinely useful — especially for writing **descriptive error messages**, **debugging tools**, or **custom logging systems**.
+
+Imagine you’re building a helper function that will be used in multiple places across your codebase, and you want to alert the user exactly where something went wrong.
+
+Here’s a simplified example:
 
 ```{r}
-goo <- function() {
-  caller <- as.character(sys.call(sys.parent()))[1]
-  cat("I was called by function:", caller, "\n")
+validate_input <- function(x) {
+  if (missing(x)) {
+    caller <- as.character(sys.call(sys.parent()))[1]
+    stop(sprintf("Function '%s' was called without a required argument 'x'", caller))
+  }
 }
-
-foo <- function() {
-  goo()
-}
-
-foo()
 ```
 
-Useful for dynamic error messages:
+Now we can call this helper from other functions:
 
 ```{r}
 #| error: true
-goo <- function() {
-  caller <- as.character(sys.call(sys.parent()))[1]
-  stop(paste("You misused the function", caller))
+foo <- function(x) {
+  validate_input(x)
+  # Do something with x
 }
-goo()
+
+# Try running it without x
+foo()
 ```
 
-Awesome! Adding `formals()` and `environment()` rounds out the full picture of introspection in R — function signature, body, and environment. Here’s the updated and **fully expanded** Quarto section on `sys.function()`:
 
-------------------------------------------------------------------------
+This becomes very powerful when writing **frameworks**, **internal utilities**, or **packages** where you want reusable components to report **context-aware** messages.
+
+You can even take it further and include the **full call expression** of the parent:
+
+```{r}
+#| error: true
+validate_input <- function(x) {
+  if (missing(x)) {
+    call_expr <- deparse(sys.call(sys.parent()))
+    stop(sprintf("Invalid call: %s — missing argument 'x'", call_expr))
+  }
+}
+
+bar <- function(x, y = 4, z = "hola") {
+  validate_input(x)
+}
+
+bar(y = 3, z = 8)
+# if you don't call arguments, they won't be shown
+# even if they have defaults... 
+# `sys.call(sys.parent())` shows exactly how it was called.
+bar()
+```
+
+This pattern is especially helpful when writing functions that will be used by other developers or in larger pipelines, where it’s not always obvious where something failed.
+
+::: {.callout-tip}
+## Tip
+Use `sys.call(sys.parent())` when you want to report errors *as if they came from the caller*, not the helper.
+:::
+
+
+Now that we’ve explored **who** called a function and **how**, let’s go one step deeper — and ask: *what is this function we’re inside of?*
 
 ## `sys.function()` – Which Function Is Running?
 
