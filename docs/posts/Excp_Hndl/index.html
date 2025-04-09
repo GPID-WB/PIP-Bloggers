@@ -194,6 +194,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
   <li><a href="#a-first-look-at-trycatch" id="toc-a-first-look-at-trycatch" class="nav-link" data-scroll-target="#a-first-look-at-trycatch">1. A First Look at <code>tryCatch()</code></a></li>
   <li><a href="#a-practical-example-with-recovery-logic" id="toc-a-practical-example-with-recovery-logic" class="nav-link" data-scroll-target="#a-practical-example-with-recovery-logic">2. A Practical Example with Recovery Logic</a></li>
+  <li><a href="#custom-error-classes-and-structured-conditions" id="toc-custom-error-classes-and-structured-conditions" class="nav-link" data-scroll-target="#custom-error-classes-and-structured-conditions">3. Custom Error Classes and Structured Conditions</a>
+  <ul class="collapse">
+  <li><a href="#why-is-this-better" id="toc-why-is-this-better" class="nav-link" data-scroll-target="#why-is-this-better">Why is this better?</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -393,8 +397,83 @@ Note
 <li>The <code>finally</code> block executes even if an error occurred.</li>
 <li>Values returned from the handler become the return value of the entire <code>tryCatch()</code> block.</li>
 </ul>
+</section>
+<section id="custom-error-classes-and-structured-conditions" class="level2">
+<h2 class="anchored" data-anchor-id="custom-error-classes-and-structured-conditions">3. Custom Error Classes and Structured Conditions</h2>
+<p>Catching errors like <code>"something went wrong"</code> is helpful, but not very specific. In a large pipeline, we often want to know:</p>
+<ul>
+<li>What type of error occurred</li>
+<li>Which function or step caused it</li>
+<li>What data triggered the failure</li>
+</ul>
+<p>This is where custom error classes and structured metadata become useful.</p>
+<p>Let’s say we want to define a special kind of error for when we detect duplicated rows in a dataset:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> <span class="fu">data.table</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">country =</span> <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="st">"C"</span>),</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">2020</span>, <span class="dv">2021</span>, <span class="dv">2022</span>, <span class="dv">2022</span>),</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">30</span>, <span class="dv">30</span>),</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">c</span>(<span class="st">"A2020"</span>, <span class="st">"A2020"</span>, <span class="st">"B2021"</span>, <span class="st">"C2022"</span>, <span class="st">"C2022"</span>)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>keyVar <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"country"</span>, <span class="st">"year"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can use <code>cli::cli_abort()</code> or <code>rlang::abort()</code> to raise an error with a custom class (using the <code>class</code> argument) and additional metadata with customed names arguments (i.e., arguments with names that you choose):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>check_for_duplicates <span class="ot">&lt;-</span> <span class="cf">function</span>(dt, keyVar) {</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">uniqueN</span>(dt, <span class="at">by =</span> keyVar) <span class="sc">!=</span> <span class="fu">nrow</span>(dt)) {</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    dup_rows <span class="ot">&lt;-</span> dt[<span class="fu">duplicated</span>(dt, <span class="at">by =</span> keyVar)]</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    n_rep <span class="ot">&lt;-</span> <span class="fu">nrow</span>(dup_rows)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    cli<span class="sc">::</span><span class="fu">cli_abort</span>(</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">message =</span> <span class="st">"Found {n_rep} duplicated row(s) in the dataset."</span>,</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"dup_pfw"</span>, <span class="st">"validation_error"</span>),</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">key =</span> keyVar,</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">ids =</span> <span class="fu">unique</span>(dup_rows<span class="sc">$</span>id)</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(dt)</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This raises a custom error of class <code>"dup_pfw"</code>, which we can later catch specifically inside <code>tryCatch()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">expr =</span> <span class="fu">check_for_duplicates</span>(dt, keyVar),</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">dup_pfw =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Caught a known duplication issue."</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Key used: "</span>, <span class="fu">paste</span>(e<span class="sc">$</span>key, <span class="at">collapse =</span> <span class="st">", "</span>))</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Affected IDs: "</span>, <span class="fu">paste</span>(<span class="fu">unique</span>(e<span class="sc">$</span>ids), <span class="at">collapse =</span> <span class="st">", "</span>))</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NULL</span>)  <span class="co"># or apply a fix and return cleaned data</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  },</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Caught an unknown error: "</span>, <span class="fu">conditionMessage</span>(e))</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Caught a known duplication issue.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Key used: country, year</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Affected IDs: A2020, C2022</code></pre>
+</div>
+</div>
+<section id="why-is-this-better" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-this-better">Why is this better?</h3>
+<ul>
+<li>We’re not just catching any error — we’re catching <em>expected</em> errors by class.</li>
+<li>We can extract metadata (<code>e$key</code>, <code>e$ids</code>) to include in a log or a diagnostic message.</li>
+<li>If the error is <strong>not</strong> of class <code>"dup_pfw"</code>, it’s passed on to the more general <code>error</code> handler.</li>
+</ul>
+<p>This sets us up for a robust logging system: when a known issue occurs, we log it with context; if it’s unknown, we escalate it or halt.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

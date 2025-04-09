@@ -152,4 +152,76 @@ This function shows several important ideas:
 - The `finally` block executes even if an error occurred.
 - Values returned from the handler become the return value of the entire `tryCatch()` block.
 
+## 3. Custom Error Classes and Structured Conditions
+
+Catching errors like `"something went wrong"` is helpful, but not very specific. In a large pipeline, we often want to know:
+
+- What type of error occurred
+- Which function or step caused it
+- What data triggered the failure
+
+This is where custom error classes and structured metadata become useful.
+
+Let’s say we want to define a special kind of error for when we detect duplicated rows in a dataset:
+
+```{R}
+dt <- data.table(
+  country = c("A", "A", "B", "C", "C"),
+  year = c(2020, 2020, 2021, 2022, 2022),
+  value = c(10, 10, 20, 30, 30),
+  id = c("A2020", "A2020", "B2021", "C2022", "C2022")
+)
+
+keyVar <- c("country", "year")
+```
+
+We can use `cli::cli_abort()` or `rlang::abort()` to raise an error with a custom class (using the `class` argument) and additional metadata with customed names arguments (i.e., arguments with names that you choose):
+
+```{r}
+check_for_duplicates <- function(dt, keyVar) {
+  if (uniqueN(dt, by = keyVar) != nrow(dt)) {
+    dup_rows <- dt[duplicated(dt, by = keyVar)]
+    n_rep <- nrow(dup_rows)
+
+    cli::cli_abort(
+      message = "Found {n_rep} duplicated row(s) in the dataset.",
+      class = c("dup_pfw", "validation_error"),
+      key = keyVar,
+      ids = unique(dup_rows$id)
+    )
+  }
+
+  return(dt)
+}
+```
+
+This raises a custom error of class `"dup_pfw"`, which we can later catch specifically inside `tryCatch()`:
+
+```{r}
+result <- tryCatch(
+  expr = check_for_duplicates(dt, keyVar),
+  
+  dup_pfw = function(e) {
+    message("Caught a known duplication issue.")
+    message("Key used: ", paste(e$key, collapse = ", "))
+    message("Affected IDs: ", paste(unique(e$ids), collapse = ", "))
+    return(NULL)  # or apply a fix and return cleaned data
+  },
+
+  error = function(e) {
+    message("Caught an unknown error: ", conditionMessage(e))
+    return(NULL)
+  }
+)
+```
+
+### Why is this better?
+
+- We’re not just catching any error — we’re catching *expected* errors by class.
+- We can extract metadata (`e$key`, `e$ids`) to include in a log or a diagnostic message.
+- If the error is **not** of class `"dup_pfw"`, it’s passed on to the more general `error` handler.
+
+This sets us up for a robust logging system: when a known issue occurs, we log it with context; if it’s unknown, we escalate it or halt.
+
+
 
