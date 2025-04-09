@@ -198,6 +198,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#why-is-this-better" id="toc-why-is-this-better" class="nav-link" data-scroll-target="#why-is-this-better">Why is this better?</a></li>
   </ul></li>
+  <li><a href="#building-a-lightweight-logging-system" id="toc-building-a-lightweight-logging-system" class="nav-link" data-scroll-target="#building-a-lightweight-logging-system">4. Building a Lightweight Logging System</a>
+  <ul class="collapse">
+  <li><a href="#now-lets-use-it-inside-a-trycatch-block" id="toc-now-lets-use-it-inside-a-trycatch-block" class="nav-link" data-scroll-target="#now-lets-use-it-inside-a-trycatch-block">Now let’s use it inside a <code>tryCatch()</code> block:</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -471,6 +475,63 @@ Note
 <li>If the error is <strong>not</strong> of class <code>"dup_pfw"</code>, it’s passed on to the more general <code>error</code> handler.</li>
 </ul>
 <p>This sets us up for a robust logging system: when a known issue occurs, we log it with context; if it’s unknown, we escalate it or halt.</p>
+</section>
+</section>
+<section id="building-a-lightweight-logging-system" class="level2">
+<h2 class="anchored" data-anchor-id="building-a-lightweight-logging-system">4. Building a Lightweight Logging System</h2>
+<p>When your code is running on hundreds of datasets or in a production pipeline, you don’t just want to know that something failed—you want a record of <strong>what</strong> failed, <strong>where</strong>, and <strong>why</strong>.</p>
+<p>Let’s create a simple logging function that writes errors to a file:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>add_log <span class="ot">&lt;-</span> <span class="cf">function</span>(cnd, <span class="at">logfile =</span> <span class="st">"log.txt"</span>) {</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  timestamp <span class="ot">&lt;-</span> <span class="fu">format</span>(<span class="fu">Sys.time</span>(), <span class="st">"%Y-%m-%d %H:%M:%S"</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"["</span>, timestamp, <span class="st">"] "</span>,</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"["</span>, <span class="fu">class</span>(cnd)[<span class="dv">1</span>], <span class="st">"] "</span>,</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    cnd<span class="sc">$</span>message,</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(cnd<span class="sc">$</span>ids)) {</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">paste</span>(<span class="st">" | IDs:"</span>, <span class="fu">paste</span>(cnd<span class="sc">$</span>ids, <span class="at">collapse =</span> <span class="st">", "</span>))</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">file =</span> logfile,</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">append =</span> <span class="cn">TRUE</span></span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This function takes any condition object and appends a formatted line to a plain-text file. It includes:</p>
+<ul>
+<li>The time of the error</li>
+<li>The class of the error</li>
+<li>The message</li>
+<li>Optionally, any custom metadata (like IDs or keys)</li>
+</ul>
+<section id="now-lets-use-it-inside-a-trycatch-block" class="level3">
+<h3 class="anchored" data-anchor-id="now-lets-use-it-inside-a-trycatch-block">Now let’s use it inside a <code>tryCatch()</code> block:</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>handle_duplicates <span class="ot">&lt;-</span> <span class="cf">function</span>(dt, keyVar) {</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> <span class="fu">check_for_duplicates</span>(dt, keyVar),</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">dup_pfw =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e)  <span class="co"># log the known duplication error</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>      dt_clean <span class="ot">&lt;-</span> <span class="fu">unique</span>(dt, <span class="at">by =</span> keyVar)  <span class="co"># remove duplicates</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(dt_clean)</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e)  <span class="co"># log unknown errors too</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"Unexpected error occurred. See log for details."</span>)</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This version of <code>handle_duplicates()</code> does three things:</p>
+<ol type="1">
+<li>Tries to detect duplicate rows.</li>
+<li>If duplicates are found, it logs the error and removes them.</li>
+<li>If an unknown error occurs, it logs that too—and stops execution.</li>
+</ol>
+<p>This pattern is clean, recoverable, and extensible. You can add new condition classes for things like missing values, invalid columns, or range checks, and respond to each one differently.</p>
 
 
 </section>

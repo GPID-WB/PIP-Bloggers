@@ -224,4 +224,66 @@ result <- tryCatch(
 This sets us up for a robust logging system: when a known issue occurs, we log it with context; if it’s unknown, we escalate it or halt.
 
 
+## 4. Building a Lightweight Logging System
+
+When your code is running on hundreds of datasets or in a production pipeline, you don’t just want to know that something failed—you want a record of **what** failed, **where**, and **why**.
+
+Let’s create a simple logging function that writes errors to a file:
+
+```{r}
+add_log <- function(cnd, logfile = "log.txt") {
+  timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+
+  cat(
+    "[", timestamp, "] ",
+    "[", class(cnd)[1], "] ",
+    cnd$message,
+    if (!is.null(cnd$ids)) {
+      paste(" | IDs:", paste(cnd$ids, collapse = ", "))
+    },
+    "\n",
+    file = logfile,
+    append = TRUE
+  )
+}
+```
+
+This function takes any condition object and appends a formatted line to a plain-text file. It includes:
+
+- The time of the error
+- The class of the error
+- The message
+- Optionally, any custom metadata (like IDs or keys)
+
+
+### Now let’s use it inside a `tryCatch()` block:
+
+```{r}
+handle_duplicates <- function(dt, keyVar) {
+  tryCatch(
+    expr = check_for_duplicates(dt, keyVar),
+
+    dup_pfw = function(e) {
+      add_log(e)  # log the known duplication error
+      dt_clean <- unique(dt, by = keyVar)  # remove duplicates
+      return(dt_clean)
+    },
+
+    error = function(e) {
+      add_log(e)  # log unknown errors too
+      stop("Unexpected error occurred. See log for details.")
+    }
+  )
+}
+```
+
+This version of `handle_duplicates()` does three things:
+
+1. Tries to detect duplicate rows.
+2. If duplicates are found, it logs the error and removes them.
+3. If an unknown error occurs, it logs that too—and stops execution.
+
+This pattern is clean, recoverable, and extensible. You can add new condition classes for things like missing values, invalid columns, or range checks, and respond to each one differently.
+
+
 
