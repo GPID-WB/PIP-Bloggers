@@ -68,3 +68,46 @@ That’s… not very helpful.
 What input failed? Which internal function failed? Was it recoverable?
 
 We’ve successfully caught the error — but lost all the useful context.
+
+
+##  Step 2: So What’s the Problem?
+
+At first glance, it seems like our setup is doing the right thing — we’re catching errors, avoiding crashes, and moving on. But the moment something fails inside `foo()`, we're left with this:
+
+That’s it. No details. No traceback. No way to know what went wrong — or where.
+
+Let’s visualize the problem more clearly by making `foo()` and its components a bit noisier:
+```{r}
+#| error: true
+bar <- \(x) {
+  message("Running bar()")
+  x + 1
+}
+
+baz <- \(x) {
+  message("Running baz()")
+  if (x == 2) stop("baz() failed. `x` can't be 2.")
+  x * 2
+}
+
+goo <- \(x) {
+  message("Running goo()")
+  x ^ 2
+}
+
+foo <- \(x) {
+  bar(x) + baz(x) + goo(x)
+}
+
+inputs <- list(1, 2, 3)
+
+results <- lapply(inputs, \(x) {
+  tryCatch(
+    foo(x),
+    error = \(e) {
+      message("Something failed at top level")
+      NULL
+    }
+  )
+})
+```
