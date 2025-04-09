@@ -3,10 +3,13 @@ title: "Exception Handling"
 description: "Using tryCatch() within PIP"
 author: "Diana C. Garcia"
 date: "02/13/2025"
-categories: [Errors, Warnings]
+categories: [Error Handing, Warnings]
 ---
 
-The following is an example of how to use exception handling in R within the PIP pipeline. In particular, I focus on using `tryCatch` . This is a simplifies example from what we used on the cleaning process in `pipdata`.
+## Intro
+Exception handling is a powerful technique to make your R code more robust and maintainable. In this post, we demonstrate how to use `tryCatch()` alongside custom conditions using `cli::cli_abort()` and `rlang::abort()` to intercept, classify, and log specific types of errors. This allows us to decide whether to stop execution or recover gracefully.
+
+The example comes from a data-cleaning context where we want to check for duplicate rows in a dataset. If duplicates are found, we can log the issue, optionally stop execution, or continue after resolving the problem.
 
 ## Load libraries and functions
 
