@@ -179,19 +179,33 @@ We can use `cli::cli_abort()` or `rlang::abort()` to raise an error with a custo
 
 ```{r}
 check_for_duplicates <- function(dt, keyVar) {
-  if (uniqueN(dt, by = keyVar) != nrow(dt)) {
-    dup_rows <- dt[duplicated(dt, by = keyVar)]
-    n_rep <- nrow(dup_rows)
+  tryCatch(
+    expr = {
+      if (uniqueN(dt, by = keyVar) != nrow(dt)) {
+        dup_rows <- dt[duplicated(dt, by = keyVar)]
+        n_rep <- nrow(dup_rows)
 
-    cli::cli_abort(
-      message = "Found {n_rep} duplicated row(s) in the dataset.",
-      class = c("dup_pfw", "validation_error"),
-      key = keyVar,
-      ids = unique(dup_rows$id)
-    )
-  }
+        cli::cli_abort(
+          message = "Found {n_rep} duplicated row(s) in the dataset.",
+          class = c("dup_pfw", "validation_error"),
+          key = keyVar,
+          ids = unique(dup_rows$id)
+        )
+      }
 
-  return(dt)
+      return(dt)  # no duplicates found
+    },
+
+    dup_pfw = function(e) {
+      message("Known duplication issue detected.")
+      e
+    },
+
+    error = function(e) {
+      message("Unexpected error:", conditionMessage(e))
+      e
+    }
+  )
 }
 ```
 
@@ -231,7 +245,8 @@ When your code is running on hundreds of datasets or in a production pipeline, y
 Let’s create a simple logging function that writes errors to a file:
 
 ```{r}
-add_log <- function(cnd, logfile = "log.txt") {
+#| label: add-log
+add_log <- function(cnd, logfile) {
   timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
 
   cat(
@@ -259,22 +274,29 @@ This function takes any condition object and appends a formatted line to a plain
 ### Now let’s use it inside a `tryCatch()` block:
 
 ```{r}
-handle_duplicates <- function(dt, keyVar) {
+#| label: handle-duplicates
+logfile <- tempfile(fileext = ".txt")
+
+handle_duplicates <- function(dt, keyVar, logfile) {
   tryCatch(
     expr = check_for_duplicates(dt, keyVar),
 
     dup_pfw = function(e) {
-      add_log(e)  # log the known duplication error
+      add_log(e, logfile = logfile)  # log the known duplication error
       dt_clean <- unique(dt, by = keyVar)  # remove duplicates
       return(dt_clean)
     },
 
     error = function(e) {
-      add_log(e)  # log unknown errors too
+      add_log(e, logfile = logfile)  # log unknown errors too
       stop("Unexpected error occurred. See log for details.")
     }
   )
 }
+
+
+handle_duplicates(dt, keyVar, logfile)
+handle_duplicates(dt, "wrongVar", logfile)
 ```
 
 This version of `handle_duplicates()` does three things:
@@ -283,7 +305,62 @@ This version of `handle_duplicates()` does three things:
 2. If duplicates are found, it logs the error and removes them.
 3. If an unknown error occurs, it logs that too—and stops execution.
 
-This pattern is clean, recoverable, and extensible. You can add new condition classes for things like missing values, invalid columns, or range checks, and respond to each one differently.
+This pattern is clean, recoverable, and extensible. You can add new condition classes for things like missing values, invalid columns, or range checks, and respond to each one differently. 
 
 
+### Reading and Summarizing the Log File
 
+After logging multiple errors during a data-cleaning process, you may want to quickly inspect what went wrong. Here’s how to read the log and get a summary of known vs. unknown errors.
+
+Let’s assume we’ve used `add_log()` (from the previous section) to write to a file called `log.txt`.
+
+```{r}
+#| label: readlog
+# Preview the raw log
+readLines(logfile)
+```
+
+### Create a helper to summarize logs by type
+
+We can write a small function to parse the log and report how many known and unknown errors occurred:
+
+```{r}
+#| collapse: true
+#| label: summarize-log
+summarize_log <- function(logfile) {
+  if (!file.exists(logfile)) {
+    message("No log file found.")
+    return(invisible(NULL))
+  }
+
+  lines <- readLines(logfile)
+
+  known <- grep("\\[dup_pfw\\]", lines, value = TRUE)
+  unknown <- grep("\\[error\\]", lines, value = TRUE)
+
+  cat("== Log Summary ==\n")
+  cat("Total entries:", length(lines), "\n")
+  cat("Known 'dup_pfw' errors:", length(known), "\n")
+  cat("Other (unknown) errors:", length(unknown), "\n")
+
+  if (length(known)) {
+    cat("\nKnown issues:\n")
+    cat(paste("-", known), sep = "\n")
+  }
+
+  if (length(unknown)) {
+    cat("\nUnknown issues:\n")
+    cat(paste("-", unknown), sep = "\n")
+  }
+}
+```
+
+Now call it like this:
+
+```{r}
+summarize_log(logfile)
+```
+
+This small addition turns your log from a flat text dump into a searchable, inspectable tool — one that could be expanded later to generate HTML reports, markdown diagnostics, or summaries across datasets.
+
+Would you like to move on to the **final cleaning function with full logging and `skip` logic** next?

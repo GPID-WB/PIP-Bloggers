@@ -201,6 +201,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#building-a-lightweight-logging-system" id="toc-building-a-lightweight-logging-system" class="nav-link" data-scroll-target="#building-a-lightweight-logging-system">4. Building a Lightweight Logging System</a>
   <ul class="collapse">
   <li><a href="#now-lets-use-it-inside-a-trycatch-block" id="toc-now-lets-use-it-inside-a-trycatch-block" class="nav-link" data-scroll-target="#now-lets-use-it-inside-a-trycatch-block">Now let’s use it inside a <code>tryCatch()</code> block:</a></li>
+  <li><a href="#reading-and-summarizing-the-log-file" id="toc-reading-and-summarizing-the-log-file" class="nav-link" data-scroll-target="#reading-and-summarizing-the-log-file">Reading and Summarizing the Log File</a></li>
+  <li><a href="#create-a-helper-to-summarize-logs-by-type" id="toc-create-a-helper-to-summarize-logs-by-type" class="nav-link" data-scroll-target="#create-a-helper-to-summarize-logs-by-type">Create a helper to summarize logs by type</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -482,7 +484,7 @@ Note
 <p>When your code is running on hundreds of datasets or in a production pipeline, you don’t just want to know that something failed—you want a record of <strong>what</strong> failed, <strong>where</strong>, and <strong>why</strong>.</p>
 <p>Let’s create a simple logging function that writes errors to a file:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>add_log <span class="ot">&lt;-</span> <span class="cf">function</span>(cnd, <span class="at">logfile =</span> <span class="st">"log.txt"</span>) {</span>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>add_log <span class="ot">&lt;-</span> <span class="cf">function</span>(cnd, logfile) {</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  timestamp <span class="ot">&lt;-</span> <span class="fu">format</span>(<span class="fu">Sys.time</span>(), <span class="st">"%Y-%m-%d %H:%M:%S"</span>)</span>
 <span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(</span>
@@ -508,22 +510,34 @@ Note
 <section id="now-lets-use-it-inside-a-trycatch-block" class="level3">
 <h3 class="anchored" data-anchor-id="now-lets-use-it-inside-a-trycatch-block">Now let’s use it inside a <code>tryCatch()</code> block:</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>handle_duplicates <span class="ot">&lt;-</span> <span class="cf">function</span>(dt, keyVar) {</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> <span class="fu">check_for_duplicates</span>(dt, keyVar),</span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">dup_pfw =</span> <span class="cf">function</span>(e) {</span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e)  <span class="co"># log the known duplication error</span></span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>      dt_clean <span class="ot">&lt;-</span> <span class="fu">unique</span>(dt, <span class="at">by =</span> keyVar)  <span class="co"># remove duplicates</span></span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(dt_clean)</span>
-<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
-<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e)  <span class="co"># log unknown errors too</span></span>
-<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"Unexpected error occurred. See log for details."</span>)</span>
-<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>logfile <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".txt"</span>)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>handle_duplicates <span class="ot">&lt;-</span> <span class="cf">function</span>(dt, keyVar, logfile) {</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> <span class="fu">check_for_duplicates</span>(dt, keyVar),</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">dup_pfw =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e, <span class="at">logfile =</span> logfile)  <span class="co"># log the known duplication error</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>      dt_clean <span class="ot">&lt;-</span> <span class="fu">unique</span>(dt, <span class="at">by =</span> keyVar)  <span class="co"># remove duplicates</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(dt_clean)</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e, <span class="at">logfile =</span> logfile)  <span class="co"># log unknown errors too</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(<span class="st">"Unexpected error occurred. See log for details."</span>)</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a><span class="fu">handle_duplicates</span>(dt, keyVar, logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   country  year value     id
+    &lt;char&gt; &lt;num&gt; &lt;num&gt; &lt;char&gt;
+1:       A  2020    10  A2020
+2:       B  2021    20  B2021
+3:       C  2022    30  C2022</code></pre>
+</div>
 </div>
 <p>This version of <code>handle_duplicates()</code> does three things:</p>
 <ol type="1">
@@ -532,6 +546,62 @@ Note
 <li>If an unknown error occurs, it logs that too—and stops execution.</li>
 </ol>
 <p>This pattern is clean, recoverable, and extensible. You can add new condition classes for things like missing values, invalid columns, or range checks, and respond to each one differently.</p>
+</section>
+<section id="reading-and-summarizing-the-log-file" class="level3">
+<h3 class="anchored" data-anchor-id="reading-and-summarizing-the-log-file">Reading and Summarizing the Log File</h3>
+<p>After logging multiple errors during a data-cleaning process, you may want to quickly inspect what went wrong. Here’s how to read the log and get a summary of known vs.&nbsp;unknown errors.</p>
+<p>Let’s assume we’ve used <code>add_log()</code> (from the previous section) to write to a file called <code>log.txt</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview the raw log</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">readLines</span>(logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "[ 2025-04-09 17:12:24 ]  [ dup_pfw ]  Found 2 duplicated row(s) in the dataset.  | IDs: A2020, C2022 "</code></pre>
+</div>
+</div>
+</section>
+<section id="create-a-helper-to-summarize-logs-by-type" class="level3">
+<h3 class="anchored" data-anchor-id="create-a-helper-to-summarize-logs-by-type">Create a helper to summarize logs by type</h3>
+<p>We can write a small function to parse the log and report how many known and unknown errors occurred:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>summarize_log <span class="ot">&lt;-</span> <span class="cf">function</span>(logfile) {</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(logfile)) {</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"No log file found."</span>)</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="fu">invisible</span>(<span class="cn">NULL</span>))</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  lines <span class="ot">&lt;-</span> <span class="fu">readLines</span>(logfile)</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  known <span class="ot">&lt;-</span> <span class="fu">grep</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">[dup_pfw</span><span class="sc">\\</span><span class="st">]"</span>, lines, <span class="at">value =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  unknown <span class="ot">&lt;-</span> <span class="fu">grep</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">[error</span><span class="sc">\\</span><span class="st">]"</span>, lines, <span class="at">value =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"== Log Summary ==</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Total entries:"</span>, <span class="fu">length</span>(lines), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Known 'dup_pfw' errors:"</span>, <span class="fu">length</span>(known), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Other (unknown) errors:"</span>, <span class="fu">length</span>(unknown), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(known)) {</span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Known issues:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"-"</span>, known), <span class="at">sep =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(unknown)) {</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Unknown issues:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"-"</span>, unknown), <span class="at">sep =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now call it like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summarize_log</span>(logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>== Log Summary ==
+Total entries: 1 
+Known 'dup_pfw' errors: 0 
+Other (unknown) errors: 0 </code></pre>
+</div>
+</div>
+<p>This small addition turns your log from a flat text dump into a searchable, inspectable tool — one that could be expanded later to generate HTML reports, markdown diagnostics, or summaries across datasets.</p>
+<p>Would you like to move on to the <strong>final cleaning function with full logging and <code>skip</code> logic</strong> next?</p>
 
 
 </section>
