@@ -24,9 +24,9 @@ However, make sure to have installed the following packages as well: `cli` and `
 
 The following is the example of the function we need to be "handle" with `tryCatch`. This function tries to check if there are duplicates in `dt` according to some `keyVar` and if there are duplicates it can abort and exit or continue without exiting and logging the error. The function has another two parameters to decide the following:
 
-1. `log_err` if we want the error to be included in a error-report log.
+1.  `log_err` if we want the error to be included in a error-report log.
 
-2. `skip_err` if we want the error to be skipped or not.
+2.  `skip_err` if we want the error to be skipped or not.
 
 ```{r}
 # Function to handle duplicated observations in pfw 
@@ -141,4 +141,3 @@ A few websites I reviewed to learned more about this:
 4.  <https://aryoda.github.io/tutorials/tryCatchLog/tryCatchLog-intro-slides.html#/> (still reviewing it)
 
 ## 
-
