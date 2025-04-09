@@ -19,6 +19,11 @@ Error handling is a fundamental part of writing reliable R code. Whether you’r
 
 In this post, we’ll start from scratch to understand how `tryCatch()` works, and build up to a practical and structured approach to logging and recovering from specific types of failures. Our goal is not just to catch errors, but to catch them **with context**, and handle them in a **controlled and traceable** way.
 
+```{R}
+#| warning: false
+library(data.table)
+```
+
 
 ## 1. A First Look at `tryCatch()`
 
@@ -146,3 +151,5 @@ This function shows several important ideas:
 - You can recover differently depending on what went wrong.
 - The `finally` block executes even if an error occurred.
 - Values returned from the handler become the return value of the entire `tryCatch()` block.
+
+
