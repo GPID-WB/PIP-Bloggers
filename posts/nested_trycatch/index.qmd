@@ -314,7 +314,7 @@ But repeating the same `tryCatch()` logic inside each subfunction leads to dupli
 ```{r}
 safe_step <- function(expr, step_name) {
   tryCatch(
-    expr = eval(expr),
+    expr = eval(expr, envir = parent.frame()),  # This ensures that x will be found inside foo()'s environment when safe_step() evaluates bar(x), baz(x), and goo(x).
     error = function(e) {
       rlang::abort(
         message = sprintf("Step '%s' failed: %s", step_name, conditionMessage(e)),
@@ -337,6 +337,11 @@ It evaluates the expression, and if there's an error, it "rethrows" it with a me
 ### Rewrite `foo()` using `safe_step()`
 
 ```{r}
+bar <- function(x) x + 1
+baz <- function(x) stop("something broke in baz()")
+goo <- function(x) x * 2
+
+
 foo <- function(x) {
   result1 <- safe_step(quote(bar(x)), "bar()")
   result2 <- safe_step(quote(baz(x)), "baz()")
@@ -348,10 +353,6 @@ foo <- function(x) {
 Now each step is wrapped with failure context. You can call `foo()` inside a top-level `tryCatch()` that logs errors:
 
 ```{r}
-bar <- function(x) x + 1
-baz <- function(x) stop("something broke in baz()")
-goo <- function(x) x * 2
-
 tryCatch(
   foo(10),
   error = function(e) {
@@ -388,7 +389,7 @@ By using `quote(bar(x))`, we pass the **unevaluated expression** to `safe_step()
 
 ## 6. Logging Failures Across Many Inputs in a Pipeline
 
-When running a pipeline or loop over many inputs — like datasets, files, or parameter combinations — it's critical to:
+When running a pipeline or loop over many inputs it's critical to:
 
 - Keep the pipeline running even if some elements fail.
 - Log **which** input failed and **why**.
@@ -402,6 +403,7 @@ We’ll now simulate such a setup using `lapply()` and the advanced error-handli
 We'll simulate a function that may fail depending on the input:
 
 ```{r}
+#| error: true
 process_one <- function(x) {
   if (x %% 2 == 0) {
     rlang::abort(
@@ -413,6 +415,12 @@ process_one <- function(x) {
   }
   return(x^2)
 }
+
+# Good call
+process_one(3)
+
+# Bad call
+process_one(4)
 ```
 
 
@@ -422,7 +430,8 @@ process_one <- function(x) {
 Here’s a higher-level wrapper that runs one input and rethrows any error with `parent =` to retain the original condition:
 
 ```{r}
-safe_process <- function(x) {
+#| error: true
+run_with_context <- function(x) {
   tryCatch(
     {
       result <- process_one(x)
@@ -431,15 +440,22 @@ safe_process <- function(x) {
     error = function(e) {
       rlang::abort(
         message = "Pipeline step failed",
-        class = "pipeline_error",
+        .subclass = "pipeline_error",
         input_id = x,
         parent = e
       )
     }
   )
 }
+
+# Good call
+run_with_context(3)
+
+# Bad call
+run_with_context(4)
 ```
 
+Notice that it still throws an error, but it propagates the erors upward and it adds context and metadata to errors in a consistent, predictable way.
 
 ### 6.3: Logging function using `find_condition()`
 
@@ -478,7 +494,7 @@ logfile <- tempfile(fileext = ".log")
 
 results <- lapply(inputs, function(x) {
   tryCatch(
-    safe_process(x),
+    run_with_context(x),
     error = function(e) log_failure(e, logfile)
   )
 })
@@ -500,116 +516,6 @@ readLines(logfile)
 
 This concludes our full pipeline: from simple `tryCatch()` to nested steps, error metadata, structured logging, and full-loop resilience.
 
-
-
-
-
-
-## Appendix: Advanced Error Chaining with `rlang::abort(parent = ...)`
-
-In complex pipelines, it's useful to let low-level functions raise errors with detailed context, and then let higher-level functions catch and re-raise those errors while preserving the original. This is called **error chaining**.
-
-The `{rlang}` package supports this through the `parent` argument in `rlang::abort()`. Here's how it works in practice.
-
-### 1. Define a helper to walk the error chain
-
-We’ll need a function to search through a chain of errors and return the first one that matches a class:
-
-```{r}
-find_condition <- function(cnd, class) {
-  while (!is.null(cnd)) {
-    if (inherits(cnd, class)) return(cnd)
-    cnd <- cnd$parent
-  }
-  NULL
-}
-```
-
-This inspects the error object `cnd`, checks whether it inherits from the given `class`, and if not, moves to `cnd$parent`.
-
-
-
-### 2. Define a failing step with custom metadata
-
-Here we simulate a low-level function (`baz()`) that fails with additional metadata:
-
-```{r}
-baz <- function(x) {
-  rlang::abort(
-    message = "baz() failed",
-    class = "baz_error",
-    foo_step = "baz()",
-    input_value = x
-  )
-}
-```
-
-
-### 3. A mid-level wrapper that catches and rethrows
-
-Now we define `foo()` that wraps calls to other functions (`bar()`, `baz()`, `goo()`) and rethrows errors with `baz()` as the parent:
-
-```{r}
-bar <- function(x) x + 1
-goo <- function(x) x * 2
-
-foo <- function(x) {
-  tryCatch(
-    {
-      bar(x)
-      baz(x)  # this will fail
-      goo(x)
-    },
-    error = function(e) {
-      rlang::abort(
-        message = "foo() failed at one of its steps",
-        class = "foo_error",
-        parent = e
-      )
-    }
-  )
-}
-```
-
-This preserves the original `baz_error` as the parent of the new `foo_error`.
-
-### 4. Define a top-level logging function
-
-This function catches the error from `foo()`, logs it, and uses `find_condition()` to extract details from the inner-most failure:
-
-```{r}
-log_failure <- function(e) {
-  cli::cli_alert_danger("Top-level failure in {.strong foo()}")
-  cli::cli_alert("Main message: {conditionMessage(e)}")
-  
-  if (!is.null(cnd <- find_condition(e, "baz_error"))) {
-    cli::cli_alert("Root cause: {.strong {cnd$foo_step}} failed with input {.code {cnd$input_value}}")
-  } else {
-    cli::cli_alert("No known step-specific error was found in the chain.")
-  }
-}
-```
-
-
-### 5. Run the pipeline and catch the error
-
-```{r}
-tryCatch(
-  foo(42),
-  error = log_failure
-)
-```
-
-
-### Why this matters
-
-This chaining mechanism lets you:
-
-- Attach rich, context-specific metadata where the error actually occurred.
-- Catch and log those details later, without polluting every layer of your pipeline.
-- Maintain clean separation of concerns: lower-level functions don't worry about global logging, and higher-level functions don't need to know the internals of every substep.
-
-This pattern is powerful for building robust, testable, and debuggable pipelines — especially when you want detailed failure reporting without overcomplicating function interfaces.
 
 
 
