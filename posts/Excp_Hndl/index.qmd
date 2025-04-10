@@ -179,33 +179,25 @@ We can use `cli::cli_abort()` or `rlang::abort()` to raise an error with a custo
 
 ```{r}
 check_for_duplicates <- function(dt, keyVar) {
-  tryCatch(
-    expr = {
-      if (uniqueN(dt, by = keyVar) != nrow(dt)) {
-        dup_rows <- dt[duplicated(dt, by = keyVar)]
-        n_rep <- nrow(dup_rows)
+  # Protect against unexpected base errors like missing columns
+  tryCatch({
+    if (uniqueN(dt, by = keyVar) != nrow(dt)) {
+      dup_rows <- dt[duplicated(dt, by = keyVar)]
+      n_rep <- nrow(dup_rows)
 
-        cli::cli_abort(
-          message = "Found {n_rep} duplicated row(s) in the dataset.",
-          class = c("dup_pfw", "validation_error"),
-          key = keyVar,
-          ids = unique(dup_rows$id)
-        )
-      }
-
-      return(dt)  # no duplicates found
-    },
-
-    dup_pfw = function(e) {
-      message("Known duplication issue detected.")
-      e
-    },
-
-    error = function(e) {
-      message("Unexpected error:", conditionMessage(e))
-      e
+      cli::cli_abort(
+        message = "Found {n_rep} duplicated row(s) in the dataset.",
+        class = c("dup_pfw", "validation_error"),
+        key = keyVar,
+        ids = unique(dup_rows$id)
+      )
     }
-  )
+
+    return(dt)
+  }, error = function(e) {
+    # Bubble up unknown errors as-is to be caught by outer tryCatch
+    stop(e)
+  })
 }
 ```
 
@@ -227,6 +219,7 @@ result <- tryCatch(
     return(NULL)
   }
 )
+
 ```
 
 ### Why is this better?
@@ -258,7 +251,8 @@ add_log <- function(cnd, logfile) {
     },
     "\n",
     file = logfile,
-    append = TRUE
+    append = TRUE, 
+    sep = ""
   )
 }
 ```
@@ -289,7 +283,10 @@ handle_duplicates <- function(dt, keyVar, logfile) {
 
     error = function(e) {
       add_log(e, logfile = logfile)  # log unknown errors too
-      stop("Unexpected error occurred. See log for details.")
+      message("Unexpected error occurred. See log for details.")
+      return(NULL)  # <-- graceful exit without re-raising the error
+      # Or, if you need the function to fail, you could do this:
+      # stop("Unexpected error occurred. See log for details.")
     }
   )
 }
@@ -336,7 +333,7 @@ summarize_log <- function(logfile) {
   lines <- readLines(logfile)
 
   known <- grep("\\[dup_pfw\\]", lines, value = TRUE)
-  unknown <- grep("\\[error\\]", lines, value = TRUE)
+  unknown <- grep("\\[(simpleError|error)\\]", lines, value = TRUE)
 
   cat("== Log Summary ==\n")
   cat("Total entries:", length(lines), "\n")
@@ -363,4 +360,3 @@ summarize_log(logfile)
 
 This small addition turns your log from a flat text dump into a searchable, inspectable tool — one that could be expanded later to generate HTML reports, markdown diagnostics, or summaries across datasets.
 
-Would you like to move on to the **final cleaning function with full logging and `skip` logic** next?
