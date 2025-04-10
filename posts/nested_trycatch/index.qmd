@@ -69,14 +69,14 @@ What input failed? Which internal function failed? Was it recoverable?
 
 We’ve successfully caught the error — but lost all the useful context.
 
-
-##  Step 2: So What’s the Problem?
+## Step 2: So What’s the Problem?
 
 At first glance, it seems like our setup is doing the right thing — we’re catching errors, avoiding crashes, and moving on. But the moment something fails inside `foo()`, we're left with this:
 
 That’s it. No details. No traceback. No way to know what went wrong — or where.
 
 Let’s visualize the problem more clearly by making `foo()` and its components a bit noisier:
+
 ```{r}
 #| error: true
 bar <- \(x) {
@@ -111,3 +111,190 @@ results <- lapply(inputs, \(x) {
   )
 })
 ```
+
+
+### Why is this a big deal?
+
+If you're processing 10,000 files, or iterating over hundreds of models, it's not enough to know that *something* failed. You need to know:
+
+- **Which step** in your process broke
+- **Which input** caused it
+- **What exactly** the error was
+
+That’s the kind of information we’ll learn to capture in the next section — by going inside `foo()` and catching errors *at the source*.
+
+Let’s level up our error handling.
+
+## Step 3: Catching Errors Where They Happen (Inside `foo()`)
+
+To improve our error reporting, we need to stop treating `foo()` as a black box. If we want to know **which internal function failed**, we need to add `tryCatch()` blocks around each one of them — and give each failure a clear label.
+
+Let’s start by rewriting `foo()` so it wraps each of its components:
+
+```{r}
+foo <- function(x) {
+  out1 <- tryCatch(
+    bar(x),
+    error = function(e) {
+      stop(sprintf("Error in bar(): %s", e$message), call. = FALSE)
+    }
+  )
+
+  out2 <- tryCatch(
+    baz(x),
+    error = function(e) {
+      stop(sprintf("Error in baz(): %s", e$message), call. = FALSE)
+    }
+  )
+
+  out3 <- tryCatch(
+    goo(x),
+    error = function(e) {
+      stop(sprintf("Error in goo(): %s", e$message), call. = FALSE)
+    }
+  )
+
+  out1 + out2 + out3
+}
+```
+
+Let’s run the same loop again:
+
+```{r}
+inputs <- list(1, 2, 3)
+
+results <- lapply(inputs, function(x) {
+  tryCatch(
+    foo(x),
+    error = function(e) {
+      message("Top-level handler:")
+      message("  ", e$message)
+      NULL
+    }
+  )
+})
+```
+
+### Now we know exactly what happened:
+
+- Which function failed: `baz()`
+- Why it failed: `"baz() failed on input 2"`
+- And from where: `foo()` passed it up
+
+This is already a huge improvement — now each internal component is **accountable**.
+
+
+### But there’s still one thing missing...
+
+We’re building custom messages, which is nice — but we're still working with **base R errors**, which can be brittle when we want to attach structured metadata (like the value of `x`, or the specific step name).
+
+To fix that, we’ll bring in `{rlang}` — a modern approach to error handling that makes structured, classed errors easy to build and trace.
+
+Perfect — here’s **Step 4**, where we bring in `{rlang}` to modernize our error handling and make it more structured, expressive, and testable.
+
+## Step 4: Using `rlang::abort()` for Structured, Traceable Errors
+
+So far, we’ve wrapped internal calls with `tryCatch()` and labeled their failures manually using `stop()`. That works, but it’s not ideal for larger pipelines where we want to:
+
+- Attach **structured metadata** to the error (like `x`, or which step failed)
+- Use **custom error classes** to distinguish error types
+- Improve traceability and logging across multiple layers
+
+This is where `{rlang}` comes in — a powerful toolkit for structured condition handling in modern R.
+
+### `rlang::abort()` — Your New Best Friend
+
+Let’s redefine our inner functions to use `rlang::abort()` with custom classes and metadata:
+
+```{r}
+
+bar <- function(x) {
+  message("Running bar()")
+  x + 1
+}
+
+baz <- function(x) {
+  message("Running baz()")
+  if (x == 2) {
+    rlang::abort("baz() failed on input 2", 
+          .subclass = "baz_error", 
+          foo_step = "baz", 
+          input_value = x)
+  }
+  x * 2
+}
+
+goo <- function(x) {
+  message("Running goo()")
+  x ^ 2
+}
+```
+
+What’s going on here?
+
+- `.subclass = "baz_error"` creates a **custom error class**
+- `foo_step = "baz"` and `input_value = x` add **metadata** to the error object
+
+These can be used later to filter, inspect, or respond differently to different error types or sources.
+
+### Updating `foo()` to propagate structured errors
+
+Let’s now let `foo()` act as a **smart forwarder** of the error — without rewriting the message manually:
+
+```{r}
+foo <- function(x) {
+  tryCatch(
+    {
+      out1 <- bar(x)
+      out2 <- baz(x)
+      out3 <- goo(x)
+      out1 + out2 + out3
+    },
+    error = function(e) {
+      # Bubble up the error as-is
+      rlang::abort(
+        message = e$message,
+        .subclass = "foo_error",
+        parent = e,             # preserve the original error
+        input_value = x
+      )
+    }
+  )
+}
+```
+
+Notice we’re using `parent = e`, which preserves the original error and its metadata in a nested structure. This allows the top-level handler to inspect both the `foo_error` and the `baz_error` that caused it.
+
+### Example: Let’s test it with a top-level handler
+
+```{r}
+#| label: log-failure
+log_failure <- function(e) {
+  cli::cli_alert_danger("Something went wrong in {.strong foo()}")
+  cli::cli_alert("Original error: {conditionMessage(e)}")
+  
+  if (inherits(e, "baz_error")) {
+    cli::cli_alert("Failure originated in step {.strong {e$foo_step}} with input {.code {e$input_value}}")
+  }
+  
+  NULL
+}
+
+inputs <- list(1, 2, 3)
+
+results <- lapply(inputs, function(x) {
+  tryCatch(
+    foo(x),
+    error = log_failure
+  )
+})
+```
+
+
+Now we have:
+
+- **Structured information** preserved across the stack
+- **Clear logs** with exact failure step and input
+- **Composability** — you can extend this to more steps, pipelines, or input types
+
+In the next step, we’ll wrap this all up into a reusable pattern that’s clean, readable, and powerful — with the help of `cli` and maybe a custom `safe_step()` function.
