@@ -1,0 +1,327 @@
+---
+title: "Understanding R’s Call Stack: `sys.call()` and Friends"
+description: "Understanding call stack introspection in R"
+author: "R.Andres Castaneda"
+date: "04/08/2025"
+categories: [R, Metaprogramming, Debugging]
+format:
+  html:
+    toc: true
+editor_options: 
+  chunk_output_type: console
+execute:
+  output: true
+---
+
+## Introduction
+
+If you've ever wanted an R function to *know who called it*, *inspect its own body*, or *adapt based on where it's running*, then you're looking for **call stack introspection** — and functions like `sys.call()`, `sys.parent()`, and `sys.function()` are your best tools.
+
+In this post, we'll demystify these powerful functions, showing how they allow you to:
+
+-   Track **who** called a function (`sys.parent()`)
+-   See **how** it was called (`sys.call()`)
+-   Access the actual **function object** being executed (`sys.function()`)
+
+We'll also take a brief look at `formals()`, `body()` and `environment()` — three essential tools for inspecting a function’s signature and its defining environment.
+
+Understanding these functions isn't just for advanced metaprogramming — they’re incredibly useful for logging, debugging, writing wrappers, building APIs, or just making your code more transparent and robust.
+
+Let’s get started with a minimal example of how the call stack works in R.
+
+## A Minimal Example of a Call Stack
+
+Let’s define three simple functions:
+
+```{r}
+baz <- function() {
+  print("Inside baz()")
+  print(sys.call())
+  print(sys.parent()) 
+}
+
+bar <- function() {
+  print("Inside bar()")
+  baz()
+}
+
+foo <- function() {
+  print("Inside foo()")
+  bar()
+}
+
+foo()
+```
+
+Let’s focus on the last number. What does it mean?
+
+### `sys.parent()` is just a number
+
+The function `sys.parent()` doesn’t return a function or a call — it returns a **number**. That number is an index into R’s **call stack** — the internal list of active function calls.
+
+In our example, this is the call stack when `baz()` is executing:
+
+```         
+2: bar()
+1: foo()
+0: global environment
+```
+
+So when `baz()` calls `sys.parent()`, it gets the index of its direct caller (`bar()`), which happens to be at position **2** in the stack. If you want to see *what* that parent call was, you’d need to call `sys.call(sys.parent())`. But that is not what you see here.
+
+### Why is `sys.parent()` = 2 in the console, but 31 (or another number) in a Quarto document?
+
+When you run this code interactively in R, the call stack is shallow: you're at the top-level environment (frame 0), and your functions are being called directly.
+
+But when you **render a Quarto document**, things change. Your code is being executed within internal functions used by Quarto and knitr. So your simple `foo()` call is actually wrapped in 30+ layers of function calls. That’s why `sys.parent()` might return something like `31`.
+
+So even though it feels like you're calling foo(), you're actually calling something like:
+
+```         
+quarto::render -> knitr::knit -> evaluate::evaluate -> ... -> foo()
+```
+
+::: callout-important
+## The takeaway?
+
+The value returned by `sys.parent()` is always relative to the current call stack. Don’t assume it's fixed — it depends on the context where your code runs.
+:::
+
+This is especially important when writing packages or code that might run inside `knitr`, `shiny`, `testthat`, or other frameworks.
+
+## `sys.call()` – What Was the Actual Call?
+
+`sys.call()` returns the *actual call expression* that invoked the current frame.
+
+To trace the current call and the parent call:
+
+```{r}
+baz <- function() {
+  cat("I'm in:", as.character(sys.call()), "\n")
+  cat("I was called by:", as.character(sys.call(sys.parent())), "\n")
+}
+bar <- \() {
+  cat("I'm bar() and I will call baz()\n")
+  baz()
+}
+
+# When baz() is called directly, it is its own parent
+baz()
+
+# when bar() is called, bar() is the parent of baz()
+bar()
+```
+
+## `sys.parent()` – Who’s Your Caller?
+
+If you want to know who *called* the current function, use `sys.parent()`:
+
+```{r}
+goo <- function() {
+  parent <- sys.parent()
+  cat("Parent frame index:", parent, "\n")
+  cat("Parent call:", as.character(sys.call(parent)), "\n")
+}
+
+foo <- function(x) {
+  goo()
+}
+
+foo()
+```
+
+
+
+## Use case: Identifying the Calling Function (for Errors and Logs)
+
+Knowing the name of the function that called you can be genuinely useful — especially for writing **descriptive error messages**, **debugging tools**, or **custom logging systems**.
+
+Imagine you’re building a helper function that will be used in multiple places across your codebase, and you want to alert the user exactly where something went wrong.
+
+Here’s a simplified example:
+
+```{r}
+validate_input <- function(x) {
+  if (missing(x)) {
+    caller <- as.character(sys.call(sys.parent()))[1]
+    stop(sprintf("Function '%s' was called without a required argument 'x'", caller))
+  }
+}
+```
+
+Now we can call this helper from other functions:
+
+```{r}
+#| error: true
+foo <- function(x) {
+  validate_input(x)
+  # Do something with x
+}
+
+# Try running it without x
+foo()
+```
+
+
+This becomes very powerful when writing **frameworks**, **internal utilities**, or **packages** where you want reusable components to report **context-aware** messages.
+
+You can even take it further and include the **full call expression** of the parent:
+
+```{r}
+#| error: true
+validate_input <- function(x) {
+  if (missing(x)) {
+    call_expr <- deparse(sys.call(sys.parent()))
+    stop(sprintf("Invalid call: %s — missing argument 'x'", call_expr))
+  }
+}
+
+bar <- function(x, y = 4, z = "hola") {
+  validate_input(x)
+}
+
+bar(y = 3, z = 8)
+# if you don't call arguments, they won't be shown
+# even if they have defaults... 
+# `sys.call(sys.parent())` shows exactly how it was called.
+bar()
+```
+
+This pattern is especially helpful when writing functions that will be used by other developers or in larger pipelines, where it’s not always obvious where something failed.
+
+::: {.callout-tip}
+## Tip
+Use `sys.call(sys.parent())` when you want to report errors *as if they came from the caller*, not the helper.
+:::
+
+
+Now that we’ve explored **who** called a function and **how**, let’s go one step deeper — and ask: *what is this function we’re inside of?*
+
+## `sys.function()` – Which Function Is Running?
+
+While `sys.call()` tells you **how** a function was invoked, `sys.function()` tells you **which function object** is actually being executed in a specific frame.
+
+This allows you to programmatically access and inspect a function’s:
+
+-   Formal arguments (its **signature**) via `formals()`
+-   Body (its actual **code**) via `body()`
+-   Environment (its **context**) via `environment()`
+
+### Example: Inspecting the Current Function
+
+```{r}
+goo <- function(x = 42) {
+  fun <- sys.function()            # The actual function object being run
+  cat("Function signature:\n")
+  print(formals(fun))             # What are the arguments?
+  cat("\nFunction body:\n")
+  print(body(fun))                # What's the code inside?
+  cat("\nFunction environment:\n")
+  print(environment(fun))         # Where was it defined?
+}
+
+goo()
+```
+
+This triple combo gives you full programmatic access to the function’s internals.
+
+### Looking Up the Caller Function
+
+You can also use `sys.function(sys.parent())` to inspect the **function that called you**.
+
+```{r}
+goo <- function() {
+  caller_fun <- sys.parent() |> 
+    sys.function()
+  parent_fun <- sys.parent() |> 
+    sys.call() |> 
+    as.character()  # this is important to be displayed by cat()
+  fun        <- as.character(sys.call())
+  
+  cat("I'm", fun, "\n")
+  cat("I was called by", parent_fun, "\n")
+  cat("whose rocking body looks like this:\n") # I could not resist the bad joke... sorry
+  print(body(caller_fun))
+  cat("Caller function formals (or arguments):\n")
+  print(formals(caller_fun))
+  cat("Caller function environment:\n")
+  print(environment(caller_fun))
+}
+
+foo <- function(a = 1, b = 2) {
+  goo()
+}
+
+foo()
+```
+
+This outputs the body, signature, and environment of `foo()` — the caller of `goo()`.
+
+### Real Use Case: Dynamic Function Logging
+
+Suppose you want to create a universal logger that tells you *what* function is running, *how* it was called, and *from where*:
+
+```{r}
+log_context <- function(y = "hola") {
+  this_fun <- sys.function()
+  this_call <- sys.call()
+  caller_call <- sys.call(sys.parent())
+
+  cat("You are in function:\n")
+  print(this_call)
+  cat("Formal arguments:\n")
+  print(formals(this_fun))
+  cat("Called by:\n")
+  print(caller_call)
+}
+
+wrap_me <- function(x = 10) {
+  # `x` is to used in other parts of `wrap_me()`
+  log_context()
+}
+
+wrap_me()
+```
+
+This allows meta-level logging, introspection, or debugging, especially when used inside package utilities, decorators, or dynamic wrappers.
+
+### Final Thoughts on `sys.function()`
+
+| Tool             | What it returns                                 |
+|------------------|-------------------------------------------------|
+| `sys.function()` | Function object for current frame               |
+| `formals(f)`     | List of arguments for function `f`              |
+| `body(f)`        | The code block (body) of function `f`           |
+| `environment(f)` | The enclosing environment where `f` was defined |
+
+## Real Scenario: Logging with Caller Info
+
+Custom `log_debug()` with automatic caller identification:
+
+```{r}
+log_debug <- function(message) {
+  caller <- as.character(sys.call(sys.parent()))[1]
+  cat(sprintf("[DEBUG] [%s] %s\n", caller, message))
+}
+
+process_data <- function(x) {
+  log_debug("Starting data processing")
+  # ... do something ... with `x`
+  y <- x * 2
+  print(y)
+  log_debug("Finished processing")
+}
+
+process_data(42)
+```
+
+## Quick Reference
+
+| Function         | Description                                     |
+|------------------|-------------------------------------------------|
+| `sys.call()`     | Returns the call to the current function        |
+| `sys.call(n)`    | Returns the call from frame `n`                 |
+| `sys.parent()`   | Returns the index of the parent frame           |
+| `sys.frame()`    | Returns the environment of a given frame        |
+| `sys.function()` | Returns the function evaluated in a given frame |
+| `parent.frame()` | Shortcut for the parent environment             |
