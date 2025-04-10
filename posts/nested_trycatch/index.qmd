@@ -2,7 +2,7 @@
 title: "Catching Errors Inside lapply(): Nested tryCatch and Clean Error Reporting in R"
 description: "Learn how to trace, classify, and report nested errors inside functional pipelines using tryCatch(), rlang, and cli."
 author: "R. Andres Castañeda"
-date: "2025-04-09"
+date: "2025-04-11"
 categories: [R, Error Handling, Functional Programming]
 format:
   html:
@@ -14,6 +14,8 @@ execute:
 ---
 
 ## Introduction
+
+In our previous posts [link here], we learned how to use `tryCatch()`, so I highly recommend your master it first, before reading this one. 
 
 Functional programming in R often leads us to use `lapply()` or `purrr::map()` to process many elements safely. To make our code robust, we usually wrap our functions in `tryCatch()` to handle errors gracefully.
 
@@ -513,9 +515,4 @@ readLines(logfile)
 - This pattern keeps `lapply()` running, logs structured details, and tracks failures by input.
 - The error messages remain informative thanks to metadata and error chaining.
 - You can extend this by saving successful results, failed cases, and summaries into structured reports.
-
-This concludes our full pipeline: from simple `tryCatch()` to nested steps, error metadata, structured logging, and full-loop resilience.
-
-
-
 
