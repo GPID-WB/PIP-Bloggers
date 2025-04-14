@@ -2,15 +2,15 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.55">
+<meta name="generator" content="quarto-1.6.42">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Diana C. Garcia">
 <meta name="dcterms.date" content="2025-02-13">
-<meta name="description" content="Using tryCatch() within PIP">
+<meta name="description" content="Learn how to use tryCatch() in R to handle errors and warnings, recover from failures, and build structured logging systems.">
 
-<title>Exception Handling – PIP-Bloggers</title>
+<title>Mastering tryCatch() in R: From Basics to Structured Logging – PIP-Bloggers</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -72,10 +72,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-e84ec1af5c18c64b3922cec9fafcf8c8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -148,15 +148,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Exception Handling</h1>
+      <h1 class="title">Mastering tryCatch() in R: From Basics to Structured Logging</h1>
                   <div>
         <div class="description">
-          Using tryCatch() within PIP
+          Learn how to use tryCatch() in R to handle errors and warnings, recover from failures, and build structured logging systems.
         </div>
       </div>
                           <div class="quarto-categories">
-                <div class="quarto-category">Errors</div>
-                <div class="quarto-category">Warnings</div>
+                <div class="quarto-category">R</div>
+                <div class="quarto-category">Error Handling</div>
+                <div class="quarto-category">Robust Code</div>
               </div>
                   </div>
   </div>
@@ -190,10 +191,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#load-libraries-and-functions" id="toc-load-libraries-and-functions" class="nav-link active" data-scroll-target="#load-libraries-and-functions">Load libraries and functions</a></li>
-  <li><a href="#load-data-and-run-code" id="toc-load-data-and-run-code" class="nav-link" data-scroll-target="#load-data-and-run-code">Load data and run code</a></li>
-  <li><a href="#sources" id="toc-sources" class="nav-link" data-scroll-target="#sources">Sources</a></li>
-  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#a-first-look-at-trycatch" id="toc-a-first-look-at-trycatch" class="nav-link" data-scroll-target="#a-first-look-at-trycatch">1. A First Look at <code>tryCatch()</code></a></li>
+  <li><a href="#a-practical-example-with-recovery-logic" id="toc-a-practical-example-with-recovery-logic" class="nav-link" data-scroll-target="#a-practical-example-with-recovery-logic">2. A Practical Example with Recovery Logic</a></li>
+  <li><a href="#custom-error-classes-and-structured-conditions" id="toc-custom-error-classes-and-structured-conditions" class="nav-link" data-scroll-target="#custom-error-classes-and-structured-conditions">3. Custom Error Classes and Structured Conditions</a>
+  <ul class="collapse">
+  <li><a href="#why-is-this-better" id="toc-why-is-this-better" class="nav-link" data-scroll-target="#why-is-this-better">Why is this better?</a></li>
+  </ul></li>
+  <li><a href="#building-a-lightweight-logging-system" id="toc-building-a-lightweight-logging-system" class="nav-link" data-scroll-target="#building-a-lightweight-logging-system">4. Building a Lightweight Logging System</a>
+  <ul class="collapse">
+  <li><a href="#now-lets-use-it-inside-a-trycatch-block" id="toc-now-lets-use-it-inside-a-trycatch-block" class="nav-link" data-scroll-target="#now-lets-use-it-inside-a-trycatch-block">Now let’s use it inside a <code>tryCatch()</code> block:</a></li>
+  <li><a href="#reading-and-summarizing-the-log-file" id="toc-reading-and-summarizing-the-log-file" class="nav-link" data-scroll-target="#reading-and-summarizing-the-log-file">Reading and Summarizing the Log File</a></li>
+  <li><a href="#create-a-helper-to-summarize-logs-by-type" id="toc-create-a-helper-to-summarize-logs-by-type" class="nav-link" data-scroll-target="#create-a-helper-to-summarize-logs-by-type">Create a helper to summarize logs by type</a></li>
+  </ul></li>
+  <li><a href="#robust-example-with-cleaning-logging-and-skip_err-logic" id="toc-robust-example-with-cleaning-logging-and-skip_err-logic" class="nav-link" data-scroll-target="#robust-example-with-cleaning-logging-and-skip_err-logic">5. Robust example with cleaning , logging, and <code>skip_err</code> Logic</a>
+  <ul class="collapse">
+  <li><a href="#function-clean_duplicates" id="toc-function-clean_duplicates" class="nav-link" data-scroll-target="#function-clean_duplicates">Function: <code>clean_duplicates()</code></a></li>
+  <li><a href="#example-usage" id="toc-example-usage" class="nav-link" data-scroll-target="#example-usage">Example Usage</a></li>
+  <li><a href="#read-the-log" id="toc-read-the-log" class="nav-link" data-scroll-target="#read-the-log">Read the log:</a></li>
+  </ul></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
   </ul>
 </nav>
     </div>
@@ -204,129 +221,558 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<p>The following is an example of how to use exception handling in R within the PIP pipeline. In particular, I focus on using <code>tryCatch</code> . This is a simplifies example from what we used on the cleaning process in <code>pipdata</code>.</p>
-<section id="load-libraries-and-functions" class="level2">
-<h2 class="anchored" data-anchor-id="load-libraries-and-functions">Load libraries and functions</h2>
-<p>First, these are the main libraries needed.</p>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>Error handling is a fundamental part of writing reliable R code. Whether you’re reading dozens of files, running a loop over thousands of observations, or building a data pipeline, something is bound to go wrong. When it does, <code>tryCatch()</code> allows your code to fail gracefully—without crashing your entire process.</p>
+<p>In this post, we’ll start from scratch to understand how <code>tryCatch()</code> works, and build up to a practical and structured approach to logging and recovering from specific types of failures. Our goal is not just to catch errors, but to catch them <strong>with context</strong>, and handle them in a <strong>controlled and traceable</strong> way.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load libraries </span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(metapip) </span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pipload)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>However, make sure to have installed the following packages as well: <code>cli</code> and <code>rlang</code> .</p>
-<p>The following is the example of the function we need to be “handle” with <code>tryCatch</code>. This function tries to check if there are duplicates in <code>dt</code> according to some <code>keyVar</code> and if there are duplicates it can abort and exit or continue without exiting and logging the error. The function has another two parameters to decide the following:</p>
-<ol type="1">
-<li><p><code>log_err</code> if we want the error to be included in a error-report log.</p></li>
-<li><p><code>skip_err</code> if we want the error to be skipped or not.</p></li>
-</ol>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function to handle duplicated observations in pfw </span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>unq_pfw <span class="ot">&lt;-</span> <span class="cf">function</span>(dt,</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                    keyVar,</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                    <span class="at">log_err =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>                    <span class="at">skip_err =</span> <span class="cn">TRUE</span>){   </span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(      </span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> {        </span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="fu">uniqueN</span>(dt, <span class="at">by =</span> keyVar) <span class="sc">!=</span> <span class="fu">nrow</span>(dt)){          </span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        dt_d <span class="ot">&lt;-</span> dt[<span class="fu">duplicated</span>(dt, <span class="at">by =</span> keyVar)]         </span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        n_rep <span class="ot">&lt;-</span> <span class="fu">nrow</span>(dt_d)          </span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        cli<span class="sc">::</span><span class="fu">cli_abort</span>(<span class="at">message =</span> <span class="st">"There {?is/are} {n_rep} duplicates in `pfw`"</span>,</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>                       <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"dup_pfw"</span>, <span class="st">"piperr"</span>),</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>                       <span class="at">log =</span> log_err,</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>                       <span class="at">skip =</span> skip_err,</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>                       <span class="at">link =</span>  <span class="fu">unique</span>(dt_d<span class="sc">$</span>link),</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>                       <span class="at">call =</span> <span class="fu">sys.call</span>())       </span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        }      </span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>      },      </span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">dup_pfw =</span> <span class="cf">function</span>(cnd){        </span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(cnd<span class="sc">$</span>log){ </span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Log the error          </span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">add_log</span>(cnd)        </span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>      }        </span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span>(<span class="sc">!</span>cnd<span class="sc">$</span>skip){ </span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Abort if you don't want to skip, but after logging          </span></span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        cli<span class="sc">::</span><span class="fu">cli_abort</span>(cnd<span class="sc">$</span>message, <span class="at">call =</span> cnd<span class="sc">$</span>call)        </span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>      }</span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>      },</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(cnd){</span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Abort for unknown error</span></span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_abort</span>(<span class="st">"Unknown Error"</span>, <span class="at">call =</span> cnd<span class="sc">$</span>call)</span>
-<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    },      </span>
-<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">finally =</span> {        </span>
-<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>      dt <span class="ot">&lt;-</span> <span class="fu">unique</span>(dt, <span class="at">by =</span> keyVar) <span class="co"># eliminate duplicates      </span></span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    }    </span>
-<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>  )   </span>
-<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(dt) </span>
-<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>If you run the lines within <code>expr ={ }</code>, this will probably crash and an error about duplicates will be shown. However, <strong>what we want is to first record this error on a log, and then decide if to skip the error or not, and get a clean dataset</strong>. Also, if there was another error within <code>expr ={ }</code>, the function will not log the error, it will stop the process and warn of an “Unknown Error”. That is why we need <code>tryCatch</code>. As you can see within the <code>finally</code> section, we also included a line that eliminates the duplicates and returns the new “clean” data set.</p>
-<p>This is how <code>tryCatch</code> works in our example: First, within the parameters of <code>cli::cli_abort()</code>, <code>message</code> works as expected. However, <code>class</code> might be the most important to describe. The class we give to this specific error, or condition, will be what makes it identifiable on our <code>tryCatch</code>. Since we gave a new <code>class</code> to the error called <code>dup_pfw</code>, the function <code>tryCatch</code>, instead of aborting and exiting the code when the error is found, will run the code within <code>dup_pfw = function(cnd){ }</code> instead. The parameter <code>cnd</code> then carries all the information we gave within <code>cil::cli_abort</code>; the <code>class</code>, the <code>log/skip</code> actions, and the identifiers of the duplicates called <code>link</code> .</p>
-<p><strong>Important:</strong> The parameters <code>log</code> and <code>skip</code> within <code>cil::cli_abort</code> are the tools we use to handle this error and these are totally made up for this specific function. You can create any parameter you want within <code>cli::abort()</code> and this will carry on within the handler. For example, the parameter <code>link</code> will carry the identifiers of those duplicated observations, which are needed for the error-report log.</p>
-<p>Regarding the log, before running the code below, we need to load the following function <code>add_log</code>. This function will load some concatenated text on the file <code>log.txt</code> saved in the working directory and it is used within the handler.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for logging </span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>add_log <span class="ot">&lt;-</span> <span class="cf">function</span>(cnd) {    </span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"["</span>, <span class="fu">class</span>(cnd)[[<span class="dv">1</span>]], <span class="st">"-"</span>, <span class="fu">class</span>(cnd)[[<span class="dv">2</span>]], <span class="st">"] "</span>,     </span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>      cnd<span class="sc">$</span>message,<span class="st">" for "</span>,     </span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>      cnd<span class="sc">$</span>link, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>, <span class="at">sep =</span> <span class="st">""</span>,     </span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">file =</span> <span class="st">"log.txt"</span>, <span class="at">append =</span> <span class="cn">TRUE</span>)  </span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="load-data-and-run-code" class="level2">
-<h2 class="anchored" data-anchor-id="load-data-and-run-code">Load data and run code</h2>
-<p>The data we will use for this example can be loaded with <code>pipload</code> and represents the auxiliary Price Frame Work, or <code>pfw</code>. Since we need to run over the error at some point, we have to create another data frame with some duplicates, <code>pfw_d</code> .</p>
+<section id="a-first-look-at-trycatch" class="level2">
+<h2 class="anchored" data-anchor-id="a-first-look-at-trycatch">1. A First Look at <code>tryCatch()</code></h2>
+<p>Let’s begin with a minimal example that handles a simple error:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load data </span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>pfw_t <span class="ot">&lt;-</span> <span class="fu">pip_load_aux</span>(<span class="st">"pfw"</span>)  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tryCatch</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">expr =</span> {</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"Something went wrong!"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  },</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Caught an error: "</span>, e<span class="sc">$</span>message)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NA</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>v Most recent version of data loaded:
-'pfw.qs'</code></pre>
+<pre><code>Caught an error: Something went wrong!</code></pre>
 </div>
-<div class="cell-output cell-output-stderr">
-<pre><code>i no labels available for measure pfw</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>pfw_d <span class="ot">&lt;-</span> <span class="fu">rbind</span>(pfw_t, pfw_t[<span class="fu">rep</span>(<span class="dv">1</span>, <span class="dv">5</span>), ]) <span class="co"># Duplicate some rows from one country</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Now, we will run the function and this should not give any errors because the default value is <code>skip_err = TRUE</code> .</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tryCatch for unq_pwf function </span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>keyVar <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"country_code"</span>, <span class="st">"surveyid_year"</span>, <span class="st">"survey_acronym"</span>)  </span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>pfw <span class="ot">&lt;-</span> <span class="fu">unq_pfw</span>(pfw_d, keyVar)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>If the error was handled and skipped correctly, according to the default parameters, the answer to the following code should give you <code>TRUE</code> and you will find a <code>log.txt</code> file with the new record of these error.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test  </span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">uniqueN</span>(pfw, <span class="at">by =</span> keyVar) <span class="sc">==</span> <span class="fu">nrow</span>(pfw)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] TRUE</code></pre>
+<pre><code>[1] NA</code></pre>
 </div>
 </div>
-<p>However, if you run the function without skipping the error, the abort function will come into action:</p>
+<p>This code tries to run the expression <code>stop("...")</code>, which throws an error. The <code>error =</code> block intercepts that error and prints a message, returning <code>NA</code> instead.</p>
+<p>Similarly, we can catch warnings:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run tryCatch for unq_pwf function without skipping error  </span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>pfw <span class="ot">&lt;-</span> <span class="fu">unq_pfw</span>(pfw_d, keyVar, <span class="at">skip_err =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-error">
-<pre><code>Error in `unq_pfw()`:
-! Unknown Error</code></pre>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tryCatch</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">expr =</span> {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">warning</span>(<span class="st">"Something is off..."</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="dv">42</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  },</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">warning =</span> <span class="cf">function</span>(w) {</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Caught a warning: "</span>, w<span class="sc">$</span>message)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="sc">-</span><span class="dv">1</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Caught a warning: Something is off...</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] -1</code></pre>
 </div>
 </div>
+<p>And we can also define a <code>finally</code> block that always runs, even if there’s no error or warning:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tryCatch</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">expr =</span> {</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dv">10</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  },</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">finally =</span> {</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"This always runs."</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>This always runs.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+</div>
+<p>The core idea is this: <code>tryCatch()</code> lets you write error-handling logic in the same place your code runs, using specific condition types (like <code>error</code>, <code>warning</code>, or custom classes).</p>
 </section>
-<section id="sources" class="level2">
-<h2 class="anchored" data-anchor-id="sources">Sources</h2>
-<p>A few websites I reviewed to learned more about this:</p>
+<section id="a-practical-example-with-recovery-logic" class="level2">
+<h2 class="anchored" data-anchor-id="a-practical-example-with-recovery-logic">2. A Practical Example with Recovery Logic</h2>
+<p>Let’s look at a more realistic scenario. Suppose you have a function that sometimes succeeds, sometimes warns, and sometimes fails, depending on the input.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This example is an adaptation of Jonathanscallahan’s blog <a href="https://www.r-bloggers.com/2020/10/basic-error-handing-in-r-with-trycatch/">Basic Error Handing in R with tryCatch()</a></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>my_divide <span class="ot">&lt;-</span> <span class="cf">function</span>(d, a) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (a <span class="sc">==</span> <span class="st">"warning"</span>) {</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">warning</span>(<span class="st">"my_divide warning message"</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="st">"Warning fallback result"</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (a <span class="sc">==</span> <span class="st">"error"</span>) {</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(<span class="st">"my_divide error message"</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(d <span class="sc">/</span> <span class="fu">as.numeric</span>(a))</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now let’s use <code>tryCatch()</code> to run this function and react to each case:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>run_example <span class="ot">&lt;-</span> <span class="cf">function</span>(a) {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>({</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    b <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    c <span class="ot">&lt;-</span> b<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    d <span class="ot">&lt;-</span> c <span class="sc">+</span> <span class="dv">2</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (a <span class="sc">==</span> <span class="st">"suppress-warnings"</span>) {</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>      e <span class="ot">&lt;-</span> <span class="fu">suppressWarnings</span>(<span class="fu">my_divide</span>(d, a))</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>      e <span class="ot">&lt;-</span> <span class="fu">my_divide</span>(d, a)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    f <span class="ot">&lt;-</span> e <span class="sc">+</span> <span class="dv">100</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    f</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">warning =</span> <span class="cf">function</span>(w) {</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Caught warning: "</span>, <span class="fu">conditionMessage</span>(w))</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    e <span class="ot">&lt;-</span> <span class="fu">my_divide</span>(d, <span class="fl">0.1</span>)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    f <span class="ot">&lt;-</span> e <span class="sc">+</span> <span class="dv">100</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(f)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Caught error: "</span>, <span class="fu">conditionMessage</span>(e))</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    e <span class="ot">&lt;-</span> <span class="fu">my_divide</span>(d, <span class="fl">0.01</span>)</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    f <span class="ot">&lt;-</span> e <span class="sc">+</span> <span class="dv">100</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(f)</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">finally =</span> {</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"a = "</span>, a, <span class="st">"| b = "</span>, b, <span class="st">"| c = "</span>, c, <span class="st">"| d = "</span>, d)</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Final result: "</span>, result)</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(result)</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Try it with different arguments:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">run_example</span>(<span class="st">"warning"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Caught warning: my_divide warning message</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>a = warning| b = 2| c = 4| d = 6</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Final result: 160</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 160</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">run_example</span>(<span class="st">"error"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Caught error: my_divide error message</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>a = error| b = 2| c = 4| d = 6</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Final result: 700</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 700</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">run_example</span>(<span class="st">"2"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>a = 2| b = 2| c = 4| d = 6</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Final result: 103</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 103</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">run_example</span>(<span class="st">"suppress-warnings"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>a = suppress-warnings| b = 2| c = 4| d = 6</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Final result: NA</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] NA</code></pre>
+</div>
+</div>
+<p>This function shows several important ideas:</p>
+<ul>
+<li>You can distinguish between warnings and errors.</li>
+<li>You can recover differently depending on what went wrong.</li>
+<li>The <code>finally</code> block executes even if an error occurred.</li>
+<li>Values returned from the handler become the return value of the entire <code>tryCatch()</code> block.</li>
+</ul>
+</section>
+<section id="custom-error-classes-and-structured-conditions" class="level2">
+<h2 class="anchored" data-anchor-id="custom-error-classes-and-structured-conditions">3. Custom Error Classes and Structured Conditions</h2>
+<p>Catching errors like <code>"something went wrong"</code> is helpful, but not very specific. In a large pipeline, we often want to know:</p>
+<ul>
+<li>What type of error occurred</li>
+<li>Which function or step caused it</li>
+<li>What data triggered the failure</li>
+</ul>
+<p>This is where custom error classes and structured metadata become useful.</p>
+<p>Let’s say we want to define a special kind of error for when we detect duplicated rows in a dataset:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> <span class="fu">data.table</span>(</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">country =</span> <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="st">"C"</span>),</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">2020</span>, <span class="dv">2021</span>, <span class="dv">2022</span>, <span class="dv">2022</span>),</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">30</span>, <span class="dv">30</span>),</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">c</span>(<span class="st">"A2020"</span>, <span class="st">"A2020"</span>, <span class="st">"B2021"</span>, <span class="st">"C2022"</span>, <span class="st">"C2022"</span>)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>keyVar <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"country"</span>, <span class="st">"year"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can use <code>cli::cli_abort()</code> or <code>rlang::abort()</code> to raise an error with a custom class (using the <code>class</code> argument) and additional metadata with customed names arguments (i.e., arguments with names that you choose):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>check_for_duplicates <span class="ot">&lt;-</span> <span class="cf">function</span>(dt, keyVar) {</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Protect against unexpected base errors like missing columns</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>({</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">uniqueN</span>(dt, <span class="at">by =</span> keyVar) <span class="sc">!=</span> <span class="fu">nrow</span>(dt)) {</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>      dup_rows <span class="ot">&lt;-</span> dt[<span class="fu">duplicated</span>(dt, <span class="at">by =</span> keyVar)]</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>      n_rep <span class="ot">&lt;-</span> <span class="fu">nrow</span>(dup_rows)</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_abort</span>(</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>        <span class="at">message =</span> <span class="st">"Found {n_rep} duplicated row(s) in the dataset."</span>,</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>        <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"dup_pfw"</span>, <span class="st">"validation_error"</span>),</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>        <span class="at">key =</span> keyVar,</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">ids =</span> <span class="fu">unique</span>(dup_rows<span class="sc">$</span>id)</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(dt)</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Bubble up unknown errors as-is to be caught by outer tryCatch</span></span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(e)</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This raises a custom error of class <code>"dup_pfw"</code>, which we can later catch specifically inside <code>tryCatch()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">expr =</span> <span class="fu">check_for_duplicates</span>(dt, keyVar),</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">dup_pfw =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Caught a known duplication issue."</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Key used: "</span>, <span class="fu">paste</span>(e<span class="sc">$</span>key, <span class="at">collapse =</span> <span class="st">", "</span>))</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Affected IDs: "</span>, <span class="fu">paste</span>(<span class="fu">unique</span>(e<span class="sc">$</span>ids), <span class="at">collapse =</span> <span class="st">", "</span>))</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NULL</span>)  <span class="co"># or apply a fix and return cleaned data</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  },</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"Caught an unknown error: "</span>, <span class="fu">conditionMessage</span>(e))</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Caught a known duplication issue.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Key used: country, year</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Affected IDs: A2020, C2022</code></pre>
+</div>
+</div>
+<section id="why-is-this-better" class="level3">
+<h3 class="anchored" data-anchor-id="why-is-this-better">Why is this better?</h3>
+<ul>
+<li>We’re not just catching any error — we’re catching <em>expected</em> errors by class.</li>
+<li>We can extract metadata (<code>e$key</code>, <code>e$ids</code>) to include in a log or a diagnostic message.</li>
+<li>If the error is <strong>not</strong> of class <code>"dup_pfw"</code>, it’s passed on to the more general <code>error</code> handler.</li>
+</ul>
+<p>This sets us up for a robust logging system: when a known issue occurs, we log it with context; if it’s unknown, we escalate it or halt.</p>
+</section>
+</section>
+<section id="building-a-lightweight-logging-system" class="level2">
+<h2 class="anchored" data-anchor-id="building-a-lightweight-logging-system">4. Building a Lightweight Logging System</h2>
+<p>When your code is running on hundreds of datasets or in a production pipeline, you don’t just want to know that something failed—you want a record of <strong>what</strong> failed, <strong>where</strong>, and <strong>why</strong>.</p>
+<p>Let’s create a simple logging function that writes errors to a file:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>add_log <span class="ot">&lt;-</span> <span class="cf">function</span>(cnd, logfile) {</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  timestamp <span class="ot">&lt;-</span> <span class="fu">format</span>(<span class="fu">Sys.time</span>(), <span class="st">"%Y-%m-%d %H:%M:%S"</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"["</span>, timestamp, <span class="st">"] "</span>,</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"["</span>, <span class="fu">class</span>(cnd)[<span class="dv">1</span>], <span class="st">"] "</span>,</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    cnd<span class="sc">$</span>message,</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.null</span>(cnd<span class="sc">$</span>ids)) {</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">paste</span>(<span class="st">" | IDs:"</span>, <span class="fu">paste</span>(cnd<span class="sc">$</span>ids, <span class="at">collapse =</span> <span class="st">", "</span>))</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">file =</span> logfile,</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">append =</span> <span class="cn">TRUE</span>, </span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">sep =</span> <span class="st">""</span></span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This function takes any condition object and appends a formatted line to a plain-text file. It includes:</p>
+<ul>
+<li>The time of the error</li>
+<li>The class of the error</li>
+<li>The message</li>
+<li>Optionally, any custom metadata (like IDs or keys)</li>
+</ul>
+<section id="now-lets-use-it-inside-a-trycatch-block" class="level3">
+<h3 class="anchored" data-anchor-id="now-lets-use-it-inside-a-trycatch-block">Now let’s use it inside a <code>tryCatch()</code> block:</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>logfile <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".txt"</span>)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>handle_duplicates <span class="ot">&lt;-</span> <span class="cf">function</span>(dt, keyVar, logfile) {</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> <span class="fu">check_for_duplicates</span>(dt, keyVar),</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">dup_pfw =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e, <span class="at">logfile =</span> logfile)  <span class="co"># log the known duplication error</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>      dt_clean <span class="ot">&lt;-</span> <span class="fu">unique</span>(dt, <span class="at">by =</span> keyVar)  <span class="co"># remove duplicates</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(dt_clean)</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e, <span class="at">logfile =</span> logfile)  <span class="co"># log unknown errors too</span></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">message</span>(<span class="st">"Unexpected error occurred. See log for details."</span>)</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)  <span class="co"># &lt;-- graceful exit without re-raising the error</span></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Or, if you need the function to fail, you could do this:</span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>      <span class="co"># stop("Unexpected error occurred. See log for details.")</span></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a><span class="fu">handle_duplicates</span>(dt, keyVar, logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   country  year value     id
+    &lt;char&gt; &lt;num&gt; &lt;num&gt; &lt;char&gt;
+1:       A  2020    10  A2020
+2:       B  2021    20  B2021
+3:       C  2022    30  C2022</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">handle_duplicates</span>(dt, <span class="st">"wrongVar"</span>, logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Unexpected error occurred. See log for details.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>NULL</code></pre>
+</div>
+</div>
+<p>This version of <code>handle_duplicates()</code> does three things:</p>
 <ol type="1">
-<li><a href="https://adv-r.hadley.nz/conditions.html#conditions" class="uri">https://adv-r.hadley.nz/conditions.html#conditions</a></li>
-<li><a href="https://medium.com/number-around-us/catch-me-if-you-can-exception-handling-in-r-2e0f6c473a28" class="uri">https://medium.com/number-around-us/catch-me-if-you-can-exception-handling-in-r-2e0f6c473a28</a></li>
-<li><a href="https://cnuge.github.io/post/trycatch/" class="uri">https://cnuge.github.io/post/trycatch/</a></li>
-<li><a href="https://aryoda.github.io/tutorials/tryCatchLog/tryCatchLog-intro-slides.html#/" class="uri">https://aryoda.github.io/tutorials/tryCatchLog/tryCatchLog-intro-slides.html#/</a> (still reviewing it)</li>
+<li>Tries to detect duplicate rows.</li>
+<li>If duplicates are found, it logs the error and removes them.</li>
+<li>If an unknown error occurs, it logs that too—and stops execution.</li>
 </ol>
+<p>This pattern is clean, recoverable, and extensible. You can add new condition classes for things like missing values, invalid columns, or range checks, and respond to each one differently.</p>
 </section>
-<section id="section" class="level2">
-<h2 class="anchored" data-anchor-id="section"></h2>
+<section id="reading-and-summarizing-the-log-file" class="level3">
+<h3 class="anchored" data-anchor-id="reading-and-summarizing-the-log-file">Reading and Summarizing the Log File</h3>
+<p>After logging multiple errors during a data-cleaning process, you may want to quickly inspect what went wrong. Here’s how to read the log and get a summary of known vs.&nbsp;unknown errors.</p>
+<p>Let’s assume we’ve used <code>add_log()</code> (from the previous section) to write to a file called <code>log.txt</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview the raw log</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="fu">readLines</span>(logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "[2025-04-10 11:29:27] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022"                      
+[2] "[2025-04-10 11:29:27] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'"</code></pre>
+</div>
+</div>
+</section>
+<section id="create-a-helper-to-summarize-logs-by-type" class="level3">
+<h3 class="anchored" data-anchor-id="create-a-helper-to-summarize-logs-by-type">Create a helper to summarize logs by type</h3>
+<p>We can write a small function (<code>summarize_log()</code>) to parse the log and report how many known and unknown errors occurred:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>summarize_log <span class="ot">&lt;-</span> <span class="cf">function</span>(logfile) {</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(logfile)) {</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">"No log file found."</span>)</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(<span class="fu">invisible</span>(<span class="cn">NULL</span>))</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>  lines <span class="ot">&lt;-</span> <span class="fu">readLines</span>(logfile)</span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>  known <span class="ot">&lt;-</span> <span class="fu">grep</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">[dup_pfw</span><span class="sc">\\</span><span class="st">]"</span>, lines, <span class="at">value =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>  unknown <span class="ot">&lt;-</span> <span class="fu">grep</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">[(simpleError|error)</span><span class="sc">\\</span><span class="st">]"</span>, lines, <span class="at">value =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"== Log Summary ==</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Total entries:"</span>, <span class="fu">length</span>(lines), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Known 'dup_pfw' errors:"</span>, <span class="fu">length</span>(known), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Other (unknown) errors:"</span>, <span class="fu">length</span>(unknown), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(known)) {</span>
+<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Known issues:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"-"</span>, known), <span class="at">sep =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb45-21"><a href="#cb45-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-22"><a href="#cb45-22" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(unknown)) {</span>
+<span id="cb45-23"><a href="#cb45-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Unknown issues:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb45-24"><a href="#cb45-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cat</span>(<span class="fu">paste</span>(<span class="st">"-"</span>, unknown), <span class="at">sep =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb45-25"><a href="#cb45-25" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb45-26"><a href="#cb45-26" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb45-27"><a href="#cb45-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-28"><a href="#cb45-28" aria-hidden="true" tabindex="-1"></a><span class="co">#Now call it like this:</span></span>
+<span id="cb45-29"><a href="#cb45-29" aria-hidden="true" tabindex="-1"></a><span class="fu">summarize_log</span>(logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>== Log Summary ==
+Total entries: 2 
+Known 'dup_pfw' errors: 1 
+Other (unknown) errors: 1 
+
+Known issues:
+- [2025-04-10 11:29:27] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022
+
+Unknown issues:
+- [2025-04-10 11:29:27] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'</code></pre>
+</div>
+</div>
+<p>This small addition turns your log from a flat text dump into a searchable, inspectable tool — one that could be expanded later to generate HTML reports, markdown diagnostics, or summaries across datasets.</p>
+</section>
+</section>
+<section id="robust-example-with-cleaning-logging-and-skip_err-logic" class="level2">
+<h2 class="anchored" data-anchor-id="robust-example-with-cleaning-logging-and-skip_err-logic">5. Robust example with cleaning , logging, and <code>skip_err</code> Logic</h2>
+<p>Now that we know how to catch and log structured and unexpected errors, let’s implement a more flexible function with real-world behavior:</p>
+<ul>
+<li>It logs known issues (<code>dup_pfw</code> class).</li>
+<li>It can <strong>skip or stop</strong> depending on a <code>skip_err</code> flag.</li>
+<li>It logs <strong>any</strong> unexpected error.</li>
+</ul>
+<section id="function-clean_duplicates" class="level3">
+<h3 class="anchored" data-anchor-id="function-clean_duplicates">Function: <code>clean_duplicates()</code></h3>
+<p>Pay careful attention to this function because it has many important details and applied concepts.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>clean_duplicates <span class="ot">&lt;-</span> <span class="cf">function</span>(dt, keyVar, logfile, <span class="at">skip_err =</span> <span class="cn">TRUE</span>) {</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> {</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="fu">uniqueN</span>(dt, <span class="at">by =</span> keyVar) <span class="sc">!=</span> <span class="fu">nrow</span>(dt)) {</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>        dup_rows <span class="ot">&lt;-</span> dt[<span class="fu">duplicated</span>(dt, <span class="at">by =</span> keyVar)]</span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>        n_rep <span class="ot">&lt;-</span> <span class="fu">nrow</span>(dup_rows)</span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>        cli<span class="sc">::</span><span class="fu">cli_abort</span>(</span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>          <span class="at">message =</span> <span class="st">"Found {n_rep} duplicated row{?s}."</span>,</span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>          <span class="at">class =</span> <span class="fu">c</span>(<span class="st">"dup_pfw"</span>, <span class="st">"validation_error"</span>),</span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>          <span class="at">key =</span> keyVar,</span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>          <span class="at">ids =</span> <span class="fu">unique</span>(dup_rows<span class="sc">$</span>id),</span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>          <span class="at">skip =</span> skip_err</span>
+<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-17"><a href="#cb47-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(dt)</span>
+<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb47-19"><a href="#cb47-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-20"><a href="#cb47-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">dup_pfw =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb47-21"><a href="#cb47-21" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e, logfile)</span>
+<span id="cb47-22"><a href="#cb47-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-23"><a href="#cb47-23" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="sc">!</span><span class="fu">isTRUE</span>(e<span class="sc">$</span>skip)) {</span>
+<span id="cb47-24"><a href="#cb47-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">stop</span>(<span class="st">"Duplicate data found and skip_err = FALSE. See log."</span>)</span>
+<span id="cb47-25"><a href="#cb47-25" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb47-26"><a href="#cb47-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-27"><a href="#cb47-27" aria-hidden="true" tabindex="-1"></a>      <span class="co"># else skip and return cleaned data</span></span>
+<span id="cb47-28"><a href="#cb47-28" aria-hidden="true" tabindex="-1"></a>      dt_clean <span class="ot">&lt;-</span> <span class="fu">unique</span>(dt, <span class="at">by =</span> keyVar)</span>
+<span id="cb47-29"><a href="#cb47-29" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(dt_clean)</span>
+<span id="cb47-30"><a href="#cb47-30" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb47-31"><a href="#cb47-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-32"><a href="#cb47-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb47-33"><a href="#cb47-33" aria-hidden="true" tabindex="-1"></a>      <span class="fu">add_log</span>(e, logfile)</span>
+<span id="cb47-34"><a href="#cb47-34" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (<span class="sc">!</span>skip_err) {</span>
+<span id="cb47-35"><a href="#cb47-35" aria-hidden="true" tabindex="-1"></a>        <span class="fu">stop</span>(<span class="st">"Unknown error. Halting execution. See log."</span>)</span>
+<span id="cb47-36"><a href="#cb47-36" aria-hidden="true" tabindex="-1"></a>      } <span class="cf">else</span> {</span>
+<span id="cb47-37"><a href="#cb47-37" aria-hidden="true" tabindex="-1"></a>        <span class="fu">message</span>(<span class="st">"Unknown error. Skipping due to skip_err = TRUE."</span>)</span>
+<span id="cb47-38"><a href="#cb47-38" aria-hidden="true" tabindex="-1"></a>        <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb47-39"><a href="#cb47-39" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb47-40"><a href="#cb47-40" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb47-41"><a href="#cb47-41" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb47-42"><a href="#cb47-42" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="example-usage" class="level3">
+<h3 class="anchored" data-anchor-id="example-usage">Example Usage</h3>
+<p>Create a dataset with duplicates:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">data.table</span>(</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">country =</span> <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>),</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">year =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">2020</span>, <span class="dv">2021</span>),</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">20</span>),</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">c</span>(<span class="st">"A2020"</span>, <span class="st">"A2020"</span>, <span class="st">"B2021"</span>)</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>keyVar <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"country"</span>, <span class="st">"year"</span>)</span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>logfile <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".txt"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Run it with the default <code>skip_err = TRUE</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">clean_duplicates</span>(dt, keyVar, logfile)</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="co"># THis is the data cleaned, but the dulplicates</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="co"># should be reported in logfile</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>result</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   country  year value     id
+    &lt;char&gt; &lt;num&gt; &lt;num&gt; &lt;char&gt;
+1:       A  2020    10  A2020
+2:       B  2021    20  B2021</code></pre>
+</div>
+</div>
+<p>Then test the behavior when <code>skip_err = FALSE</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this will create a similar entry in the log as the one above</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="co"># since it is executed in the same second, I am adding a second to show that they </span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a><span class="co"># are different</span></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.sleep</span>(<span class="dv">1</span>)</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a><span class="fu">clean_duplicates</span>(dt, keyVar, logfile, <span class="at">skip_err =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in value[[3L]](cond): Unknown error. Halting execution. See log.</code></pre>
+</div>
+</div>
+<p>Try again with a bad key:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">clean_duplicates</span>(dt, <span class="st">"bad_column"</span>, logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Unknown error. Skipping due to skip_err = TRUE.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>NULL</code></pre>
+</div>
+</div>
+</section>
+<section id="read-the-log" class="level3">
+<h3 class="anchored" data-anchor-id="read-the-log">Read the log:</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="co"># using helper from earlier to get a quick summary.</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summarize_log</span>(logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>== Log Summary ==
+Total entries: 4 
+Known 'dup_pfw' errors: 2 
+Other (unknown) errors: 2 
+
+Known issues:
+- [2025-04-10 11:29:27] [dup_pfw] Found 1 duplicated row. | IDs: A2020
+- [2025-04-10 11:29:28] [dup_pfw] Found 1 duplicated row. | IDs: A2020
+
+Unknown issues:
+- [2025-04-10 11:29:28] [simpleError] Duplicate data found and skip_err = FALSE. See log.
+- [2025-04-10 11:29:28] [simpleError] argument specifying columns received non-existing column(s): cols[1]='bad_column'</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Or use  `readLines(logfile)` </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<p>In this post, we learned how to use <code>tryCatch()</code> in R for robust error handling and logging in data workflows. The post began by introducing the basic structure and mechanics of <code>tryCatch()</code>, including how to catch warnings, errors, and use a <code>finally</code> block for cleanup.</p>
+<p>We then explored a practical example of a function (<code>my_divide</code>) that behaves differently based on input, showing how <code>tryCatch()</code> can handle known problems and apply recovery logic.</p>
+<p>Next, we introduced the concept of custom error classes using <code>cli::cli_abort()</code>, allowing for structured, class-based error signaling. By assigning custom classes (e.g., <code>"dup_pfw"</code>) and attaching metadata (e.g., keys and identifiers), we created a mechanism for precise error identification and downstream handling.</p>
+<p>Building on this, we developed a lightweight logging function (<code>add_log()</code>) that writes structured error information to a file. This allowed for the creation of reproducible logs that can be summarized and inspected, enabling transparency and traceability in pipeline failures.</p>
+<p>To inspect the logs, we created a <code>summarize_log()</code> function that parses the log file and distinguishes between known errors (like duplicate rows) and unknown errors (e.g., column not found), providing an accessible summary of all logged issues.</p>
+<p>Finally, we consolidated these techniques into a general-purpose function (<code>clean_duplicates</code>) that checks for duplicates, logs failures, and decides whether to continue or stop based on a <code>skip_err</code> flag. This function demonstrated how to handle both expected and unexpected errors, clean the data if possible, and capture complete information in the log file.</p>
+<p>Together, these components form a modular and extensible framework for structured error handling, recovery, and logging in R, especially suitable for automated and large-scale data processing tasks.</p>
 
 
 </section>
@@ -414,8 +860,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   });
   clipboard.on('success', onCopySuccess);
   if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    // For code content inside modals, clipBoardJS needs to be initialized with a container option
-    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
     const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
       text: getTextToCopy,
       container: window.document.getElementById('quarto-embedded-source-code-modal')
@@ -526,7 +970,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {

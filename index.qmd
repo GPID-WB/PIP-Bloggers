@@ -1,5 +1,5 @@
 ---
-title: "What's new in PIP?"
+title: "Welcome to PIP-Bloggers"
 listing: 
   contents: posts
   sort: "date desc"
