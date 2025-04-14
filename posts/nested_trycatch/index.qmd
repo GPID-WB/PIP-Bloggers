@@ -15,7 +15,7 @@ execute:
 
 ## Introduction
 
-In our previous posts [link here], we learned how to use `tryCatch()`, so I highly recommend your master it first, before reading this one. 
+In our previous posts \[link here\], we learned how to use `tryCatch()`, so I highly recommend your master it first, before reading this one.
 
 Functional programming in R often leads us to use `lapply()` or `purrr::map()` to process many elements safely. To make our code robust, we usually wrap our functions in `tryCatch()` to handle errors gracefully.
 
@@ -117,14 +117,13 @@ results <- lapply(inputs, \(x) {
 results
 ```
 
-
 ### Why is this a big deal?
 
 If you're processing 10,000 files, or iterating over hundreds of models, it's not enough to know that *something* failed. You need to know:
 
-- **Which step** in your process broke
-- **Which input** caused it
-- **What exactly** the error was
+-   **Which step** in your process broke
+-   **Which input** caused it
+-   **What exactly** the error was
 
 That’s the kind of information we’ll learn to capture in the next section — by going inside `foo()` and catching errors *at the source*.
 
@@ -182,12 +181,11 @@ results <- lapply(inputs, function(x) {
 
 ### Now we know exactly what happened:
 
-- Which function failed: `baz()`
-- Why it failed: `"baz() failed on input 2"`
-- And from where: `foo()` passed it up
+-   Which function failed: `baz()`
+-   Why it failed: `"baz() failed on input 2"`
+-   And from where: `foo()` passed it up
 
 This is already a huge improvement — now each internal component is **accountable**.
-
 
 ### But there’s still one thing missing...
 
@@ -195,14 +193,13 @@ We’re building custom messages, which is nice — but we're still working with
 
 To fix that, we’ll bring in `{rlang}`, which has a special approach to error handling that makes structured, classed errors easy to build and trace.
 
-
 ## 4: Using `rlang::abort()` for Structured, Traceable Errors
 
 So far, we’ve wrapped internal calls with `tryCatch()` and labeled their failures manually using `stop()`. That works, but it’s not ideal for larger pipelines where we want to:
 
-- Attach **structured metadata** to the error (like `x`, or which step failed)
-- Use **custom error classes** to distinguish error types
-- Improve traceability and logging across multiple layers
+-   Attach **structured metadata** to the error (like `x`, or which step failed)
+-   Use **custom error classes** to distinguish error types
+-   Improve traceability and logging across multiple layers
 
 This is where `{rlang}` comes in.
 
@@ -236,8 +233,8 @@ goo <- function(x) {
 
 What’s going on here?
 
-- `.subclass = "baz_error"` creates a **custom error class**
-- `foo_step = "baz"` and `input_value = x` add **metadata** to the error object
+-   `.subclass = "baz_error"` creates a **custom error class**
+-   `foo_step = "baz"` and `input_value = x` add **metadata** to the error object
 
 These can be used later to filter, inspect, or respond differently to different error types or sources.
 
@@ -294,12 +291,11 @@ results <- lapply(inputs, function(x) {
 })
 ```
 
-
 Now we have:
 
-- **Structured information** preserved across the stack
-- **Clear logs** with exact failure step and input
-- **Composability** — you can extend this to more steps, pipelines, or input types
+-   **Structured information** preserved across the stack
+-   **Clear logs** with exact failure step and input
+-   **Composability** — you can extend this to more steps, pipelines, or input types
 
 In the next step, we’ll wrap this all up into a reusable pattern that’s clean, readable, and powerful — with the help of `cli` and maybe a custom `safe_step()` function.
 
@@ -307,12 +303,11 @@ In the next step, we’ll wrap this all up into a reusable pattern that’s clea
 
 As we've seen, when `foo()` calls several subfunctions like `bar()`, `baz()`, and `goo()`, each of which might fail, we often want to:
 
-1. Catch the error locally.
-2. Identify which function failed.
-3. Propagate the failure back to `foo()` with context.
+1.  Catch the error locally.
+2.  Identify which function failed.
+3.  Propagate the failure back to `foo()` with context.
 
 But repeating the same `tryCatch()` logic inside each subfunction leads to duplicated code and clunky structure. Instead, we can define a small helper called `safe_step()` that wraps any step with the appropriate error-catching logic.
-
 
 ### Define `safe_step()`
 
@@ -334,8 +329,8 @@ safe_step <- function(expr, step_name) {
 
 This function takes two arguments:
 
-- `expr`: the expression to evaluate, passed as a quoted expression (we’ll use `quote()` or `{}` blocks).
-- `step_name`: a label used to identify the step in case of failure.
+-   `expr`: the expression to evaluate, passed as a quoted expression (we’ll use `quote()` or `{}` blocks).
+-   `step_name`: a label used to identify the step in case of failure.
 
 It evaluates the expression, and if there's an error, it "rethrows" it with a message indicating which step failed. The re-thrown error can then be caught by a top-level `tryCatch()` for logging or summarizing. Also, we user the `.call` argument because we only want to show the message.
 
@@ -370,15 +365,14 @@ tryCatch(
 )
 ```
 
-
 This makes debugging and logging much easier, as the step name is already encoded in the error message — without requiring each subfunction to carry its own `tryCatch()` block.
 
-:::{.callout-tip appearance="simple"}
+::: {.callout-tip appearance="simple"}
 ## Why we use `quote()` in `safe_step()`
 
 In the `foo()` function, we pass expressions like `bar(x)` to `safe_step()` using `quote()`:
 
-```r
+``` r
 foo <- function(x) {
   safe_step(quote(bar(x)), "bar()")
   ...
@@ -390,20 +384,17 @@ This is necessary because `safe_step()` is designed to evaluate the expression *
 By using `quote(bar(x))`, we pass the **unevaluated expression** to `safe_step()`, and then use `eval(expr)` *within* the `tryCatch()` block to safely run it.
 :::
 
-
-
 ## 6. Logging Failures Across Many Inputs in a Pipeline
 
 When running a pipeline or loop over many inputs it's critical to:
 
-- Keep the pipeline running even if some elements fail.
-- Log **which** input failed and **why**.
-- Retain **detailed metadata** to help with debugging later.
+-   Keep the pipeline running even if some elements fail.
+-   Log **which** input failed and **why**.
+-   Retain **detailed metadata** to help with debugging later.
 
 We’ll now simulate such a setup using `lapply()` and the advanced error-handling tools we’ve built.
 
-
-###  6.1: Define a failing function with metadata
+### 6.1: Define a failing function with metadata
 
 We'll simulate a function that may fail depending on the input:
 
@@ -427,8 +418,6 @@ process_one(3)
 # Bad call
 process_one(4)
 ```
-
-
 
 ### 6.2: Wrap the processing logic and re-throw
 
@@ -505,17 +494,14 @@ results <- lapply(inputs, function(x) {
 })
 ```
 
-
 ### 6.5: Review the log
 
 ```{r}
 readLines(logfile)
 ```
 
-
 ### Final Notes
 
-- This pattern keeps `lapply()` running, logs structured details, and tracks failures by input.
-- The error messages remain informative thanks to metadata and error chaining.
-- You can extend this by saving successful results, failed cases, and summaries into structured reports.
-
+-   This pattern keeps `lapply()` running, logs structured details, and tracks failures by input.
+-   The error messages remain informative thanks to metadata and error chaining.
+-   You can extend this by saving successful results, failed cases, and summaries into structured reports.
