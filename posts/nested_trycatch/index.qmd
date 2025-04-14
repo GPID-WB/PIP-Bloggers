@@ -104,6 +104,7 @@ foo <- \(x) {
 inputs <- list(1, 2, 3)
 
 results <- lapply(inputs, \(x) {
+  cat("input_value =", x, "\n", sep = "")
   tryCatch(
     foo(x),
     error = \(e) {
@@ -112,6 +113,8 @@ results <- lapply(inputs, \(x) {
     }
   )
 })
+
+results
 ```
 
 
@@ -334,7 +337,7 @@ This function takes two arguments:
 - `expr`: the expression to evaluate, passed as a quoted expression (we’ll use `quote()` or `{}` blocks).
 - `step_name`: a label used to identify the step in case of failure.
 
-It evaluates the expression, and if there's an error, it "rethrows" it with a message indicating which step failed. The re-thrown error can then be caught by a top-level `tryCatch()` for logging or summarizing. Also, we user the `.call` argumetn because we only want to show the message.
+It evaluates the expression, and if there's an error, it "rethrows" it with a message indicating which step failed. The re-thrown error can then be caught by a top-level `tryCatch()` for logging or summarizing. Also, we user the `.call` argument because we only want to show the message.
 
 ### Rewrite `foo()` using `safe_step()`
 
@@ -457,7 +460,7 @@ run_with_context(3)
 run_with_context(4)
 ```
 
-Notice that it still throws an error, but it propagates the erors upward and it adds context and metadata to errors in a consistent, predictable way.
+Notice that it still throws an error, but it propagates the erros upward and it adds context and metadata to errors in a consistent, predictable way.
 
 ### 6.3: Logging function using `find_condition()`
 
