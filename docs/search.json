@@ -18,7 +18,7 @@
     "href": "posts/SysCall/index.html#a-minimal-example-of-a-call-stack",
     "title": "Understanding R’s Call Stack: sys.call() and Friends",
     "section": "A Minimal Example of a Call Stack",
-    "text": "A Minimal Example of a Call Stack\nLet’s define three simple functions:\n\nbaz &lt;- function() {\n  print(\"Inside baz()\")\n  print(sys.call())\n  print(sys.parent()) \n}\n\nbar &lt;- function() {\n  print(\"Inside bar()\")\n  baz()\n}\n\nfoo &lt;- function() {\n  print(\"Inside foo()\")\n  bar()\n}\n\nfoo()\n\n[1] \"Inside foo()\"\n[1] \"Inside bar()\"\n[1] \"Inside baz()\"\nbaz()\n[1] 31\n\n\nLet’s focus on the last number. What does it mean?\n\nsys.parent() is just a number\nThe function sys.parent() doesn’t return a function or a call — it returns a number. That number is an index into R’s call stack — the internal list of active function calls.\nIn our example, this is the call stack when baz() is executing:\n2: bar()\n1: foo()\n0: global environment\nSo when baz() calls sys.parent(), it gets the index of its direct caller (bar()), which happens to be at position 2 in the stack. If you want to see what that parent call was, you’d need to call sys.call(sys.parent()). But that is not what you see here.\n\n\nWhy is sys.parent() = 2 in the console, but 31 (or another number) in a Quarto document?\nWhen you run this code interactively in R, the call stack is shallow: you’re at the top-level environment (frame 0), and your functions are being called directly.\nBut when you render a Quarto document, things change. Your code is being executed within internal functions used by Quarto and knitr. So your simple foo() call is actually wrapped in 30+ layers of function calls. That’s why sys.parent() might return something like 31.\nSo even though it feels like you’re calling foo(), you’re actually calling something like:\nquarto::render -&gt; knitr::knit -&gt; evaluate::evaluate -&gt; ... -&gt; foo()\n\n\n\n\n\n\nThe takeaway?\n\n\n\nThe value returned by sys.parent() is always relative to the current call stack. Don’t assume it’s fixed — it depends on the context where your code runs.\n\n\nThis is especially important when writing packages or code that might run inside knitr, shiny, testthat, or other frameworks."
+    "text": "A Minimal Example of a Call Stack\nLet’s define three simple functions:\n\nbaz &lt;- function() {\n  print(\"Inside baz()\")\n  print(sys.call())\n  print(sys.parent()) \n}\n\nbar &lt;- function() {\n  print(\"Inside bar()\")\n  baz()\n}\n\nfoo &lt;- function() {\n  print(\"Inside foo()\")\n  bar()\n}\n\nfoo()\n\n[1] \"Inside foo()\"\n[1] \"Inside bar()\"\n[1] \"Inside baz()\"\nbaz()\n[1] 25\n\n\nLet’s focus on the last number. What does it mean?\n\nsys.parent() is just a number\nThe function sys.parent() doesn’t return a function or a call — it returns a number. That number is an index into R’s call stack — the internal list of active function calls.\nIn our example, this is the call stack when baz() is executing:\n2: bar()\n1: foo()\n0: global environment\nSo when baz() calls sys.parent(), it gets the index of its direct caller (bar()), which happens to be at position 2 in the stack. If you want to see what that parent call was, you’d need to call sys.call(sys.parent()). But that is not what you see here.\n\n\nWhy is sys.parent() = 2 in the console, but 31 (or another number) in a Quarto document?\nWhen you run this code interactively in R, the call stack is shallow: you’re at the top-level environment (frame 0), and your functions are being called directly.\nBut when you render a Quarto document, things change. Your code is being executed within internal functions used by Quarto and knitr. So your simple foo() call is actually wrapped in 30+ layers of function calls. That’s why sys.parent() might return something like 31.\nSo even though it feels like you’re calling foo(), you’re actually calling something like:\nquarto::render -&gt; knitr::knit -&gt; evaluate::evaluate -&gt; ... -&gt; foo()\n\n\n\n\n\n\nThe takeaway?\n\n\n\nThe value returned by sys.parent() is always relative to the current call stack. Don’t assume it’s fixed — it depends on the context where your code runs.\n\n\nThis is especially important when writing packages or code that might run inside knitr, shiny, testthat, or other frameworks."
   },
   {
     "objectID": "posts/SysCall/index.html#sys.call-what-was-the-actual-call",
@@ -32,7 +32,7 @@
     "href": "posts/SysCall/index.html#sys.parent-whos-your-caller",
     "title": "Understanding R’s Call Stack: sys.call() and Friends",
     "section": "sys.parent() – Who’s Your Caller?",
-    "text": "sys.parent() – Who’s Your Caller?\nIf you want to know who called the current function, use sys.parent():\n\ngoo &lt;- function() {\n  parent &lt;- sys.parent()\n  cat(\"Parent frame index:\", parent, \"\\n\")\n  cat(\"Parent call:\", as.character(sys.call(parent)), \"\\n\")\n}\n\nfoo &lt;- function(x) {\n  goo()\n}\n\nfoo()\n\nParent frame index: 30 \nParent call: foo"
+    "text": "sys.parent() – Who’s Your Caller?\nIf you want to know who called the current function, use sys.parent():\n\ngoo &lt;- function() {\n  parent &lt;- sys.parent()\n  cat(\"Parent frame index:\", parent, \"\\n\")\n  cat(\"Parent call:\", as.character(sys.call(parent)), \"\\n\")\n}\n\nfoo &lt;- function(x) {\n  goo()\n}\n\nfoo()\n\nParent frame index: 24 \nParent call: foo"
   },
   {
     "objectID": "posts/SysCall/index.html#use-case-identifying-the-calling-function-for-errors-and-logs",
@@ -137,7 +137,7 @@
     "href": "index.html",
     "title": "What’s new in PIP?",
     "section": "",
-    "text": "Understanding R’s Call Stack: sys.call() and Friends\n\n\n\n\n\n\nR\n\n\nMetaprogramming\n\n\nDebugging\n\n\n\nUnderstanding call stack introspection in R\n\n\n\n\n\nApr 8, 2025\n\n\nR.Andres Castaneda\n\n\n\n\n\n\n\n\n\n\n\n\nHow to Create Robust Argument Checking in R Functions\n\n\n\n\n\n\nR programming\n\n\nBest practices\n\n\n\nCreate a function that checks the arguments of another function\n\n\n\n\n\nMar 25, 2025\n\n\nR.Andres Castaneda\n\n\n\n\n\n\n\n\n\n\n\n\nCollapse Cheat sheet\n\n\n\n\n\n\ncollapse\n\n\ndata.table\n\n\ndplyr\n\n\nefficiency\n\n\n\nSyntax translation from dplyr and data.tablen to collapse\n\n\n\n\n\nMar 13, 2025\n\n\nPIP Technical team\n\n\n\n\n\n\n\n\n\n\n\n\nException Handling\n\n\n\n\n\n\nErrors\n\n\nWarnings\n\n\n\nExample for pipdata\n\n\n\n\n\nFeb 13, 2025\n\n\nDiana C. Garcia\n\n\n\n\n\n\nNo matching items"
+    "text": "Understanding R’s Call Stack: sys.call() and Friends\n\n\n\n\n\n\nR\n\n\nMetaprogramming\n\n\nDebugging\n\n\n\nUnderstanding call stack introspection in R\n\n\n\n\n\nApr 8, 2025\n\n\nR.Andres Castaneda\n\n\n\n\n\n\n\n\n\n\n\n\nHow to Create Robust Argument Checking in R Functions\n\n\n\n\n\n\nR programming\n\n\nBest practices\n\n\n\nCreate a function that checks the arguments of another function\n\n\n\n\n\nMar 25, 2025\n\n\nR.Andres Castaneda\n\n\n\n\n\n\n\n\n\n\n\n\nCollapse Cheat sheet\n\n\n\n\n\n\ncollapse\n\n\ndata.table\n\n\ndplyr\n\n\nefficiency\n\n\n\nSyntax translation from dplyr and data.tablen to collapse\n\n\n\n\n\nMar 13, 2025\n\n\nPIP Technical team\n\n\n\n\n\n\n\n\n\n\n\n\nMastering tryCatch() in R: From Basics to Structured Logging\n\n\n\n\n\n\nR\n\n\nError Handling\n\n\nRobust Code\n\n\n\nLearn how to use tryCatch() in R to handle errors and warnings, recover from failures, and build structured logging systems.\n\n\n\n\n\nFeb 13, 2025\n\n\nDiana C. Garcia\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
@@ -200,21 +200,21 @@
     "href": "posts/Excp_Hndl/index.html",
     "title": "Exception Handling",
     "section": "",
-    "text": "The following is an example of how to use exception handling in R for our packages. In particular, I focus on using tryCatch . This is an example still in the making (so I will probably updated once I understand better the topic and I have created a final version for pipdata ), but for now, you all can already give it a try."
+    "text": "The following is an example of how to use exception handling in R within the PIP pipeline. In particular, I focus on using tryCatch . This is a simplifies example from what we used on the cleaning process in pipdata."
   },
   {
     "objectID": "posts/Excp_Hndl/index.html#load-libraries-and-functions",
     "href": "posts/Excp_Hndl/index.html#load-libraries-and-functions",
     "title": "Exception Handling",
     "section": "Load libraries and functions",
-    "text": "Load libraries and functions\nFirst, these are the main libraries I used.\n# Load libraries library(metapip) library(data.table)\nHowever, make sure to have installed the following packages as well: cli and rlang .\nThe following is the example of the function I need to be “handle” with tryCatch . This function tries to check if there are duplicates in dt according to some keyVar and if there are duplicates it could abort and exit or continue without exiting. The function has another two parameters to decide the following:\n1. log_err if we want the error to be included in a error-report log ( TRUE and FALSE)\n2. skip_err if we want the error to be skipped ( TRUE and FALSE)\n# Function to handle duplicated observations in pfw unq_pfw &lt;- function(dt,                     keyVar,                     log_err = TRUE,                     skip_err = TRUE) {    tryCatch(      expr = {        if(uniqueN(dt, by = keyVar) != nrow(dt)){          dt_d &lt;- dt[duplicated(dt, by = keyVar)]         n_rep &lt;- nrow(dt_d)          cli::cli_abort(message = \"There {?is/are} {n_rep} duplicates in `pfw`\",                        class = c(\"dup_pfw\", \"piperr\"),                        log = log_err,                        skip = skip_err,                        link =  unique(dt_d$link),                        call = sys.call())       }      },      dup_pfw = function(cnd){        if(cnd$log){ # Log the error          add_log(cnd)        }        if(!cnd$skip){ # Abort if you don't want to skip, but after logging          cli::cli_abort(cnd$message, call = cnd$call)        }      },      finally = {        dt &lt;- unique(dt, by = keyVar) # eliminate duplicates      }    )     return(dt)  }\nIf you run the lines within expr ={ } , this will probably crash and an error about duplicates will be shown. However, what I want is to first record this error on a log, and then decide if to skip the error or not, and get a clean dataset. That is why we need tryCatch . As you can see within the finally section, I also included a line that eliminates the duplicates and returns the new “clean” dataset. This is because I am going to “handle” the abort actions with tryCatch and after this, R will “finally” run these lines and give us the clean output we need (if we do not want to abort).\nNow let me explain the steps within the tryCatch . First, you might be wondering what are the parameters within cli::cli_abort() . I assume message is straightforward. However, class might be the most important. The class we give to this specific error, or condition, will be what makes it identifiable on our tryCatch . Since we gave a new class to the error called dup_pfw , the function tryCatch, instead of aborting and exiting the code when the error is found, will run the code within dup_pfw = function(cnd){ } instead. The parameter cnd then carries all the information we gave within cil::cli_abort ; the class , the log/skip actions, and the identifiers of the duplicates link .\nImportant: The parameters log and skip within cil::cli_abort are my tools to decide how to handle this error and these are totally made up by me for this specific function. You can create any parameter you want within cli::abort() and this will carry on within the handler. For example, I created the parameter link which will carry the identifiers of those duplicated observations. These are needed for the error-report log.\nTalking about the log, before you run the code below, please load the following function add_log . This function will load some concatenated text on the file log.txt saved in your working directory and it is used within the handler.\n# Function for logging add_log &lt;- function(cnd) {    cat(     \"[\", class(cnd)[[1]], \"-\", class(cnd)[[2]], \"] \",     cnd$message,\" for \",     cnd$link, \"\\n\", sep = \"\",     file = \"log.txt\", append = TRUE   )  }"
+    "text": "Load libraries and functions\nFirst, these are the main libraries needed.\n\n# Load libraries \nlibrary(metapip) \nlibrary(data.table)\nlibrary(pipload)\n\nHowever, make sure to have installed the following packages as well: cli and rlang .\nThe following is the example of the function we need to be “handle” with tryCatch. This function tries to check if there are duplicates in dt according to some keyVar and if there are duplicates it can abort and exit or continue without exiting and logging the error. The function has another two parameters to decide the following:\n\nlog_err if we want the error to be included in a error-report log.\nskip_err if we want the error to be skipped or not.\n\n\n# Function to handle duplicated observations in pfw \nunq_pfw &lt;- function(dt,\n                    keyVar,\n                    log_err = TRUE,\n                    skip_err = TRUE){   \n  tryCatch(      \n    expr = {        \n      if(uniqueN(dt, by = keyVar) != nrow(dt)){          \n        dt_d &lt;- dt[duplicated(dt, by = keyVar)]         \n        n_rep &lt;- nrow(dt_d)          \n        cli::cli_abort(message = \"There {?is/are} {n_rep} duplicates in `pfw`\",\n                       class = c(\"dup_pfw\", \"piperr\"),\n                       log = log_err,\n                       skip = skip_err,\n                       link =  unique(dt_d$link),\n                       call = sys.call())       \n        }      \n      },      \n    dup_pfw = function(cnd){        \n      if(cnd$log){ \n        # Log the error          \n        add_log(cnd)        \n      }        \n      if(!cnd$skip){ \n        # Abort if you don't want to skip, but after logging          \n        cli::cli_abort(cnd$message, call = cnd$call)        \n      }\n      },\n    error = function(cnd){\n      # Abort for unknown error\n      cli::cli_abort(\"Unknown Error\", call = cnd$call)\n    },      \n    finally = {        \n      dt &lt;- unique(dt, by = keyVar) # eliminate duplicates      \n    }    \n  )   \n  \n  return(dt) \n  \n  }\n\nIf you run the lines within expr ={ }, this will probably crash and an error about duplicates will be shown. However, what we want is to first record this error on a log, and then decide if to skip the error or not, and get a clean dataset. Also, if there was another error within expr ={ }, the function will not log the error, it will stop the process and warn of an “Unknown Error”. That is why we need tryCatch. As you can see within the finally section, we also included a line that eliminates the duplicates and returns the new “clean” data set.\nThis is how tryCatch works in our example: First, within the parameters of cli::cli_abort(), message works as expected. However, class might be the most important to describe. The class we give to this specific error, or condition, will be what makes it identifiable on our tryCatch. Since we gave a new class to the error called dup_pfw, the function tryCatch, instead of aborting and exiting the code when the error is found, will run the code within dup_pfw = function(cnd){ } instead. The parameter cnd then carries all the information we gave within cil::cli_abort; the class, the log/skip actions, and the identifiers of the duplicates called link .\nImportant: The parameters log and skip within cil::cli_abort are the tools we use to handle this error and these are totally made up for this specific function. You can create any parameter you want within cli::abort() and this will carry on within the handler. For example, the parameter link will carry the identifiers of those duplicated observations, which are needed for the error-report log.\nRegarding the log, before running the code below, we need to load the following function add_log. This function will load some concatenated text on the file log.txt saved in the working directory and it is used within the handler.\n\n# Function for logging \nadd_log &lt;- function(cnd) {    \n  cat(\"[\", class(cnd)[[1]], \"-\", class(cnd)[[2]], \"] \",     \n      cnd$message,\" for \",     \n      cnd$link, \"\\n\", sep = \"\",     \n      file = \"log.txt\", append = TRUE)  \n  }"
   },
   {
     "objectID": "posts/Excp_Hndl/index.html#load-data-and-run-code",
     "href": "posts/Excp_Hndl/index.html#load-data-and-run-code",
     "title": "Exception Handling",
     "section": "Load data and run code",
-    "text": "Load data and run code\nThe data used for this example can be loaded with pipload and represents the auxiliary Price Frame Work, or pfw . Since I needed it to run over the error at some point, I also create another data frame with some duplicates, pfw_d .\n# Load data pfw_t &lt;- pip_load_aux(\"pfw\")  pfw_d &lt;- rbind(pfw_t, pfw_t[rep(1, 5), ]) # Duplicate some rows from one country\nNow, we will run the function and this should not give you any errors because the default value of skip_err = TRUE .\n# Run tryCatch for unq_pwf function keyVar &lt;- c(\"country_code\", \"surveyid_year\", \"survey_acronym\")  pfw &lt;- unq_pfw(pfw_d, keyVar)\nIf the error was handled and skipped correctly (default parameters), the answer to the following code should give you TRUE and you will find a log.txt file with the new record of these error.\n# Test  uniqueN(pfw, by = keyVar) == nrow(pfw)\nHowever, if you run the function without skipping the error, the abort function will come into action:\n# Run tryCatch for unq_pwf function without skipping error  pfw &lt;- unq_pfw(pfw_d, keyVar, skip_err = FALSE)\nLet me know if that is not the case, or if you have any questions about the example! Happy to talk about it and learn together 🙂"
+    "text": "Load data and run code\nThe data we will use for this example can be loaded with pipload and represents the auxiliary Price Frame Work, or pfw. Since we need to run over the error at some point, we have to create another data frame with some duplicates, pfw_d .\n\n# Load data \npfw_t &lt;- pip_load_aux(\"pfw\")  \n\nv Most recent version of data loaded:\n'pfw.qs'\n\n\ni no labels available for measure pfw\n\npfw_d &lt;- rbind(pfw_t, pfw_t[rep(1, 5), ]) # Duplicate some rows from one country\n\nNow, we will run the function and this should not give any errors because the default value is skip_err = TRUE .\n\n# Run tryCatch for unq_pwf function \nkeyVar &lt;- c(\"country_code\", \"surveyid_year\", \"survey_acronym\")  \npfw &lt;- unq_pfw(pfw_d, keyVar)\n\nIf the error was handled and skipped correctly, according to the default parameters, the answer to the following code should give you TRUE and you will find a log.txt file with the new record of these error.\n\n# Test  \nuniqueN(pfw, by = keyVar) == nrow(pfw)\n\n[1] TRUE\n\n\nHowever, if you run the function without skipping the error, the abort function will come into action:\n\n# Run tryCatch for unq_pwf function without skipping error  \npfw &lt;- unq_pfw(pfw_d, keyVar, skip_err = FALSE)\n\nError in `unq_pfw()`:\n! Unknown Error"
   },
   {
     "objectID": "posts/Excp_Hndl/index.html#sources",
@@ -229,5 +229,180 @@
     "title": "Exception Handling",
     "section": "Work in progress…",
     "text": "Work in progress…\nA few things I am still figuring/working out are:\n\nI still have to format the add_log function to allowed for more than one character on the cnd$link value, or to make it more general so it can be used in other handlers."
+  },
+  {
+    "objectID": "AdvR.html",
+    "href": "AdvR.html",
+    "title": "Advance R Sessions",
+    "section": "",
+    "text": "Condition Handling\n\n\nAdvance R Session 1\n\n\n\n\n\n\n\n\nDiana Garcia\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html",
+    "href": "presentations/Exp_Hand/index.html",
+    "title": "Condition Handling",
+    "section": "",
+    "text": "Conditions\n\nErrors (severe): function should not continue\nWarnings (mild): something went wrong but it will continue\nMessages (mildest): inform the user of an action taken\n\nSignals of conditions\n\nstop() or rlang::abort(),\nwarning() or rlang::warn(),\nmessage()\n\n\n\n\n\n\n\n\nError:\n\nWe need the process to stop.\nMessage should indicate what is wrong and where to fix the problem.\n\nWarning:\n\nWarn of an issue and let the process continue.\nThese can be many per function and will be displayed in aggregate.\nMessage like important change was done or missing info was found.\nBetter not to overuse it.\n\nMessages:\n\nUsually when something is done on the behalf of the user\nE.g. A default value was used or the progress on a long process.\nBetter not to have many messages per function. They are immediately displayed.\n\n\n\n\n\n\n\n\n\n\n\n\nQuestion:\n\n\n\nAny ideas on where we can make use of these conditions within our pipeline?"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#important-concepts",
+    "href": "presentations/Exp_Hand/index.html#important-concepts",
+    "title": "Condition Handling",
+    "section": "",
+    "text": "Conditions\n\nErrors (severe): function should not continue\nWarnings (mild): something went wrong but it will continue\nMessages (mildest): inform the user of an action taken\n\nSignals of conditions\n\nstop() or rlang::abort(),\nwarning() or rlang::warn(),\nmessage()"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#when-to-use",
+    "href": "presentations/Exp_Hand/index.html#when-to-use",
+    "title": "Condition Handling",
+    "section": "",
+    "text": "Error:\n\nWe need the process to stop.\nMessage should indicate what is wrong and where to fix the problem.\n\nWarning:\n\nWarn of an issue and let the process continue.\nThese can be many per function and will be displayed in aggregate.\nMessage like important change was done or missing info was found.\nBetter not to overuse it.\n\nMessages:\n\nUsually when something is done on the behalf of the user\nE.g. A default value was used or the progress on a long process.\nBetter not to have many messages per function. They are immediately displayed."
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#pip-pipeline",
+    "href": "presentations/Exp_Hand/index.html#pip-pipeline",
+    "title": "Condition Handling",
+    "section": "",
+    "text": "Question:\n\n\n\nAny ideas on where we can make use of these conditions within our pipeline?"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#ignoring-conditions",
+    "href": "presentations/Exp_Hand/index.html#ignoring-conditions",
+    "title": "Condition Handling",
+    "section": "Ignoring conditions",
+    "text": "Ignoring conditions\nUnpopular opinion:\n\nSimplest way to handling conditions is to ignore them!"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#ignoring-conditions-1",
+    "href": "presentations/Exp_Hand/index.html#ignoring-conditions-1",
+    "title": "Condition Handling",
+    "section": "Ignoring conditions",
+    "text": "Ignoring conditions\nExample on try():\n\nWithoutWithSilent\n\n\n\nf1 &lt;- function(x) {\n  log(x)\n  10\n}\n\nf1(\"x\")\n\nError in log(x): non-numeric argument to mathematical function\n\n\n\n\n\nf2 &lt;- function(x) {\n  try(log(x))\n  10\n}\n\nf2(\"a\")\n\nError in log(x) : non-numeric argument to mathematical function\n\n\n[1] 10\n\n\n\n\n\nf2 &lt;- function(x) {\n  try(log(x), silent = TRUE)\n  10\n}\n\nf2(\"a\")\n\n[1] 10"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#ignoring-conditions-2",
+    "href": "presentations/Exp_Hand/index.html#ignoring-conditions-2",
+    "title": "Condition Handling",
+    "section": "Ignoring conditions",
+    "text": "Ignoring conditions\nOther ignoring conditions are:\n\nsuppressWarnings()\nsuppressMessages()"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#handling-conditions",
+    "href": "presentations/Exp_Hand/index.html#handling-conditions",
+    "title": "Condition Handling",
+    "section": "Handling conditions",
+    "text": "Handling conditions\nWe can override or supplement the default behavior using:\n\ntryCatch()\nwithCallingHandlres()"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#trycatch",
+    "href": "presentations/Exp_Hand/index.html#trycatch",
+    "title": "Condition Handling",
+    "section": "tryCatch",
+    "text": "tryCatch\nIt is used for exiting handlers and more suitable for errors.\n\ntryCatch(\n  \n  error = function(cnd) {\n    # code to run when error is thrown\n  },\n  \n  expr = {\n    code_to_run_while_handlers_are_active\n  }\n  \n)\n\nWhen condition is handled it returns to where tryCatch was called."
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#withcallinghandlers",
+    "href": "presentations/Exp_Hand/index.html#withcallinghandlers",
+    "title": "Condition Handling",
+    "section": "withCallingHandlers",
+    "text": "withCallingHandlers\nIt is used for calling handlers and more suitable for non-errors conditions.\n\nwithCallingHandlers(\n  \n  warning = function(cnd) {\n    # code to run when warning is signalled\n  },\n  \n  message = function(cnd) {\n    # code to run when message is signalled\n  },\n  \n  expr = {\n    code_to_run_while_handlers_are_active\n  }\n)\n\nAfter condition is captured, it returns where the condition was signaled."
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#exiting-conditions",
+    "href": "presentations/Exp_Hand/index.html#exiting-conditions",
+    "title": "Condition Handling",
+    "section": "Exiting conditions",
+    "text": "Exiting conditions\nWe could override the default error\n\nf3 &lt;- function(x) {\n  tryCatch(\n    \n    error = function(cnd) \n      NA,\n    \n    expr = {\n      log(x)\n    }\n    \n  )\n}\n\nf3(\"x\")\n\n[1] NA"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#exiting-conditions-1",
+    "href": "presentations/Exp_Hand/index.html#exiting-conditions-1",
+    "title": "Condition Handling",
+    "section": "Exiting conditions",
+    "text": "Exiting conditions\ntryCatch exits once the condition is signaled:\n\nSignalNo signal\n\n\n\ntryCatch(\n  \n  message = function(cnd) \n    \"There\",\n  \n  expr = {\n    message(\"Here\")\n    stop(\"This code is never run!\")\n  }\n)\n\n[1] \"There\"\n\n\n\n\n\ntryCatch(\n  \n  error = function(cnd) \n    10,\n  \n  expr = {\n    message(\"Hi!\")\n    1 + 1\n  }\n)\n\nHi!\n\n\n[1] 2"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#calling-conditions",
+    "href": "presentations/Exp_Hand/index.html#calling-conditions",
+    "title": "Condition Handling",
+    "section": "Calling conditions",
+    "text": "Calling conditions\nThey help signal a problem and the code execution continues normally.\n\nwithCallingHandlers(\n  \n  message = function(cnd) \n    cat(\"Caught a message!\\n\"), \n  \n  expr = {\n    message(\"Someone there?\")\n    message(\"Why, yes!\")\n  }\n)\n\nCaught a message!\n\n\nSomeone there?\n\n\nCaught a message!\n\n\nWhy, yes!\n\n\nNotice: They are applied in order."
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#conditon-objects",
+    "href": "presentations/Exp_Hand/index.html#conditon-objects",
+    "title": "Condition Handling",
+    "section": "Conditon objects",
+    "text": "Conditon objects\nBehind the scenes, objects are created when signaling a condition.\n\ncnd &lt;- rlang::catch_cnd(stop(\"An error\"))\n\nstr(cnd)\n\nList of 2\n $ message: chr \"An error\"\n $ call   : language force(expr)\n - attr(*, \"class\")= chr [1:3] \"simpleError\" \"error\" \"condition\"\n\n\nWe can access the elements of this object using:\n\ncondtionMessage()\nconditionCall()"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#other-topics-about-conditions",
+    "href": "presentations/Exp_Hand/index.html#other-topics-about-conditions",
+    "title": "Condition Handling",
+    "section": "Other topics about conditions",
+    "text": "Other topics about conditions\n\nThey can be nested -&gt; muffle the signal\nCall stacks -&gt; error catching or debugging\n\nIf you want to learn more about them, check Advanced R’s 8.4.3 and 8.4.4 subsections!"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#motivation",
+    "href": "presentations/Exp_Hand/index.html#motivation",
+    "title": "Condition Handling",
+    "section": "Motivation",
+    "text": "Motivation\n\nPrice Framework data (PFW) is the ‘metadata’ behind each survey in Dataliweb (DLW).\nImportant: for each specific survey we should have only one record (or row/observation).\n\n\n\n\n\n\n\nObjective:\n\n\n\n\nSignal if there are duplicates of PFW per country_code,surveyid_year and survey_acronym.\nLog which are the duplicates\nAnd continue with the process using only unique values.\n\n\n\nLet’s see structure of PFW…"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#what-to-do",
+    "href": "presentations/Exp_Hand/index.html#what-to-do",
+    "title": "Condition Handling",
+    "section": "What to do?",
+    "text": "What to do?\n\n# Function to handle duplicated observations in pfw \nunq_pfw &lt;- function(dt,                     \n                    keyVar) {    \n    tryCatch(      \n    expr = {   \n      \n      \"???\"\n        \n    },\n    \n    error = function(cnd){\n      \n      \"???\"\n        \n    }  \n    )     \n  \n  return(dt)  \n}"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#toy-solution",
+    "href": "presentations/Exp_Hand/index.html#toy-solution",
+    "title": "Condition Handling",
+    "section": "Toy solution",
+    "text": "Toy solution\n\nDon’t stop process:\n\n\n# Function to handle duplicated observations in pfw\nunq_pfw &lt;- function(dt,\n                    keyVar){\n\n  if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){\n\n    tryCatch(\n      expr = {\n\n        cli::cli_abort()\n\n      },\n      error = function(cnd){\n\n        message(\"There are duplicates in `pfw`\")\n\n      }\n    )\n\n    dt &lt;- unique(dt, by = keyVar)\n  }\n  return(dt)\n}"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#result",
+    "href": "presentations/Exp_Hand/index.html#result",
+    "title": "Condition Handling",
+    "section": "Result",
+    "text": "Result\n\n#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n# Load Libraries   ---------\nlibrary(rlang)\n\nWarning: package 'rlang' was built under R version 4.3.3\n\n\n\n#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n# Load data  ---------\n\npfw &lt;- pipload::pip_load_aux(\"pfw\")\n\nv Most recent version of data loaded:\n'pfw.qs'\n\n\ni no labels available for measure pfw\n\nkeyVar &lt;- c(\"country_code\",\n            \"surveyid_year\",\n            \"survey_acronym\")\n\n\n#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n# Duplicate one value    ---------\n\npfw_d &lt;- rbind(pfw, pfw[rep(1, 5), ])\n\n#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n# Use function  ---------\n\npfw_f &lt;- unq_pfw(pfw_d, keyVar)\n\nThere are duplicates in `pfw`\n\n\nBut the message is not that informative and what if I want to stop at any error?"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#signaling-and-handling",
+    "href": "presentations/Exp_Hand/index.html#signaling-and-handling",
+    "title": "Condition Handling",
+    "section": "Signaling and Handling",
+    "text": "Signaling and Handling\n\nLet’s use the condition object\n\n\n# Function to handle duplicated observations in pfw\nunq_pfw &lt;- function(dt,\n                    keyVar){\n\n  if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){\n\n    tryCatch(\n      expr = {\n        \n        dt_d &lt;- dt[duplicated(dt, by = keyVar)]         \n        n_rep &lt;- nrow(dt_d)          \n        cli::cli_abort(message = \"There {?is/are} {n_rep} duplicates in `pfw`\",\n                       class = c(\"piperr\"),\n                       link =  unique(dt_d$link))\n\n      },\n      piperr = function(cnd){\n\n        msg &lt;- cat(\"[\", class(cnd)[[1]], \"] \",\n            cnd$message,\" for \", cnd$link, \"\\n\", sep = \"\")\n        \n        message(msg)\n\n      }\n    )\n\n    dt &lt;- unique(dt, by = keyVar)\n  }\n  return(dt)\n}"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#result-1",
+    "href": "presentations/Exp_Hand/index.html#result-1",
+    "title": "Condition Handling",
+    "section": "Result",
+    "text": "Result\n\n#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n# Load data  ---------\n\npfw &lt;- pipload::pip_load_aux(\"pfw\")\n\nv Most recent version of data loaded:\n'pfw.qs'\n\n\ni no labels available for measure pfw\n\nkeyVar &lt;- c(\"country_code\",\n            \"surveyid_year\",\n            \"survey_acronym\")\n\n\n#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n# Duplicate one value    ---------\n\npfw_d &lt;- rbind(pfw, pfw[rep(1, 5), ])\n\n#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n# Use function  ---------\n\npfw_f &lt;- unq_pfw(pfw_d, keyVar)\n\n[piperr] There are 5 duplicates in `pfw` for AUS_1981_IHS-LIS\n\n\n\n\n\nBut what if I don’t want it to be skipped?"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#handling-1",
+    "href": "presentations/Exp_Hand/index.html#handling-1",
+    "title": "Condition Handling",
+    "section": "Handling",
+    "text": "Handling\n\nLet’s add another argument\n\n\n# Function to handle duplicated observations in pfw\nunq_pfw &lt;- function(dt,\n                    keyVar,                    \n                    skip_err = TRUE){\n\n  if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){\n\n    tryCatch(\n      expr = {\n        \n        dt_d &lt;- dt[duplicated(dt, by = keyVar)]         \n        n_rep &lt;- nrow(dt_d)          \n        cli::cli_abort(message = \"There {?is/are} {n_rep} duplicates in `pfw`\",\n                       class = c(\"piperr\"),\n                       skip = skip_err,\n                       link =  unique(dt_d$link),\n                       call = sys.call())\n        },\n      piperr = function(cnd){\n\n      msg &lt;- cat(\"[\", class(cnd)[[1]], \"] \",\n            cnd$message,\" for \", cnd$link, \"\\n\", sep = \"\")\n        \n        message(msg)\n        \n      if(!cnd$skip){\n        # Abort if you don't want to skip, but after logging\n        cli::cli_abort(cnd$message, \n                       call = cnd$call)\n      }\n        \n        } \n    )\n\n    dt &lt;- unique(dt, by = keyVar)\n  \n    }\n  return(dt)\n}"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#my-solution",
+    "href": "presentations/Exp_Hand/index.html#my-solution",
+    "title": "Condition Handling",
+    "section": "My solution",
+    "text": "My solution\n\n# Function to handle duplicated observations in pfw\nunq_pfw &lt;- function(dt,\n                    keyVar,                     \n                    log_err = TRUE,                     \n                    skip_err = TRUE){\n\n    tryCatch(\n      expr = {\n        \n        if(data.table::uniqueN(dt, by = keyVar) != nrow(dt)){\n        \n        dt_d &lt;- dt[duplicated(dt, by = keyVar)]         \n        n_rep &lt;- nrow(dt_d)          \n        cli::cli_abort(message = \"There {?is/are} {n_rep} duplicates in `pfw`\",\n                       class = c(\"dup_pfw\", \"piperr\"),\n                       log = log_err,\n                       skip = skip_err,\n                       link =  unique(dt_d$link),\n                       call = sys.call())\n        \n        }\n        \n        },\n      error = function(cnd){\n        \n        cli::cli_abort(message = \"Untracked error\",\n                       call = cnd$call)\n        \n      },\n      dup_pfw = function(cnd){\n        \n      if(cnd$log){ \n        # Log the error\n        add_log(cnd)\n      }\n      \n      if(!cnd$skip){\n        # Abort if you don't want to skip, but after logging\n        cli::cli_abort(cnd$message, \n                       call = cnd$call)\n      }\n        \n        },  \n      \n      finally = {\n        \n      dt &lt;- unique(dt, by = keyVar)\n      \n      } \n    )\n    \n  return(dt)\n}"
+  },
+  {
+    "objectID": "presentations/Exp_Hand/index.html#other-applications",
+    "href": "presentations/Exp_Hand/index.html#other-applications",
+    "title": "Condition Handling",
+    "section": "Other applications",
+    "text": "Other applications\n\nSuccess and failure values:\n\nReturn a value for success and another for failure.\n\nResignal and record\n\nMore informative error messages and record for later investigation\n\nNo default behavior:\n\nUsing signal() you can create a condition different from a error,warning or message."
   }
 ]
