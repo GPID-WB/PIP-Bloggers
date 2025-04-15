@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.42">
+<meta name="generator" content="quarto-1.6.43">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -72,10 +72,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-d4d76bf8491c20bad77d141916dc28e1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-e84ec1af5c18c64b3922cec9fafcf8c8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-5f73616a56257110746002413aa46297.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -575,8 +575,8 @@ Note
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview the raw log</span></span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="fu">readLines</span>(logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "[2025-04-10 11:29:27] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022"                      
-[2] "[2025-04-10 11:29:27] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'"</code></pre>
+<pre><code>[1] "[2025-04-15 18:03:13] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022"                      
+[2] "[2025-04-15 18:03:13] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'"</code></pre>
 </div>
 </div>
 </section>
@@ -623,10 +623,10 @@ Known 'dup_pfw' errors: 1
 Other (unknown) errors: 1 
 
 Known issues:
-- [2025-04-10 11:29:27] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022
+- [2025-04-15 18:03:13] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022
 
 Unknown issues:
-- [2025-04-10 11:29:27] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'</code></pre>
+- [2025-04-15 18:03:13] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'</code></pre>
 </div>
 </div>
 <p>This small addition turns your log from a flat text dump into a searchable, inspectable tool — one that could be expanded later to generate HTML reports, markdown diagnostics, or summaries across datasets.</p>
@@ -749,12 +749,12 @@ Known 'dup_pfw' errors: 2
 Other (unknown) errors: 2 
 
 Known issues:
-- [2025-04-10 11:29:27] [dup_pfw] Found 1 duplicated row. | IDs: A2020
-- [2025-04-10 11:29:28] [dup_pfw] Found 1 duplicated row. | IDs: A2020
+- [2025-04-15 18:03:13] [dup_pfw] Found 1 duplicated row. | IDs: A2020
+- [2025-04-15 18:03:14] [dup_pfw] Found 1 duplicated row. | IDs: A2020
 
 Unknown issues:
-- [2025-04-10 11:29:28] [simpleError] Duplicate data found and skip_err = FALSE. See log.
-- [2025-04-10 11:29:28] [simpleError] argument specifying columns received non-existing column(s): cols[1]='bad_column'</code></pre>
+- [2025-04-15 18:03:14] [simpleError] Duplicate data found and skip_err = FALSE. See log.
+- [2025-04-15 18:03:14] [simpleError] argument specifying columns received non-existing column(s): cols[1]='bad_column'</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Or use  `readLines(logfile)` </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -864,7 +864,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
+      var filterRegex = new RegExp("https:\/\/GPID-WB\.github\.io\/PIP-Bloggers\/");
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
