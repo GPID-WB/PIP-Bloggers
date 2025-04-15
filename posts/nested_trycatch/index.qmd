@@ -15,7 +15,7 @@ execute:
 
 ## Introduction
 
-In our previous posts \[link here\], we learned how to use `tryCatch()`, so I highly recommend your master it first, before reading this one.
+In our [previous post](../Excp_Hndl/index.qmd), we learned how to use `tryCatch()`, so I highly recommend your master it first, before reading this one.
 
 Functional programming in R often leads us to use `lapply()` or `purrr::map()` to process many elements safely. To make our code robust, we usually wrap our functions in `tryCatch()` to handle errors gracefully.
 
@@ -272,13 +272,19 @@ Notice we’re using `parent = e`, which preserves the original error and its me
 #| label: log-failure
 log_failure <- function(e) {
   cli::cli_alert_danger("Something went wrong in {.strong foo()}")
-  cli::cli_alert("Original error: {conditionMessage(e)}")
+  cli::cli_alert("Original error: {rlang::cnd_message(e, inherit = FALSE)}")
+
+  curr <- e
   
-  if (inherits(e, "baz_error")) {
-    cli::cli_alert("Failure originated in step {.strong {e$foo_step}} with input {.code {e$input_value}}")
+  while (!is.null(curr)) {
+    if (rlang::cnd_inherits(curr, "baz_error")) {
+      cli::cli_alert("Failure originated in step {.strong {curr$parent$foo_step}} with input {.code {curr$parent$input_value}}")
+      break
+    }
+    curr <- curr$parent
   }
   
-  NULL
+  invisible(NULL)
 }
 
 inputs <- list(1, 2, 3)
@@ -290,6 +296,8 @@ results <- lapply(inputs, function(x) {
   )
 })
 ```
+
+Also, notice that we use a while loop to identify if the `baz_error` was part of the nested structure of errors and we use its metadata with `parent$foo_step` and `parent$input_value` to generate the last alert.
 
 Now we have:
 
