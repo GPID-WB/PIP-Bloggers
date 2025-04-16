@@ -6,8 +6,12 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="R.Andres Castaneda">
+<meta name="author" content="Zander Prinsloo">
+<meta name="dcterms.date" content="2025-04-17">
+<meta name="description" content="Understand the core structure of environments in R, the difference between frames and environments, and how functions capture and navigate them.">
 
-<title>Welcome to PIP-Bloggers – PIP-Bloggers</title>
+<title>R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack – PIP-Bloggers</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,27 +24,59 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-listing/list.min.js"></script>
-<script src="site_libs/quarto-listing/quarto-listing.js"></script>
-<script src="site_libs/quarto-html/quarto.js"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-e84ec1af5c18c64b3922cec9fafcf8c8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-e84ec1af5c18c64b3922cec9fafcf8c8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -68,67 +104,9 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
-<script>
 
-  window.document.addEventListener("DOMContentLoaded", function (_event) {
-    const listingTargetEl = window.document.querySelector('#listing-listing .list');
-    if (!listingTargetEl) {
-      // No listing discovered, do not attach.
-      return; 
-    }
 
-    const options = {
-      valueNames: ['listing-date','listing-title','listing-author','listing-image','listing-description','listing-categories',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
-      
-      searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description","listing-categories"],
-    };
-
-    window['quarto-listings'] = window['quarto-listings'] || {};
-    window['quarto-listings']['listing-listing'] = new List('listing-listing', options);
-
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  });
-
-  window.addEventListener('hashchange',() => {
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  })
-  </script>
-
-  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
-
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="../../styles.css">
 </head>
 
 <body class="nav-fixed">
@@ -138,7 +116,7 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">PIP-Bloggers</span>
     </a>
   </div>
@@ -149,11 +127,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="../../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
+    <a class="nav-link" href="../../about.html"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -166,21 +144,64 @@ window.Quarto = {
 <!-- content -->
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
-    <div class="quarto-title column-page-left">
-      <h1 class="title">Welcome to PIP-Bloggers</h1>
-                      </div>
+    <div class="quarto-title column-body">
+      <h1 class="title">R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack</h1>
+                  <div>
+        <div class="description">
+          Understand the core structure of environments in R, the difference between frames and environments, and how functions capture and navigate them.
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">R</div>
+                <div class="quarto-category">Environments</div>
+                <div class="quarto-category">Metaprogramming</div>
+              </div>
+                  </div>
   </div>
     
-  
-  <div class="quarto-title-meta column-page-left">
+  <div class="quarto-title-meta-author">
+    <div class="quarto-title-meta-heading">Authors</div>
+    <div class="quarto-title-meta-heading">Affiliations</div>
+    
+      <div class="quarto-title-meta-contents">
+      <p class="author">R.Andres Castaneda <a href="mailto:acastanedaa@worldbank.org" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+    </div>
+    <div class="quarto-title-meta-contents">
+          <p class="affiliation">
+              The World Bank
+            </p>
+          <p class="affiliation">
+              DECDG
+            </p>
+        </div>
+      <div class="quarto-title-meta-contents">
+      <p class="author">Zander Prinsloo <a href="mailto:zprinsloo@worldbank.org" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+    </div>
+    <div class="quarto-title-meta-contents">
+          <p class="affiliation">
+              The World Bank
+            </p>
+          <p class="affiliation">
+              DECDG
+            </p>
+        </div>
+    </div>
 
-      
+  <div class="quarto-title-meta">
+
+        
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">April 17, 2025</p>
+      </div>
+    </div>
     
       
     </div>
     
   
-  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
@@ -188,265 +209,66 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#section" id="toc-section" class="nav-link active" data-scroll-target="#section"></a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#what-is-an-environment" id="toc-what-is-an-environment" class="nav-link" data-scroll-target="#what-is-an-environment">1. What Is an Environment?</a></li>
   </ul>
 </nav>
-    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(6)</span></div><div class="category" data-category="QmVzdCUyMHByYWN0aWNlcw==">Best practices <span class="quarto-category-count">(1)</span></div><div class="category" data-category="RGVidWdnaW5n">Debugging <span class="quarto-category-count">(1)</span></div><div class="category" data-category="RW52aXJvbm1lbnRz">Environments <span class="quarto-category-count">(1)</span></div><div class="category" data-category="RXJyb3IlMjBIYW5kbGluZw==">Error Handling <span class="quarto-category-count">(2)</span></div><div class="category" data-category="RnVuY3Rpb25hbCUyMFByb2dyYW1taW5n">Functional Programming <span class="quarto-category-count">(1)</span></div><div class="category" data-category="TWV0YXByb2dyYW1taW5n">Metaprogramming <span class="quarto-category-count">(2)</span></div><div class="category" data-category="Ug==">R <span class="quarto-category-count">(4)</span></div><div class="category" data-category="UiUyMHByb2dyYW1taW5n">R programming <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Um9idXN0JTIwQ29kZQ==">Robust Code <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Y29sbGFwc2U=">collapse <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZGF0YS50YWJsZQ==">data.table <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZHBseXI=">dplyr <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZWZmaWNpZW5jeQ==">efficiency <span class="quarto-category-count">(1)</span></div></div></div>
+    </div>
 <!-- main -->
-<main class="content quarto-banner-title-block column-page-left" id="quarto-document-content">
+<main class="content quarto-banner-title-block" id="quarto-document-content">
 
 
 
 
 
-<section id="section" class="level1">
-<h1></h1>
-
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>Environments in R are often treated as an advanced topic, but they’re at the very heart of how R works. They control how variables are resolved, how functions capture state, how errors propagate, and how packages encapsulate behavior. In this first part of the series, we’ll build a clear conceptual foundation, starting with what environments are, how they relate to function execution, and how they interact with frames, the call stack, and closures.</p>
+</section>
+<section id="what-is-an-environment" class="level2">
+<h2 class="anchored" data-anchor-id="what-is-an-environment">1. What Is an Environment?</h2>
+<p>An environment in R is a key-value store with a parent link. It maps names to objects and determines how R resolves symbols during evaluation.</p>
+<p>Key features:</p>
+<ul>
+<li>It’s a <strong>bag of variables</strong>, like a list, but with identity and a parent link.</li>
+<li>It supports <strong>lexical scoping</strong>: when R looks for a variable, it searches the current environment, then its parent, and so on.</li>
+<li>It’s used by functions, packages, and the global workspace.</li>
+</ul>
+<p>Every R session contains a hierarchy of environments, forming a directed tree:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> <span class="fu">new.env</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>a <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>b <span class="ot">&lt;-</span> <span class="st">"hello"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>c <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="dv">2</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">parent.env</span>(e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;environment: R_GlobalEnv&gt;</code></pre>
+</div>
+</div>
+<p>Each environment:</p>
+<ul>
+<li>Has <strong>bindings</strong> (e.g., <code>a</code>, <code>b</code>, <code>c</code>)</li>
+<li>Points to a <strong>parent</strong> environment</li>
+<li>Doesn’t inherit values — it only defers lookup to its parent if a name is not found</li>
+</ul>
+<p>You can visualize the structure of any environment using:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_print</span>(e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;environment: 0x0000028d588112d8&gt;
+Parent: &lt;environment: global&gt;
+Bindings:
+• a: &lt;dbl&gt;
+• b: &lt;chr&gt;
+• c: &lt;named list&gt;</code></pre>
+</div>
+</div>
 
 
 </section>
 
-<div class="quarto-listing quarto-listing-container-default" id="listing-listing">
-<div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="UiUyQ0Vudmlyb25tZW50cyUyQ01ldGFwcm9ncmFtbWluZw==" data-listing-date-sort="1744862400000" data-listing-file-modified-sort="1744822669936" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="2" data-listing-word-count-sort="210">
-<div class="thumbnail">
-<p><a href="./posts/env_foundation/index.html" class="no-external"></a></p><a href="./posts/env_foundation/index.html" class="no-external">
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-</a><p><a href="./posts/env_foundation/index.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/env_foundation/index.html" class="no-external">R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack</a>
-</h3>
-<div class="listing-subtitle">
-<a href="./posts/env_foundation/index.html" class="no-external"></a>
-</div>
-<div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">
-R
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('RW52aXJvbm1lbnRz'); return false;">
-Environments
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('TWV0YXByb2dyYW1taW5n'); return false;">
-Metaprogramming
-</div>
-</div>
-<div class="listing-description">
-<a href="./posts/env_foundation/index.html" class="no-external">Understand the core structure of environments in R, the difference between frames and environments, and how functions capture and navigate them.</a>
-</div>
-</div>
-<div class="metadata">
-<a href="./posts/env_foundation/index.html" class="no-external">
-<div class="listing-date">
-Apr 17, 2025
-</div>
-<div class="listing-author">
-R.Andres Castaneda, Zander Prinsloo
-</div>
-</a>
-</div>
-</div>
-<div class="quarto-post image-right" data-index="1" data-categories="UiUyQ0Vycm9yJTIwSGFuZGxpbmclMkNGdW5jdGlvbmFsJTIwUHJvZ3JhbW1pbmc=" data-listing-date-sort="1744344000000" data-listing-file-modified-sort="1744822099527" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="13" data-listing-word-count-sort="2479">
-<div class="thumbnail">
-<p><a href="./posts/nested_trycatch/index.html" class="no-external"></a></p><a href="./posts/nested_trycatch/index.html" class="no-external">
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-</a><p><a href="./posts/nested_trycatch/index.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/nested_trycatch/index.html" class="no-external">Catching Errors Inside lapply(): Nested tryCatch and Clean Error Reporting in R</a>
-</h3>
-<div class="listing-subtitle">
-<a href="./posts/nested_trycatch/index.html" class="no-external"></a>
-</div>
-<div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">
-R
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('RXJyb3IlMjBIYW5kbGluZw=='); return false;">
-Error Handling
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('RnVuY3Rpb25hbCUyMFByb2dyYW1taW5n'); return false;">
-Functional Programming
-</div>
-</div>
-<div class="listing-description">
-<a href="./posts/nested_trycatch/index.html" class="no-external">Learn how to trace, classify, and report nested errors inside functional pipelines using tryCatch(), rlang, and cli.</a>
-</div>
-</div>
-<div class="metadata">
-<a href="./posts/nested_trycatch/index.html" class="no-external">
-<div class="listing-date">
-Apr 11, 2025
-</div>
-<div class="listing-author">
-R. Andres Castañeda
-</div>
-</a>
-</div>
-</div>
-<div class="quarto-post image-right" data-index="2" data-categories="UiUyQ01ldGFwcm9ncmFtbWluZyUyQ0RlYnVnZ2luZw==" data-listing-date-sort="1744084800000" data-listing-file-modified-sort="1744822019330" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="9" data-listing-word-count-sort="1618">
-<div class="thumbnail">
-<p><a href="./posts/SysCall/index.html" class="no-external"></a></p><a href="./posts/SysCall/index.html" class="no-external">
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-</a><p><a href="./posts/SysCall/index.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/SysCall/index.html" class="no-external">Understanding R’s Call Stack: <code>sys.call()</code> and Friends</a>
-</h3>
-<div class="listing-subtitle">
-<a href="./posts/SysCall/index.html" class="no-external"></a>
-</div>
-<div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">
-R
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('TWV0YXByb2dyYW1taW5n'); return false;">
-Metaprogramming
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('RGVidWdnaW5n'); return false;">
-Debugging
-</div>
-</div>
-<div class="listing-description">
-<a href="./posts/SysCall/index.html" class="no-external">Understanding call stack introspection in R</a>
-</div>
-</div>
-<div class="metadata">
-<a href="./posts/SysCall/index.html" class="no-external">
-<div class="listing-date">
-Apr 8, 2025
-</div>
-<div class="listing-author">
-R.Andres Castaneda
-</div>
-</a>
-</div>
-</div>
-<div class="quarto-post image-right" data-index="3" data-categories="UiUyMHByb2dyYW1taW5nJTJDQmVzdCUyMHByYWN0aWNlcw==" data-listing-date-sort="1742875200000" data-listing-file-modified-sort="1744667054096" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="3" data-listing-word-count-sort="455">
-<div class="thumbnail">
-<p><a href="./posts/Check_args/index.html" class="no-external"></a></p><a href="./posts/Check_args/index.html" class="no-external">
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-</a><p><a href="./posts/Check_args/index.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/Check_args/index.html" class="no-external">How to Create Robust Argument Checking in R Functions</a>
-</h3>
-<div class="listing-subtitle">
-<a href="./posts/Check_args/index.html" class="no-external"></a>
-</div>
-<div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('UiUyMHByb2dyYW1taW5n'); return false;">
-R programming
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('QmVzdCUyMHByYWN0aWNlcw=='); return false;">
-Best practices
-</div>
-</div>
-<div class="listing-description">
-<a href="./posts/Check_args/index.html" class="no-external">Create a function that checks the arguments of another function</a>
-</div>
-</div>
-<div class="metadata">
-<a href="./posts/Check_args/index.html" class="no-external">
-<div class="listing-date">
-Mar 25, 2025
-</div>
-<div class="listing-author">
-R.Andres Castaneda
-</div>
-</a>
-</div>
-</div>
-<div class="quarto-post image-right" data-index="4" data-categories="Y29sbGFwc2UlMkNkYXRhLnRhYmxlJTJDZHBseXIlMkNlZmZpY2llbmN5" data-listing-date-sort="1741838400000" data-listing-file-modified-sort="1744667054118" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="20" data-listing-word-count-sort="3857">
-<div class="thumbnail">
-<p><a href="./posts/collapse_cheat_sheet/index.html" class="no-external"></a></p><a href="./posts/collapse_cheat_sheet/index.html" class="no-external">
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-</a><p><a href="./posts/collapse_cheat_sheet/index.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/collapse_cheat_sheet/index.html" class="no-external">Collapse Cheat sheet</a>
-</h3>
-<div class="listing-subtitle">
-<a href="./posts/collapse_cheat_sheet/index.html" class="no-external"></a>
-</div>
-<div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('Y29sbGFwc2U='); return false;">
-collapse
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('ZGF0YS50YWJsZQ=='); return false;">
-data.table
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('ZHBseXI='); return false;">
-dplyr
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('ZWZmaWNpZW5jeQ=='); return false;">
-efficiency
-</div>
-</div>
-<div class="listing-description">
-<a href="./posts/collapse_cheat_sheet/index.html" class="no-external">Syntax translation from dplyr and data.tablen to collapse</a>
-</div>
-</div>
-<div class="metadata">
-<a href="./posts/collapse_cheat_sheet/index.html" class="no-external">
-<div class="listing-date">
-Mar 13, 2025
-</div>
-<div class="listing-author">
-PIP Technical team
-</div>
-</a>
-</div>
-</div>
-<div class="quarto-post image-right" data-index="5" data-categories="UiUyQ0Vycm9yJTIwSGFuZGxpbmclMkNSb2J1c3QlMjBDb2Rl" data-listing-date-sort="1739422800000" data-listing-file-modified-sort="1744667054098" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="13" data-listing-word-count-sort="2443">
-<div class="thumbnail">
-<p><a href="./posts/Excp_Hndl/index.html" class="no-external"></a></p><a href="./posts/Excp_Hndl/index.html" class="no-external">
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-</a><p><a href="./posts/Excp_Hndl/index.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/Excp_Hndl/index.html" class="no-external">Mastering tryCatch() in R: From Basics to Structured Logging</a>
-</h3>
-<div class="listing-subtitle">
-<a href="./posts/Excp_Hndl/index.html" class="no-external"></a>
-</div>
-<div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('Ug=='); return false;">
-R
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('RXJyb3IlMjBIYW5kbGluZw=='); return false;">
-Error Handling
-</div>
-<div class="listing-category" onclick="window.quartoListingCategory('Um9idXN0JTIwQ29kZQ=='); return false;">
-Robust Code
-</div>
-</div>
-<div class="listing-description">
-<a href="./posts/Excp_Hndl/index.html" class="no-external">Learn how to use tryCatch() in R to handle errors and warnings, recover from failures, and build structured logging systems.</a>
-</div>
-</div>
-<div class="metadata">
-<a href="./posts/Excp_Hndl/index.html" class="no-external">
-<div class="listing-date">
-Feb 13, 2025
-</div>
-<div class="listing-author">
-Diana C. Garcia
-</div>
-</a>
-</div>
-</div>
-</div>
-<div class="listing-no-matching d-none">
-No matching items
-</div>
-</div></main> <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {

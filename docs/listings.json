@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/env_foundation/index.html",
       "/posts/nested_trycatch/index.html",
       "/posts/SysCall/index.html",
       "/posts/Check_args/index.html",

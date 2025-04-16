@@ -130,8 +130,6 @@ foo <- function(x) {
 foo()
 ```
 
-
-
 ## Use case: Identifying the Calling Function (for Errors and Logs)
 
 Knowing the name of the function that called you can be genuinely useful — especially for writing **descriptive error messages**, **debugging tools**, or **custom logging systems**.
@@ -162,7 +160,6 @@ foo <- function(x) {
 foo()
 ```
 
-
 This becomes very powerful when writing **frameworks**, **internal utilities**, or **packages** where you want reusable components to report **context-aware** messages.
 
 You can even take it further and include the **full call expression** of the parent:
@@ -189,11 +186,11 @@ bar()
 
 This pattern is especially helpful when writing functions that will be used by other developers or in larger pipelines, where it’s not always obvious where something failed.
 
-::: {.callout-tip}
+::: callout-tip
 ## Tip
+
 Use `sys.call(sys.parent())` when you want to report errors *as if they came from the caller*, not the helper.
 :::
-
 
 Now that we’ve explored **who** called a function and **how**, let’s go one step deeper — and ask: *what is this function we’re inside of?*
 
