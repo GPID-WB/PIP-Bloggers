@@ -209,6 +209,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#special-environments" id="toc-special-environments" class="nav-link" data-scroll-target="#special-environments">Special Environments</a></li>
   </ul></li>
   <li><a href="#environments-vs-lists" id="toc-environments-vs-lists" class="nav-link" data-scroll-target="#environments-vs-lists">2. Environments vs Lists</a></li>
+  <li><a href="#zander-please-complete" id="toc-zander-please-complete" class="nav-link" data-scroll-target="#zander-please-complete">Zander, please complete</a></li>
+  <li><a href="#how-r-looks-up-names-lexical-scoping" id="toc-how-r-looks-up-names-lexical-scoping" class="nav-link" data-scroll-target="#how-r-looks-up-names-lexical-scoping">3. How R Looks Up Names: Lexical Scoping</a></li>
+  <li><a href="#every-function-has-an-enclosing-environment" id="toc-every-function-has-an-enclosing-environment" class="nav-link" data-scroll-target="#every-function-has-an-enclosing-environment">4. Every Function Has an Enclosing Environment</a>
+  <ul class="collapse">
+  <li><a href="#example-capturing-with-closures" id="toc-example-capturing-with-closures" class="nav-link" data-scroll-target="#example-capturing-with-closures">Example: Capturing with Closures</a></li>
+  </ul></li>
+  <li><a href="#evaluation-frames-and-call-stack" id="toc-evaluation-frames-and-call-stack" class="nav-link" data-scroll-target="#evaluation-frames-and-call-stack">5. Evaluation Frames and Call Stack</a>
+  <ul class="collapse">
+  <li><a href="#inspecting-the-call-stack" id="toc-inspecting-the-call-stack" class="nav-link" data-scroll-target="#inspecting-the-call-stack">Inspecting the call stack</a></li>
+  <li><a href="#whats-the-difference" id="toc-whats-the-difference" class="nav-link" data-scroll-target="#whats-the-difference">What’s the difference?</a></li>
+  </ul></li>
+  <li><a href="#debugging-and-tracing-the-stack" id="toc-debugging-and-tracing-the-stack" class="nav-link" data-scroll-target="#debugging-and-tracing-the-stack">6. Debugging and Tracing the Stack</a></li>
+  <li><a href="#summary-and-whats-next" id="toc-summary-and-whats-next" class="nav-link" data-scroll-target="#summary-and-whats-next">7. Summary and What’s Next</a></li>
   </ul>
 </nav>
     </div>
@@ -239,7 +252,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="st">"text"</span>, <span class="at">c =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_print</span>(env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;environment: 0x000001d6ab7af348&gt;
+<pre><code>&lt;environment: 0x000001f937a26318&gt;
 Parent: &lt;environment: global&gt;
 Bindings:
 • a: &lt;dbl&gt;
@@ -273,7 +286,7 @@ Bindings:
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_print</span>(env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;environment: 0x000001d6acb81698&gt;
+<pre><code>&lt;environment: 0x000001f938c1c350&gt;
 Parent: &lt;environment: global&gt;
 Bindings:
 • x: &lt;dbl&gt;</code></pre>
@@ -323,6 +336,124 @@ Bindings:
 </tr>
 </tbody>
 </table>
+</section>
+<section id="zander-please-complete" class="level1 {callout-note}">
+<h1>Zander, please complete</h1>
+</section>
+<section id="how-r-looks-up-names-lexical-scoping" class="level2">
+<h2 class="anchored" data-anchor-id="how-r-looks-up-names-lexical-scoping">3. How R Looks Up Names: Lexical Scoping</h2>
+<p>When you reference a variable, R starts the search in the <strong>current environment</strong>, and moves up the parent chain until it finds it — or errors if it hits the empty environment.</p>
+<p>Let’s simulate this:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>e1 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">a =</span> <span class="dv">1</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>e2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">b =</span> <span class="dv">2</span>, <span class="at">.parent =</span> e1)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e2, <span class="st">"a"</span>)  <span class="co"># found in parent (e1)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>You can think of the environment chain as a <strong>linked list of name spaces</strong> used for variable resolution.</p>
+</section>
+<section id="every-function-has-an-enclosing-environment" class="level2">
+<h2 class="anchored" data-anchor-id="every-function-has-an-enclosing-environment">4. Every Function Has an Enclosing Environment</h2>
+<p>Functions in R are <strong>closures</strong>: they carry not only code but also the environment in which they were created.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>f <span class="ot">&lt;-</span> <span class="cf">function</span>(x) x <span class="sc">+</span> a</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">environment</span>(f) <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">a =</span> <span class="dv">10</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">f</span>(<span class="dv">2</span>)  <span class="co"># returns 12</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This works even though <code>a</code> is not in the global environment — it’s in the function’s <strong>enclosing environment</strong>.</p>
+<p>You can inspect it:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">fn_env</span>(f)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="example-capturing-with-closures" class="level3">
+<h3 class="anchored" data-anchor-id="example-capturing-with-closures">Example: Capturing with Closures</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>make_counter <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  count <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>() {</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    count</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>counter <span class="ot">&lt;-</span> <span class="fu">make_counter</span>()</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="fu">counter</span>()  <span class="co"># 1</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="fu">counter</span>()  <span class="co"># 2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The function returned by <code>make_counter()</code> <strong>remembers</strong> the <code>count</code> variable even though <code>make_counter()</code> is no longer running — because the returned function’s environment still holds it.</p>
+</section>
+</section>
+<section id="evaluation-frames-and-call-stack" class="level2">
+<h2 class="anchored" data-anchor-id="evaluation-frames-and-call-stack">5. Evaluation Frames and Call Stack</h2>
+<p>While environments are static and linked at function creation, <strong>frames</strong> are dynamic and created at function call time. Every function call creates a new <strong>frame</strong> (an evaluation environment).</p>
+<section id="inspecting-the-call-stack" class="level3">
+<h3 class="anchored" data-anchor-id="inspecting-the-call-stack">Inspecting the call stack</h3>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>baz <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  rlang<span class="sc">::</span><span class="fu">caller_env</span>(<span class="dv">1</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>bar <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">baz</span>()</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>foo <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bar</span>()</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="fu">foo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>rlang::caller_env(1)</code> returns the environment <strong>one level up</strong> from the current function — i.e., <code>bar()</code>’s frame when called inside <code>baz()</code>.</p>
+</section>
+<section id="whats-the-difference" class="level3">
+<h3 class="anchored" data-anchor-id="whats-the-difference">What’s the difference?</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Concept</th>
+<th>Enclosing Env (<code>fn_env</code>)</th>
+<th>Frame (<code>caller_env</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Created</td>
+<td>When function is defined</td>
+<td>When function is called</td>
+</tr>
+<tr class="even">
+<td>Static</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>Used for scoping</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>Example</td>
+<td>Closure variables</td>
+<td>Stack inspection</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="debugging-and-tracing-the-stack" class="level2">
+<h2 class="anchored" data-anchor-id="debugging-and-tracing-the-stack">6. Debugging and Tracing the Stack</h2>
+<p>We can inspect function calls, frames, and environments together:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>inspect <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Current call: "</span>, rlang<span class="sc">::</span><span class="fu">call_name</span>(rlang<span class="sc">::</span><span class="fu">caller_call</span>()), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Caller environment: "</span>, rlang<span class="sc">::</span><span class="fu">env_label</span>(rlang<span class="sc">::</span><span class="fu">caller_env</span>()), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>a <span class="ot">&lt;-</span> <span class="cf">function</span>() <span class="fu">inspect</span>()</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>b <span class="ot">&lt;-</span> <span class="cf">function</span>() <span class="fu">a</span>()</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="fu">b</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This tells us what function called <code>inspect()</code> and what environment it’s running in.</p>
+</section>
+<section id="summary-and-whats-next" class="level2">
+<h2 class="anchored" data-anchor-id="summary-and-whats-next">7. Summary and What’s Next</h2>
+<p>In this post we learned:</p>
+<ul>
+<li>What environments are and how they differ from lists</li>
+<li>How the environment chain governs name lookup (lexical scoping)</li>
+<li>That functions carry their own enclosing environment (<code>fn_env</code>)</li>
+<li>That function calls create temporary evaluation <strong>frames</strong></li>
+<li>How to use <code>rlang::caller_env()</code>, <code>caller_call()</code>, and <code>env_label()</code> to inspect the call stack</li>
+</ul>
+<p>In the next post, we’ll dive deeper into <strong>controlled evaluation</strong>, <code>eval()</code>, and <strong>tidy evaluation</strong>. We’ll learn how to dynamically evaluate expressions in different environments, how quosures work, and how packages like <code>dplyr</code> and <code>ggplot2</code> leverage these tools for flexible, safe metaprogramming.</p>
 
 
 </section>

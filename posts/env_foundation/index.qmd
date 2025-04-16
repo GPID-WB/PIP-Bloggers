@@ -92,3 +92,22 @@ Main differences:
 | Iterable like a list| Not directly        | Yes            |
 
 
+:::{callout-note}
+# Zander, please complete
+:::
+
+## 3. How R Looks Up Names: Lexical Scoping
+
+When you reference a variable, R starts the search in the **current environment**, and moves up the parent chain until it finds it — or errors if it hits the empty environment.
+
+Let’s simulate this:
+
+```{r}
+e1 <- rlang::env(a = 1)
+e2 <- rlang::env(b = 2, .parent = e1)
+
+rlang::env_get(e2, "a")  # found in parent (e1)
+```
+
+You can think of the environment chain as a **linked list of name spaces** used for variable resolution.
+
