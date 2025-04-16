@@ -178,12 +178,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <p class="author">Zander Prinsloo <a href="mailto:zprinsloo@worldbank.org" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
     </div>
     <div class="quarto-title-meta-contents">
-          <p class="affiliation">
-              The World Bank
-            </p>
-          <p class="affiliation">
-              DECDG
-            </p>
         </div>
     </div>
 
@@ -209,8 +203,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
-  <li><a href="#what-is-an-environment" id="toc-what-is-an-environment" class="nav-link" data-scroll-target="#what-is-an-environment">1. What Is an Environment?</a></li>
+  <li><a href="#intro" id="toc-intro" class="nav-link active" data-scroll-target="#intro">Intro</a></li>
+  <li><a href="#what-is-an-environment" id="toc-what-is-an-environment" class="nav-link" data-scroll-target="#what-is-an-environment">1. What Is an Environment?</a>
+  <ul class="collapse">
+  <li><a href="#special-environments" id="toc-special-environments" class="nav-link" data-scroll-target="#special-environments">Special Environments</a></li>
+  </ul></li>
+  <li><a href="#environments-vs-lists" id="toc-environments-vs-lists" class="nav-link" data-scroll-target="#environments-vs-lists">2. Environments vs Lists</a></li>
   </ul>
 </nav>
     </div>
@@ -221,49 +219,110 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<section id="introduction" class="level2">
-<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
-<p>Environments in R are often treated as an advanced topic, but they’re at the very heart of how R works. They control how variables are resolved, how functions capture state, how errors propagate, and how packages encapsulate behavior. In this first part of the series, we’ll build a clear conceptual foundation, starting with what environments are, how they relate to function execution, and how they interact with frames, the call stack, and closures.</p>
+<section id="intro" class="level2">
+<h2 class="anchored" data-anchor-id="intro">Intro</h2>
+<p>Understanding how environments work in R is essential for writing robust, transparent, and modular code — especially if you’re building functions, debugging pipelines, or using tidy evaluation.</p>
+<p>In this post — the first in a three-part series — we go from <strong>basic concepts</strong> of environments and scoping to more advanced ideas like <strong>frames</strong>, <strong>call stacks</strong>, and how environments interact with function evaluation.</p>
+<p>We’ll introduce the <code>{rlang}</code> package early on and use it as our main toolkit, referring to base R only when necessary. All <code>rlang</code> calls are explicitly prefixed (e.g., <code>rlang::env_parent()</code>) to make their source clear.</p>
 </section>
 <section id="what-is-an-environment" class="level2">
 <h2 class="anchored" data-anchor-id="what-is-an-environment">1. What Is an Environment?</h2>
-<p>An environment in R is a key-value store with a parent link. It maps names to objects and determines how R resolves symbols during evaluation.</p>
-<p>Key features:</p>
+<p>An environment is a special kind of object in R that:</p>
 <ul>
-<li>It’s a <strong>bag of variables</strong>, like a list, but with identity and a parent link.</li>
-<li>It supports <strong>lexical scoping</strong>: when R looks for a variable, it searches the current environment, then its parent, and so on.</li>
-<li>It’s used by functions, packages, and the global workspace.</li>
+<li>Maps <strong>names</strong> to <strong>values</strong>,</li>
+<li>Has a <strong>parent</strong> (except for the empty environment),</li>
+<li>And is used to <strong>look up variables</strong> during evaluation.</li>
 </ul>
-<p>Every R session contains a hierarchy of environments, forming a directed tree:</p>
+<p>It’s a key part of R’s <strong>lexical scoping</strong> system.</p>
+<p>Let’s see it:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> <span class="fu">new.env</span>()</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>a <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>b <span class="ot">&lt;-</span> <span class="st">"hello"</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>c <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="dv">2</span>)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">parent.env</span>(e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="st">"text"</span>, <span class="at">c =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_print</span>(env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>&lt;environment: R_GlobalEnv&gt;</code></pre>
-</div>
-</div>
-<p>Each environment:</p>
-<ul>
-<li>Has <strong>bindings</strong> (e.g., <code>a</code>, <code>b</code>, <code>c</code>)</li>
-<li>Points to a <strong>parent</strong> environment</li>
-<li>Doesn’t inherit values — it only defers lookup to its parent if a name is not found</li>
-</ul>
-<p>You can visualize the structure of any environment using:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_print</span>(e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>&lt;environment: 0x0000028d588112d8&gt;
+<pre><code>&lt;environment: 0x000001d6ab7af348&gt;
 Parent: &lt;environment: global&gt;
 Bindings:
 • a: &lt;dbl&gt;
 • b: &lt;chr&gt;
-• c: &lt;named list&gt;</code></pre>
+• c: &lt;lgl&gt;</code></pre>
 </div>
 </div>
+<p>This creates a new environment with three bindings (<code>a</code>, <code>b</code>, <code>c</code>) and shows its structure. Every environment points to a <strong>parent environment</strong>, forming a <strong>chain</strong>.</p>
+<section id="special-environments" class="level3">
+<h3 class="anchored" data-anchor-id="special-environments">Special Environments</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">global_env</span>()   <span class="co"># Your top-level workspace</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">base_env</span>()     <span class="co"># The environment of base R functions</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">empty_env</span>()    <span class="co"># The bottom of the chain (no parent)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>You can traverse this chain using <code>rlang::env_parent()</code> and <code>rlang::env_parents()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_parents</span>(env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]] $ &lt;env: global&gt;</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="environments-vs-lists" class="level2">
+<h2 class="anchored" data-anchor-id="environments-vs-lists">2. Environments vs Lists</h2>
+<p>Environments are <strong>not</strong> lists, although they look similar, even though the return objects in a very similar way.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>lst <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="dv">1</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">1</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_print</span>(env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;environment: 0x000001d6acb81698&gt;
+Parent: &lt;environment: global&gt;
+Bindings:
+• x: &lt;dbl&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>lst<span class="sc">$</span>x</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(lst)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "list"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "environment"</code></pre>
+</div>
+</div>
+<p>Main differences:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Feature</th>
+<th>Environment</th>
+<th>List</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Mutable</td>
+<td>Yes (by reference)</td>
+<td>No (copied)</td>
+</tr>
+<tr class="even">
+<td>Has parent</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>Used for scoping</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="even">
+<td>Iterable like a list</td>
+<td>Not directly</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
 
 
 </section>

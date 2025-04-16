@@ -319,7 +319,7 @@
     "href": "posts/env_foundation/index.html",
     "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
     "section": "",
-    "text": "Environments in R are often treated as an advanced topic, but they’re at the very heart of how R works. They control how variables are resolved, how functions capture state, how errors propagate, and how packages encapsulate behavior. In this first part of the series, we’ll build a clear conceptual foundation, starting with what environments are, how they relate to function execution, and how they interact with frames, the call stack, and closures."
+    "text": "Understanding how environments work in R is essential for writing robust, transparent, and modular code — especially if you’re building functions, debugging pipelines, or using tidy evaluation.\nIn this post — the first in a three-part series — we go from basic concepts of environments and scoping to more advanced ideas like frames, call stacks, and how environments interact with function evaluation.\nWe’ll introduce the {rlang} package early on and use it as our main toolkit, referring to base R only when necessary. All rlang calls are explicitly prefixed (e.g., rlang::env_parent()) to make their source clear."
   },
   {
     "objectID": "posts/env_foundation/index.html#introduction",
@@ -333,6 +333,55 @@
     "href": "posts/env_foundation/index.html#what-is-an-environment",
     "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
     "section": "1. What Is an Environment?",
-    "text": "1. What Is an Environment?\nAn environment in R is a key-value store with a parent link. It maps names to objects and determines how R resolves symbols during evaluation.\nKey features:\n\nIt’s a bag of variables, like a list, but with identity and a parent link.\nIt supports lexical scoping: when R looks for a variable, it searches the current environment, then its parent, and so on.\nIt’s used by functions, packages, and the global workspace.\n\nEvery R session contains a hierarchy of environments, forming a directed tree:\n\ne &lt;- new.env()\ne$a &lt;- 1\ne$b &lt;- \"hello\"\ne$c &lt;- list(a = 1, b = 2)\n\nparent.env(e)\n\n&lt;environment: R_GlobalEnv&gt;\n\n\nEach environment:\n\nHas bindings (e.g., a, b, c)\nPoints to a parent environment\nDoesn’t inherit values — it only defers lookup to its parent if a name is not found\n\nYou can visualize the structure of any environment using:\n\nrlang::env_print(e)\n\n&lt;environment: 0x0000028d588112d8&gt;\nParent: &lt;environment: global&gt;\nBindings:\n• a: &lt;dbl&gt;\n• b: &lt;chr&gt;\n• c: &lt;named list&gt;"
+    "text": "1. What Is an Environment?\nAn environment is a special kind of object in R that:\n\nMaps names to values,\nHas a parent (except for the empty environment),\nAnd is used to look up variables during evaluation.\n\nIt’s a key part of R’s lexical scoping system.\nLet’s see it:\n\nenv &lt;- rlang::env(a = 1, b = \"text\", c = TRUE)\nrlang::env_print(env)\n\n&lt;environment: 0x000001d6ab7af348&gt;\nParent: &lt;environment: global&gt;\nBindings:\n• a: &lt;dbl&gt;\n• b: &lt;chr&gt;\n• c: &lt;lgl&gt;\n\n\nThis creates a new environment with three bindings (a, b, c) and shows its structure. Every environment points to a parent environment, forming a chain.\n\nSpecial Environments\n\nrlang::global_env()   # Your top-level workspace\nrlang::base_env()     # The environment of base R functions\nrlang::empty_env()    # The bottom of the chain (no parent)\n\nYou can traverse this chain using rlang::env_parent() and rlang::env_parents():\n\nrlang::env_parents(env)\n\n[[1]] $ &lt;env: global&gt;"
+  },
+  {
+    "objectID": "posts/env_foundation/index.html#intro",
+    "href": "posts/env_foundation/index.html#intro",
+    "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
+    "section": "",
+    "text": "Understanding how environments work in R is essential for writing robust, transparent, and modular code — especially if you’re building functions, debugging pipelines, or using tidy evaluation.\nIn this post — the first in a three-part series — we go from basic concepts of environments and scoping to more advanced ideas like frames, call stacks, and how environments interact with function evaluation.\nWe’ll introduce the {rlang} package early on and use it as our main toolkit, referring to base R only when necessary. All rlang calls are explicitly prefixed (e.g., rlang::env_parent()) to make their source clear."
+  },
+  {
+    "objectID": "posts/env_foundation/index.html#environments-vs-lists",
+    "href": "posts/env_foundation/index.html#environments-vs-lists",
+    "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
+    "section": "2. Environments vs Lists",
+    "text": "2. Environments vs Lists\nEnvironments are not lists, although they look similar, even though the return objects in a very similar way.\n\nlst &lt;- list(x = 1)\nenv &lt;- rlang::env(x = 1)\n\nrlang::env_print(env)\n\n&lt;environment: 0x000001d6acb81698&gt;\nParent: &lt;environment: global&gt;\nBindings:\n• x: &lt;dbl&gt;\n\nlst$x\n\n[1] 1\n\nclass(lst)\n\n[1] \"list\"\n\nclass(env)\n\n[1] \"environment\"\n\n\nMain differences:\n\n\n\nFeature\nEnvironment\nList\n\n\n\n\nMutable\nYes (by reference)\nNo (copied)\n\n\nHas parent\nYes\nNo\n\n\nUsed for scoping\nYes\nNo\n\n\nIterable like a list\nNot directly\nYes"
+  },
+  {
+    "objectID": "posts/env_foundation/index.html#how-r-looks-up-names-lexical-scoping",
+    "href": "posts/env_foundation/index.html#how-r-looks-up-names-lexical-scoping",
+    "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
+    "section": "3. How R Looks Up Names: Lexical Scoping",
+    "text": "3. How R Looks Up Names: Lexical Scoping\nWhen you reference a variable, R starts the search in the current environment, and moves up the parent chain until it finds it — or errors if it hits the empty environment.\nLet’s simulate this:\ne1 &lt;- rlang::env(a = 1)\ne2 &lt;- rlang::env(b = 2, .parent = e1)\n\nrlang::env_get(e2, \"a\")  # found in parent (e1)\nYou can think of the environment chain as a linked list of name spaces used for variable resolution."
+  },
+  {
+    "objectID": "posts/env_foundation/index.html#every-function-has-an-enclosing-environment",
+    "href": "posts/env_foundation/index.html#every-function-has-an-enclosing-environment",
+    "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
+    "section": "4. Every Function Has an Enclosing Environment",
+    "text": "4. Every Function Has an Enclosing Environment\nFunctions in R are closures: they carry not only code but also the environment in which they were created.\nf &lt;- function(x) x + a\nenvironment(f) &lt;- rlang::env(a = 10)\nf(2)  # returns 12\nThis works even though a is not in the global environment — it’s in the function’s enclosing environment.\nYou can inspect it:\nrlang::fn_env(f)\n\nExample: Capturing with Closures\nmake_counter &lt;- function() {\n  count &lt;- 0\n  function() {\n    count &lt;&lt;- count + 1\n    count\n  }\n}\n\ncounter &lt;- make_counter()\ncounter()  # 1\ncounter()  # 2\nThe function returned by make_counter() remembers the count variable even though make_counter() is no longer running — because the returned function’s environment still holds it."
+  },
+  {
+    "objectID": "posts/env_foundation/index.html#evaluation-frames-and-call-stack",
+    "href": "posts/env_foundation/index.html#evaluation-frames-and-call-stack",
+    "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
+    "section": "5. Evaluation Frames and Call Stack",
+    "text": "5. Evaluation Frames and Call Stack\nWhile environments are static and linked at function creation, frames are dynamic and created at function call time. Every function call creates a new frame (an evaluation environment).\n\nInspecting the call stack\nbaz &lt;- function() {\n  rlang::caller_env(1)\n}\n\nbar &lt;- function() {\n  baz()\n}\n\nfoo &lt;- function() {\n  bar()\n}\n\nfoo()\nrlang::caller_env(1) returns the environment one level up from the current function — i.e., bar()’s frame when called inside baz().\n\n\nWhat’s the difference?\n\n\n\nConcept\nEnclosing Env (fn_env)\nFrame (caller_env)\n\n\n\n\nCreated\nWhen function is defined\nWhen function is called\n\n\nStatic\nYes\nNo\n\n\nUsed for scoping\nYes\nYes\n\n\nExample\nClosure variables\nStack inspection"
+  },
+  {
+    "objectID": "posts/env_foundation/index.html#debugging-and-tracing-the-stack",
+    "href": "posts/env_foundation/index.html#debugging-and-tracing-the-stack",
+    "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
+    "section": "6. Debugging and Tracing the Stack",
+    "text": "6. Debugging and Tracing the Stack\nWe can inspect function calls, frames, and environments together:\ninspect &lt;- function() {\n  cat(\"Current call: \", rlang::call_name(rlang::caller_call()), \"\\n\")\n  cat(\"Caller environment: \", rlang::env_label(rlang::caller_env()), \"\\n\")\n}\n\na &lt;- function() inspect()\nb &lt;- function() a()\nb()\nThis tells us what function called inspect() and what environment it’s running in."
+  },
+  {
+    "objectID": "posts/env_foundation/index.html#summary-and-whats-next",
+    "href": "posts/env_foundation/index.html#summary-and-whats-next",
+    "title": "R Environments Demystified (Part 1): Foundations of Environments and the Evaluation Stack",
+    "section": "7. Summary and What’s Next",
+    "text": "7. Summary and What’s Next\nIn this post we learned:\n\nWhat environments are and how they differ from lists\nHow the environment chain governs name lookup (lexical scoping)\nThat functions carry their own enclosing environment (fn_env)\nThat function calls create temporary evaluation frames\nHow to use rlang::caller_env(), caller_call(), and env_label() to inspect the call stack\n\nIn the next post, we’ll dive deeper into controlled evaluation, eval(), and tidy evaluation. We’ll learn how to dynamically evaluate expressions in different environments, how quosures work, and how packages like dplyr and ggplot2 leverage these tools for flexible, safe metaprogramming."
   }
 ]

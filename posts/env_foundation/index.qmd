@@ -9,9 +9,6 @@ author:
       - DECDG
   - name: Zander Prinsloo
     email: zprinsloo@worldbank.org
-    affiliation: 
-      - The World Bank
-      - DECDG
 date: "2025-04-17"
 categories: [R, Environments, Metaprogramming]
 format:
@@ -23,41 +20,75 @@ execute:
   output: true
 ---
 
-## Introduction
+## Intro
 
-Environments in R are often treated as an advanced topic, but they’re at the very heart of how R works. They control how variables are resolved, how functions capture state, how errors propagate, and how packages encapsulate behavior. In this first part of the series, we’ll build a clear conceptual foundation, starting with what environments are, how they relate to function execution, and how they interact with frames, the call stack, and closures.
+Understanding how environments work in R is essential for writing robust, transparent, and modular code — especially if you’re building functions, debugging pipelines, or using tidy evaluation.
 
+In this post — the first in a three-part series — we go from **basic concepts** of environments and scoping to more advanced ideas like **frames**, **call stacks**, and how environments interact with function evaluation.
+
+We’ll introduce the `{rlang}` package early on and use it as our main toolkit, referring to base R only when necessary. All `rlang` calls are explicitly prefixed (e.g., `rlang::env_parent()`) to make their source clear.
 
 ## 1. What Is an Environment?
 
-An environment in R is a key-value store with a parent link. It maps names to objects and determines how R resolves symbols during evaluation. 
+An environment is a special kind of object in R that:
 
-Key features:
+- Maps **names** to **values**,
+- Has a **parent** (except for the empty environment),
+- And is used to **look up variables** during evaluation.
 
-- It's a **bag of variables**, like a list, but with identity and a parent link.
-- It supports **lexical scoping**: when R looks for a variable, it searches the current environment, then its parent, and so on.
-- It's used by functions, packages, and the global workspace.
+It’s a key part of R’s **lexical scoping** system.
 
-Every R session contains a hierarchy of environments, forming a directed tree:
+Let’s see it:
 
-```{r}
-e <- new.env()
-e$a <- 1
-e$b <- "hello"
-e$c <- list(a = 1, b = 2)
-
-parent.env(e)
+```{R}
+env <- rlang::env(a = 1, b = "text", c = TRUE)
+rlang::env_print(env)
 ```
 
-Each environment:
+This creates a new environment with three bindings (`a`, `b`, `c`) and shows its structure. Every environment points to a **parent environment**, forming a **chain**.
 
-- Has **bindings** (e.g., `a`, `b`, `c`)
-- Points to a **parent** environment
-- Doesn’t inherit values — it only defers lookup to its parent if a name is not found
 
-You can visualize the structure of any environment using:
+
+### Special Environments
+
+```{R}
+#| eval: false
+
+rlang::global_env()   # Your top-level workspace
+rlang::base_env()     # The environment of base R functions
+rlang::empty_env()    # The bottom of the chain (no parent)
+```
+
+You can traverse this chain using `rlang::env_parent()` and `rlang::env_parents()`:
 
 ```{r}
-rlang::env_print(e)
+rlang::env_parents(env)
 ```
+
+
+
+## 2. Environments vs Lists
+
+Environments are **not** lists, although they look similar, even though the return objects in a very similar way.
+
+```{R}
+lst <- list(x = 1)
+env <- rlang::env(x = 1)
+
+rlang::env_print(env)
+lst$x
+
+class(lst)
+class(env)
+```
+
+Main differences:
+
+| Feature             | Environment         | List           |
+|---------------------|---------------------|----------------|
+| Mutable             | Yes (by reference)  | No (copied)    |
+| Has parent          | Yes                 | No             |
+| Used for scoping    | Yes                 | No             |
+| Iterable like a list| Not directly        | Yes            |
+
 
