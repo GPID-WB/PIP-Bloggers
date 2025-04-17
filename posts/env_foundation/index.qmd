@@ -22,32 +22,56 @@ execute:
 
 ## Intro
 
-Understanding how environments work in R is essential for writing robust, transparent, and modular code — especially if you’re building functions, debugging pipelines, or using tidy evaluation.
-
 In this post — the first in a three-part series — we go from **basic concepts** of environments and scoping to more advanced ideas like **frames**, **call stacks**, and how environments interact with function evaluation.
 
 We’ll introduce the `{rlang}` package early on and use it as our main toolkit, referring to base R only when necessary. All `rlang` calls are explicitly prefixed (e.g., `rlang::env_parent()`) to make their source clear.
 
 ## 1. What Is an Environment?
 
-An environment is a special kind of object in R that:
+Environments are one of the most fundamental and misunderstood structures in R. Everything that happens in R — from evaluating a simple expression to calling a function — happens **in an environment**. Understanding them is essential for grasping how R evaluates code, tracks variables, and structures memory.
 
-- Maps **names** to **values**,
-- Has a **parent** (except for the empty environment),
-- And is used to **look up variables** during evaluation.
+An environment is a special kind of object in R that acts like a **named container** — a collection of variable bindings — with a very important twist: each environment has a **parent**.
 
-It’s a key part of R’s **lexical scoping** system.
+You can think of an environment as:
 
-Let’s see it:
+-   A set of name-value pairs (like a dictionary),
+-   With a reference to another environment (its parent),
+-   Forming a **chain** of environments that R uses to look up names.
+
+At a high level, environments answer the question:\
+\> “When I type a name, where should R look to find its value?”
+
+### Creating Environments
+
+You can create new environments in base R using `new.env()`, but we will primarily use `{rlang}`’s more expressive tools. For instance, `rlang::env()` allows you to bind names at creation:
 
 ```{R}
-env <- rlang::env(a = 1, b = "text", c = TRUE)
-rlang::env_print(env)
+env1 <- rlang::env(x = 1, y = "text", z = TRUE)
+rlang::env_print(env1)
 ```
 
-This creates a new environment with three bindings (`a`, `b`, `c`) and shows its structure. Every environment points to a **parent environment**, forming a **chain**.
+You’ve just created an environment `env1` with three bindings (`x`, `y`, `z`), and its parent is the **global environment** by default.
 
+You can access individual values using `rlang::env_get()`:
 
+```{R}
+rlang::env_get(env1, "x")
+```
+
+You can add or update values:
+
+```{R}
+rlang::env_bind(env1, y = "updated")
+rlang::env_get(env1, "y")
+```
+
+And remove values:
+
+```{R}
+#| error: true
+rlang::env_unbind(env1, "z")
+rlang::env_get(env1, "z") # <- This gives you an error
+```
 
 ### Special Environments
 
@@ -59,55 +83,73 @@ rlang::base_env()     # The environment of base R functions
 rlang::empty_env()    # The bottom of the chain (no parent)
 ```
 
+### chain of enviromments
+
+Let's crate an environment inside another
+
+```{R}
+# Define env1 as a child of global environment
+env1 <- rlang::env(a = 1)
+
+# Define env2 as a child of env1. According to the manual: You can supply one
+# unnamed argument to specify a custom parent, otherwise it defaults to the
+# current environment
+env2 <- rlang::env(env1, x = "child")
+```
+
 You can traverse this chain using `rlang::env_parent()` and `rlang::env_parents()`:
 
 ```{r}
-rlang::env_parents(env)
+identical(rlang::env_parent(env2), env1)
+identical(rlang::env_parent(env1), rlang::global_env())
+
+# this is FALSE
+identical(rlang::env_parent(rlang::global_env()), rlang::empty_env())
+
+# Notice all the parents of the GlobaL env 
+rlang::env_parents(rlang::global_env())
+
 ```
 
+### Environments Are Not Lists
 
-
-## 2. Environments vs Lists
-
-Environments are **not** lists, although they look similar, even though the return objects in a very similar way.
+While environments and lists can both hold named elements, they are **very different**:
 
 ```{R}
-lst <- list(x = 1)
-env <- rlang::env(x = 1)
-
-rlang::env_print(env)
-lst$x
-
-class(lst)
-class(env)
+my_list <- list(a = 1, b = 2)
+my_env  <- rlang::env(a = 1, b = 2)
 ```
 
-Main differences:
+Key differences:
 
-| Feature             | Environment         | List           |
-|---------------------|---------------------|----------------|
-| Mutable             | Yes (by reference)  | No (copied)    |
-| Has parent          | Yes                 | No             |
-| Used for scoping    | Yes                 | No             |
-| Iterable like a list| Not directly        | Yes            |
-
-
-:::{callout-note}
-# Zander, please complete
+<!-- https://getbootstrap.com/docs/5.3/utilities/colors/ -->
+<!-- https://unhcr-dataviz.github.io/quarto-html-unhcr/ -->
+:::{.border .border-danger}
+[Zander:]{.text-danger} Please add your table with the differences
 :::
 
-## 3. How R Looks Up Names: Lexical Scoping
 
-When you reference a variable, R starts the search in the **current environment**, and moves up the parent chain until it finds it — or errors if it hits the empty environment.
+Try this:
 
-Let’s simulate this:
+```{R}
+my_env$b <- 99
+my_list$b <- 99
 
-```{r}
-e1 <- rlang::env(a = 1)
-e2 <- rlang::env(b = 2, .parent = e1)
-
-rlang::env_get(e2, "a")  # found in parent (e1)
+print(my_env$b)   # Direct reference — no copy
+print(my_list$b)  # Modified copy — not shared
 ```
 
-You can think of the environment chain as a **linked list of name spaces** used for variable resolution.
+This difference matters when we use environments to build persistent memory (as in closures) or pass values between layers of code.
 
+### Why This Matters
+
+Environments aren’t just another container — they’re the **backbone of how R works**:
+
+-   Every function runs in an environment.
+-   Every object name is resolved by walking up an environment chain.
+-   Environments define **lexical scoping**, which controls what variables are visible and from where.
+-   Unlike lists, environments are **never copied on modification**, making them ideal for caching, memoization, and shared mutable state.
+
+In short, if you don’t understand environments, you’ll always be fighting R’s evaluation model.
+
+In the next section, we’ll explore how **environments are connected**, how names are resolved across parents, and how to **walk the environment chain**.
