@@ -8,6 +8,7 @@
 
 <meta name="author" content="R.Andres Castaneda">
 <meta name="dcterms.date" content="2025-04-17">
+<meta name="description" content="Understanding how R treats code as first-class data is essential for anyone working with logging, metaprogramming, or tidy evaluation. In this post, we demystify the core tools of Non-Standard Evaluation: quote(), substitute(), deparse(), and eval(). Through practical examples and careful explanation, you’ll learn how to capture expressions, convert them to strings, evaluate them later, and understand when these tools behave differently — and why it matters.">
 
 <title>What Is Non-Standard Evaluation (NSE) and Why Does It Matter? – PIP-Bloggers</title>
 <style>
@@ -144,7 +145,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
       <h1 class="title">What Is Non-Standard Evaluation (NSE) and Why Does It Matter?</h1>
-                                <div class="quarto-categories">
+                  <div>
+        <div class="description">
+          Understanding how R treats code as first-class data is essential for anyone working with logging, metaprogramming, or tidy evaluation. In this post, we demystify the core tools of Non-Standard Evaluation: quote(), substitute(), deparse(), and eval(). Through practical examples and careful explanation, you’ll learn how to capture expressions, convert them to strings, evaluate them later, and understand when these tools behave differently — and why it matters.
+        </div>
+      </div>
+                          <div class="quarto-categories">
                 <div class="quarto-category">R</div>
                 <div class="quarto-category">NSE</div>
                 <div class="quarto-category">Metaprogramming</div>
@@ -206,10 +212,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#deparse-turning-code-into-strings" id="toc-deparse-turning-code-into-strings" class="nav-link" data-scroll-target="#deparse-turning-code-into-strings"><code>deparse()</code> – Turning Code into Strings</a></li>
   <li><a href="#substitute-capturing-expressions-from-arguments" id="toc-substitute-capturing-expressions-from-arguments" class="nav-link" data-scroll-target="#substitute-capturing-expressions-from-arguments"><code>substitute()</code> – Capturing Expressions from Arguments</a></li>
   <li><a href="#so-whats-the-differen-between-quote-and-substitute" id="toc-so-whats-the-differen-between-quote-and-substitute" class="nav-link" data-scroll-target="#so-whats-the-differen-between-quote-and-substitute">So, What’s the differen between <code>quote()</code> and <code>substitute()</code>?</a></li>
-  <li><a href="#outside-a-function-they-behave-the-same" id="toc-outside-a-function-they-behave-the-same" class="nav-link" data-scroll-target="#outside-a-function-they-behave-the-same">Outside a Function (They Behave the Same)</a></li>
   <li><a href="#putting-it-all-together" id="toc-putting-it-all-together" class="nav-link" data-scroll-target="#putting-it-all-together">Putting It All Together</a></li>
-  </ul></li>
   <li><a href="#why-this-matters" id="toc-why-this-matters" class="nav-link" data-scroll-target="#why-this-matters">Why This Matters</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -465,17 +470,35 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <section id="so-whats-the-differen-between-quote-and-substitute" class="level3">
 <h3 class="anchored" data-anchor-id="so-whats-the-differen-between-quote-and-substitute">So, What’s the differen between <code>quote()</code> and <code>substitute()</code>?</h3>
 <p>Although both <code>quote()</code> and <code>substitute()</code> capture unevaluated expressions, they are <strong>not the same</strong>, and understanding when they diverge is critical for writing correct NSE-aware code.</p>
-<section id="example-inside-a-function" class="level4">
-<h4 class="anchored" data-anchor-id="example-inside-a-function">Example: Inside a Function</h4>
+<section id="outside-a-function-they-behave-the-same" class="level4">
+<h4 class="anchored" data-anchor-id="outside-a-function-they-behave-the-same">Outside a Function (They Behave the Same)</h4>
+<p>At first glance, <code>quote()</code> and <code>substitute()</code> may seem interchangeable — and in some cases, they behave the same. For example, when used <strong>at the top level</strong>, both will return the same unevaluated expression:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>expr_catcher <span class="ot">&lt;-</span> <span class="cf">function</span>(arg) {</span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"substitute(arg):"</span>, <span class="fu">deparse</span>(<span class="fu">substitute</span>(arg)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"quote(arg):     "</span>, <span class="fu">deparse</span>(<span class="fu">quote</span>(arg)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x + 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">substitute</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x + 1</code></pre>
+</div>
+</div>
+<ul>
+<li>Using <code>quote()</code> inside a function will <strong>not</strong> show what the user typed — it just gives you the name of the argument.</li>
+<li>If you’re writing logging wrappers, DSLs, or tidy-eval-like interfaces, <code>substitute()</code> is what gives you access to the <strong>real input</strong>.</li>
+</ul>
+</section>
+<section id="inside-a-function" class="level4">
+<h4 class="anchored" data-anchor-id="inside-a-function">Inside a Function</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>expr_catcher <span class="ot">&lt;-</span> <span class="cf">function</span>(arg) {</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"substitute(arg):"</span>, <span class="fu">deparse</span>(<span class="fu">substitute</span>(arg)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"quote(arg):     "</span>, <span class="fu">deparse</span>(<span class="fu">quote</span>(arg)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">expr_catcher</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="fu">expr_catcher</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>substitute(arg): x + 1 
 quote(arg):      arg </code></pre>
@@ -485,6 +508,33 @@ quote(arg):      arg </code></pre>
 <li><code>substitute(arg)</code> inspects the <strong>expression passed to <code>arg</code></strong>, and returns it: <code>x + 1</code>.</li>
 <li><code>quote(arg)</code> simply returns the symbol <code>arg</code> — it doesn’t know what was passed in the call.</li>
 </ul>
+<p>Now define a function that compares <code>quote()</code>, <code>substitute()</code>, and direct evaluation:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>inspect <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">quoted =</span> <span class="fu">quote</span>(expr),         <span class="co"># Always returns the symbol 'expr'</span></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">substituted =</span> <span class="fu">substitute</span>(expr), <span class="co"># Captures what was passed to 'expr'</span></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">evaluated =</span> <span class="fu">eval</span>(expr)        <span class="co"># Actually runs the code</span></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now call the function with quoted objects:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">inspect</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$quoted
+expr
+
+$substituted
+x + 1
+
+$evaluated
+[1] 4</code></pre>
+</div>
+</div>
+<p><strong>Conclusion</strong>:<br>
+- Use <code>quote()</code> when you want to <strong>manually construct reusable expressions</strong> in code. - Use <code>substitute()</code> when you want to <strong>capture what someone passed to a function</strong>.</p>
 </section>
 <section id="when-to-use-each" class="level4">
 <h4 class="anchored" data-anchor-id="when-to-use-each">When to Use Each</h4>
@@ -525,23 +575,6 @@ quote(arg):      arg </code></pre>
 </tbody>
 </table>
 </section>
-</section>
-<section id="outside-a-function-they-behave-the-same" class="level3">
-<h3 class="anchored" data-anchor-id="outside-a-function-they-behave-the-same">Outside a Function (They Behave the Same)</h3>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>x + 1</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">substitute</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>x + 1</code></pre>
-</div>
-</div>
-<ul>
-<li>Using <code>quote()</code> inside a function will <strong>not</strong> show what the user typed — it just gives you the name of the argument.</li>
-<li>If you’re writing logging wrappers, DSLs, or tidy-eval-like interfaces, <code>substitute()</code> is what gives you access to the <strong>real input</strong>.</li>
-</ul>
 </section>
 <section id="putting-it-all-together" class="level3">
 <h3 class="anchored" data-anchor-id="putting-it-all-together">Putting It All Together</h3>
@@ -584,25 +617,24 @@ quote(arg):      arg </code></pre>
 </table>
 <p>They often appear together:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">2</span></span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>inspect <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
-<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
-<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"You typed: "</span>, <span class="fu">deparse</span>(code), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">eval</span>(code)</span>
-<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"It evaluated to: "</span>, result, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a><span class="fu">inspect</span>(x <span class="sc">+</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>inspect <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"You typed: "</span>, <span class="fu">deparse</span>(code), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">eval</span>(code)</span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"It evaluated to: "</span>, result, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a><span class="fu">inspect</span>(x <span class="sc">+</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>You typed:  x + 3 
 It evaluated to:  5 </code></pre>
 </div>
 </div>
 </section>
-</section>
-<section id="why-this-matters" class="level2">
-<h2 class="anchored" data-anchor-id="why-this-matters">Why This Matters</h2>
+<section id="why-this-matters" class="level3">
+<h3 class="anchored" data-anchor-id="why-this-matters">Why This Matters</h3>
 <ul>
 <li>R expressions are <strong>not text</strong> — they are structured data objects.</li>
 <li>NSE works by capturing and delaying evaluation of these expressions.</li>
@@ -613,6 +645,7 @@ It evaluated to:  5 </code></pre>
 <p>Understanding how R stores and manipulates expressions is the first step to mastering metaprogramming, the tidy evaluation framework, and robust logging or transformation pipelines.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

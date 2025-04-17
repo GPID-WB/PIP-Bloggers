@@ -1,6 +1,6 @@
 ---
 title: "What Is Non-Standard Evaluation (NSE) and Why Does It Matter?"
-description: ""
+description: "Understanding how R treats code as first-class data is essential for anyone working with logging, metaprogramming, or tidy evaluation. In this post, we demystify the core tools of Non-Standard Evaluation: quote(), substitute(), deparse(), and eval(). Through practical examples and careful explanation, you'll learn how to capture expressions, convert them to strings, evaluate them later, and understand when these tools behave differently — and why it matters."
 author:
   - name: R.Andres Castaneda
     email: acastanedaa@worldbank.org
@@ -232,7 +232,22 @@ But `substitute(arg)` only works inside a function — because it inspects the a
 
 Although both `quote()` and `substitute()` capture unevaluated expressions, they are **not the same**, and understanding when they diverge is critical for writing correct NSE-aware code.
 
-#### Example: Inside a Function
+#### Outside a Function (They Behave the Same)
+
+At first glance, `quote()` and `substitute()` may seem interchangeable — and in some cases, they behave the same. For example, when used **at the top level**, both will return the same unevaluated expression:
+
+
+```{R}
+quote(x + 1)
+substitute(x + 1)
+```
+
+
+- Using `quote()` inside a function will **not** show what the user typed — it just gives you the name of the argument.
+- If you're writing logging wrappers, DSLs, or tidy-eval-like interfaces, `substitute()` is what gives you access to the **real input**.
+
+
+#### Inside a Function
 
 ```{R}
 expr_catcher <- function(arg) {
@@ -250,6 +265,32 @@ expr_catcher(x + 1)
 - `substitute(arg)` inspects the **expression passed to `arg`**, and returns it: `x + 1`.
 - `quote(arg)` simply returns the symbol `arg` — it doesn’t know what was passed in the call.
 
+
+Now define a function that compares `quote()`, `substitute()`, and direct evaluation:
+
+```{R}
+inspect <- function(expr) {
+  list(
+    quoted = quote(expr),         # Always returns the symbol 'expr'
+    substituted = substitute(expr), # Captures what was passed to 'expr'
+    evaluated = eval(expr)        # Actually runs the code
+  )
+}
+
+```
+
+Now call the function with quoted objects:
+
+```{R}
+x <- 3
+inspect(x + 1)
+```
+
+
+**Conclusion**:  
+- Use `quote()` when you want to **manually construct reusable expressions** in code.
+- Use `substitute()` when you want to **capture what someone passed to a function**.
+
 ####  When to Use Each
 
 | Use case                            | Use `quote()`             | Use `substitute()`         |
@@ -258,19 +299,6 @@ expr_catcher(x + 1)
 | Capture what the user typed in a function | ❌ No                    | ✅ Yes                      |
 | Manual metaprogramming or testing   | ✅ Yes                    | Sometimes (but trickier)    |
 | Logging or error messages inside functions | ❌ No                 | ✅ Yes                      |
-
-
-
-### Outside a Function (They Behave the Same)
-
-```{R}
-quote(x + 1)
-substitute(x + 1)
-```
-
-
-- Using `quote()` inside a function will **not** show what the user typed — it just gives you the name of the argument.
-- If you're writing logging wrappers, DSLs, or tidy-eval-like interfaces, `substitute()` is what gives you access to the **real input**.
 
 
 ### Putting It All Together
@@ -300,7 +328,7 @@ inspect(x + 3)
 ```
 
 
-## Why This Matters
+### Why This Matters
 
 - R expressions are **not text** — they are structured data objects.
 - NSE works by capturing and delaying evaluation of these expressions.
