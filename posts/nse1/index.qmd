@@ -136,9 +136,7 @@ You can verify this:
 
 ```{R}
 class(expr)
-#> [1] "call"
 typeof(expr)
-#> [1] "language"
 ```
 
 This means that R has captured the code itself — as structured, evaluable (i.e., unevaluated) data.
@@ -150,10 +148,7 @@ Try this:
 ```{R}
 expr <- quote(x + 1)
 is.character(expr)
-#> FALSE
-
 print(expr)
-#> x + 1
 ```
 
 Even though it *looks like* a string when printed, it's not. R stores the structure of the code, not its textual representation.
@@ -162,13 +157,8 @@ In fact, expressions behave like recursive lists. You can inspect their componen
 
 ```{R}
 expr[[1]]  # the function being called
-#> `+`
-
 expr[[2]]  # first argument
-#> x
-
 expr[[3]]  # second argument
-#> 1
 ```
 
 This kind of structure is what makes metaprogramming possible in R.
@@ -190,10 +180,7 @@ Compare:
 ```{R}
 x <- 10
 quote(x + 1)
-#> x + 1
-
 x + 1
-#> 11
 ```
 
 In the first case, R captures the expression; in the second, it evaluates it.
@@ -236,7 +223,6 @@ To show the equivalence:
 
 ```{R}
 quote(x + 1) == substitute(x + 1)
-#> TRUE
 ```
 
 But `substitute(arg)` only works inside a function — because it inspects the actual expression passed to `arg`.
@@ -279,50 +265,12 @@ expr_catcher(x + 1)
 
 ```{R}
 quote(x + 1)
-
 substitute(x + 1)
-
 ```
 
 
 - Using `quote()` inside a function will **not** show what the user typed — it just gives you the name of the argument.
 - If you're writing logging wrappers, DSLs, or tidy-eval-like interfaces, `substitute()` is what gives you access to the **real input**.
-
-::: {.callout-important title="quote() vs substitute(): A Subtle but Critical Difference"}
-
-When writing NSE-aware functions, it's crucial to know the difference between `quote()` and `substitute()`:
-
-- `quote(expr)` captures the code *exactly as written*, always.
-- `substitute(arg)` captures what the *caller* passed to a function argument.
-
-Example:
-
-```{R}
-f <- function(arg) {
-  list(
-    quoted = quote(arg),
-    substituted = substitute(arg)
-  )
-}
-
-f(x + 1)
-#> $quoted:       arg
-#> $substituted:  x + 1
-```
-
-Outside of a function, both return the same thing:
-
-```{R}
-quote(x + 1)
-#> x + 1
-
-substitute(x + 1)
-#> x + 1
-```
-
-But **inside a function**, only `substitute()` gives you access to the original expression the user typed.
-
-:::
 
 
 ### Putting It All Together
