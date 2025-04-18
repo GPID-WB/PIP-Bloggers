@@ -218,6 +218,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#a-logging-evaluator" id="toc-a-logging-evaluator" class="nav-link" data-scroll-target="#a-logging-evaluator">A Logging Evaluator</a></li>
   <li><a href="#try-it-out" id="toc-try-it-out" class="nav-link" data-scroll-target="#try-it-out">Try It Out</a></li>
+  <li><a href="#what-happens-if-you-try-to-use-evalexpr-without-substitute" id="toc-what-happens-if-you-try-to-use-evalexpr-without-substitute" class="nav-link" data-scroll-target="#what-happens-if-you-try-to-use-evalexpr-without-substitute">What Happens If You Try to Use <code>eval(expr)</code> Without <code>substitute()</code>?</a></li>
+  </ul></li>
+  <li><a href="#controlling-where-code-is-evaluated-with-evalexpr-envir" id="toc-controlling-where-code-is-evaluated-with-evalexpr-envir" class="nav-link" data-scroll-target="#controlling-where-code-is-evaluated-with-evalexpr-envir">4. Controlling <em>Where</em> Code Is Evaluated with <code>eval(expr, envir)</code></a>
+  <ul class="collapse">
+  <li><a href="#default-behavior" id="toc-default-behavior" class="nav-link" data-scroll-target="#default-behavior">Default Behavior</a></li>
+  <li><a href="#changing-the-environment" id="toc-changing-the-environment" class="nav-link" data-scroll-target="#changing-the-environment">Changing the Environment</a></li>
+  <li><a href="#why-this-is-powerful" id="toc-why-this-is-powerful" class="nav-link" data-scroll-target="#why-this-is-powerful">Why This Is Powerful</a></li>
+  <li><a href="#how-to-use-it-in-your-own-code" id="toc-how-to-use-it-in-your-own-code" class="nav-link" data-scroll-target="#how-to-use-it-in-your-own-code">How to Use It in Your Own Code</a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -688,6 +697,9 @@ Result: 11</code></pre>
 MSG: non-numeric argument to mathematical function</code></pre>
 </div>
 </div>
+</section>
+<section id="what-happens-if-you-try-to-use-evalexpr-without-substitute" class="level3">
+<h3 class="anchored" data-anchor-id="what-happens-if-you-try-to-use-evalexpr-without-substitute">What Happens If You Try to Use <code>eval(expr)</code> Without <code>substitute()</code>?</h3>
 <p>You might wonder: why do we assign <code>code &lt;- substitute(expr)</code> and then evaluate <code>code</code>? Why not just call <code>eval(expr)</code> directly?</p>
 <p>Here’s why:</p>
 <ul>
@@ -716,6 +728,153 @@ MSG: non-numeric argument to mathematical function</code></pre>
 </div>
 <p>That’s because by the time <code>deparse(expr)</code> runs, <code>expr</code> has already been evaluated to a number (<code>11</code>), not an expression.</p>
 <p>So we use: <code>code &lt;- substitute(expr)</code> to <strong>freeze</strong> the user input before evaluation, and then use <code>eval(code)</code> to run it deliberately later. This gives us full control over when and how the code is evaluated — and lets us capture and display exactly what the user typed.</p>
+<p>To really see the importance of <code>substitute()</code>, let’s consider a slightly more advanced case: evaluating code in a <strong>different environment</strong>.</p>
+<p>Suppose you want to evaluate an expression using variables defined in a <strong>custom environment</strong>, not the global one. Here’s how it works when done <strong>correctly</strong>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">100</span>)</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>log_and_eval_env <span class="ot">&lt;-</span> <span class="cf">function</span>(expr, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>  code_text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(code)</span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> {</span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a>      x <span class="ot">&lt;-</span> <span class="fu">eval</span>(code, <span class="at">envir =</span> env)</span>
+<span id="cb63-10"><a href="#cb63-10" aria-hidden="true" tabindex="-1"></a>           <span class="co"># Print and return</span></span>
+<span id="cb63-11"><a href="#cb63-11" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Evaluated in custom env: {code_text}"</span>)</span>
+<span id="cb63-12"><a href="#cb63-12" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Result: {x}"</span>)</span>
+<span id="cb63-13"><a href="#cb63-13" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb63-14"><a href="#cb63-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb63-15"><a href="#cb63-15" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_alert_danger</span>(<span class="st">"Error in {code_text}: {e$message}"</span>)</span>
+<span id="cb63-16"><a href="#cb63-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb63-17"><a href="#cb63-17" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb63-18"><a href="#cb63-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb63-19"><a href="#cb63-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb63-20"><a href="#cb63-20" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb63-21"><a href="#cb63-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
+<span id="cb63-22"><a href="#cb63-22" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb63-23"><a href="#cb63-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-24"><a href="#cb63-24" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Evaluated in custom env: x + 1
+Result: 101</code></pre>
+</div>
+</div>
+<p>This works because <code>substitute()</code> captured the unevaluated expression <code>x + 1</code>, and <code>eval()</code> was able to look up <code>x</code> in the <code>env</code> environment.</p>
+<p>But what happens if we don’t use <code>substitute()</code>?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>log_eval_env_wrong <span class="ot">&lt;-</span> <span class="cf">function</span>(expr, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># expr has already been evaluated here!</span></span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(expr)  <span class="co"># will  fail</span></span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> env)</span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Result: {result}"</span>)</span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now try:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_env_wrong</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Result: 11</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(x)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_env_wrong</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error: object 'x' not found</code></pre>
+</div>
+</div>
+<p>This code first throws an error, then returns 11 — as expected. This happens because when <code>expr</code> reaches <code>eval()</code> it is already too late bvecause it has already been evaluated to in <code>deparse()</code>, so <code>eval()</code> simply returns <code>11</code>. In the second case, where <code>x</code> is removed from the Global environment, <code>expr</code> is evaluated in <code>deparse()</code> and fails.<br>
+That’s why <code>substitute()</code> is essential in any function that wants to control <strong>when</strong> and <strong>where</strong> evaluation happens.</p>
+</section>
+</section>
+<section id="controlling-where-code-is-evaluated-with-evalexpr-envir" class="level2">
+<h2 class="anchored" data-anchor-id="controlling-where-code-is-evaluated-with-evalexpr-envir">4. Controlling <em>Where</em> Code Is Evaluated with <code>eval(expr, envir)</code></h2>
+<p>So far, we’ve used <code>eval(expr)</code> to run expressions in the current environment. But a key feature of <code>eval()</code> is that it also lets you choose <strong>where</strong> the code is evaluated — and this is essential for many real-world use cases.</p>
+<section id="default-behavior" class="level3">
+<h3 class="anchored" data-anchor-id="default-behavior">Default Behavior</h3>
+<p>When you call <code>eval(expr)</code> without an <code>envir</code>, R evaluates the expression in the current environment:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 6</code></pre>
+</div>
+</div>
+<p>Here, <code>x</code> is found in the global environment because that’s where <code>eval()</code> looks by default.</p>
+</section>
+<section id="changing-the-environment" class="level3">
+<h3 class="anchored" data-anchor-id="changing-the-environment">Changing the Environment</h3>
+<p>You can use <code>eval(expr, envir = ...)</code> to evaluate the code in <strong>a different environment</strong>. This lets you build flexible tools like scoped evaluators, delayed execution, and data-aware functions.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a custom environment</span></span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>custom_env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">100</span>)</span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb72-5"><a href="#cb72-5" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> custom_env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 101</code></pre>
+</div>
+</div>
+<p>Even though there’s a global <code>x &lt;- 5</code>, the expression is evaluated in <code>custom_env</code>, where <code>x = 100</code>.</p>
+</section>
+<section id="why-this-is-powerful" class="level3">
+<h3 class="anchored" data-anchor-id="why-this-is-powerful">Why This Is Powerful</h3>
+<p>This behavior is foundational for base R tools like <code>with()</code> and <code>subset()</code>, and for tidyverse functions like <code>dplyr::filter()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(<span class="fu">quote</span>(mpg <span class="sc">&gt;</span> <span class="dv">25</span>), <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE
+[25] FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE</code></pre>
+</div>
+</div>
+<p>Here, <code>mpg</code> is treated as a column inside <code>mtcars</code>, not as a variable in the global environment. This is exactly how <code>dplyr::filter(mtcars, mpg &gt; 25)</code> works internally.</p>
+</section>
+<section id="how-to-use-it-in-your-own-code" class="level3">
+<h3 class="anchored" data-anchor-id="how-to-use-it-in-your-own-code">How to Use It in Your Own Code</h3>
+<p>You can add an optional <code>.env</code> argument to your own functions to control evaluation location:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>log_eval_env <span class="ot">&lt;-</span> <span class="cf">function</span>(expr, <span class="at">.env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>  text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(code)</span>
+<span id="cb76-4"><a href="#cb76-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb76-5"><a href="#cb76-5" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb76-6"><a href="#cb76-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">eval</span>(code, <span class="at">envir =</span> .env),</span>
+<span id="cb76-7"><a href="#cb76-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb76-8"><a href="#cb76-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">message</span>(<span class="st">"Error in: "</span>, text)</span>
+<span id="cb76-9"><a href="#cb76-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">message</span>(<span class="st">"→ "</span>, e<span class="sc">$</span>message)</span>
+<span id="cb76-10"><a href="#cb76-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb76-11"><a href="#cb76-11" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb76-12"><a href="#cb76-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb76-13"><a href="#cb76-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb76-14"><a href="#cb76-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Successfully evaluated in custom environment: "</span>, text)</span>
+<span id="cb76-15"><a href="#cb76-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
+<span id="cb76-16"><a href="#cb76-16" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Usage:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>my_env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">a =</span> <span class="dv">42</span>)</span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_env</span>(a <span class="sc">+</span> <span class="dv">1</span>, <span class="at">.env =</span> my_env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Successfully evaluated in custom environment: a + 1</code></pre>
+</div>
+</div>
+<p>This lets you use <strong>environment-aware logging</strong>, evaluation, and even scoping systems — crucial when building packages that need to be robust in different execution contexts (e.g., R Markdown, Shiny, pipelines).</p>
+</section>
+<section id="summary" class="level3">
+<h3 class="anchored" data-anchor-id="summary">Summary</h3>
+<ul>
+<li><code>eval(expr)</code> runs in the current environment.</li>
+<li><code>eval(expr, envir = some_env)</code> lets you <strong>choose where names get resolved</strong>.</li>
+<li>This allows functions to:
+<ul>
+<li>Evaluate in data frames (<code>dplyr</code>)</li>
+<li>Simulate delayed execution (<code>purrr::map</code>)</li>
+<li>Create reproducible scoped environments (<code>rlang::env()</code>)</li>
+</ul></li>
+</ul>
 
 
 </section>

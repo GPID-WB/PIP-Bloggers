@@ -356,6 +356,8 @@ log_and_eval(x + 1)
 log_and_eval(log("hello"))  # will fail
 ```
 
+### What Happens If You Try to Use `eval(expr)` Without `substitute()`?
+
 You might wonder: why do we assign `code <- substitute(expr)` and then evaluate `code`? Why not just call `eval(expr)` directly?
 
 Here’s why:
@@ -385,4 +387,147 @@ log_eval_wrong(x + 1)
 That’s because by the time `deparse(expr)` runs, `expr` has already been evaluated to a number (`11`), not an expression.
 
 So we use: `code <- substitute(expr)` to **freeze** the user input before evaluation, and then use `eval(code)` to run it deliberately later. This gives us full control over when and how the code is evaluated — and lets us capture and display exactly what the user typed.
+
+To really see the importance of `substitute()`, let’s consider a slightly more advanced case: evaluating code in a **different environment**.
+
+Suppose you want to evaluate an expression using variables defined in a **custom environment**, not the global one. Here's how it works when done **correctly**:
+
+```{R}
+e <- rlang::env(x = 100)
+
+log_and_eval_env <- function(expr, env = parent.frame()) {
+  code <- substitute(expr)
+  code_text <- deparse(code)
+  
+  result <- tryCatch(
+    expr = {
+      x <- eval(code, envir = env)
+           # Print and return
+      cli::cli_inform("Evaluated in custom env: {code_text}")
+      cli::cli_inform("Result: {x}")
+    },
+    error = function(e) {
+      cli::cli_alert_danger("Error in {code_text}: {e$message}")
+      return(NULL)
+    }
+  )
+  
+  
+  invisible(result)
+}
+
+log_and_eval_env(x + 1, env = e)
+```
+
+This works because `substitute()` captured the unevaluated expression `x + 1`, and `eval()` was able to look up `x` in the `env` environment.
+
+But what happens if we don’t use `substitute()`?
+
+```{R}
+log_eval_env_wrong <- function(expr, env = parent.frame()) {
+  # expr has already been evaluated here!
+  text <- deparse(expr)  # will  fail
+  result <- eval(expr, envir = env)
+  cli::cli_inform("Result: {result}")
+  invisible(result)
+}
+```
+
+Now try:
+
+```{R}
+#| error: true
+x <- 10
+log_eval_env_wrong(x + 1, env = e)
+
+rm(x)
+log_eval_env_wrong(x + 1, env = e)
+```
+
+This code first throws an error, then returns 11 — as expected. This happens because when `expr` reaches `eval()` it is already too late bvecause it has already been evaluated to in `deparse()`, so `eval()` simply returns `11`. In the second case, where `x` is removed from the Global environment, `expr` is evaluated in `deparse()` and fails.  
+That’s why `substitute()` is essential in any function that wants to control **when** and **where** evaluation happens.
+
+
+## 4. Controlling *Where* Code Is Evaluated with `eval(expr, envir)`
+
+So far, we've used `eval(expr)` to run expressions in the current environment. But a key feature of `eval()` is that it also lets you choose **where** the code is evaluated — and this is essential for many real-world use cases.
+
+### Default Behavior
+
+When you call `eval(expr)` without an `envir`, R evaluates the expression in the current environment:
+
+```{R}
+x <- 5
+expr <- quote(x + 1)
+eval(expr)
+```
+
+Here, `x` is found in the global environment because that’s where `eval()` looks by default.
+
+
+### Changing the Environment
+
+You can use `eval(expr, envir = ...)` to evaluate the code in **a different environment**. This lets you build flexible tools like scoped evaluators, delayed execution, and data-aware functions.
+
+```{R}
+# Create a custom environment
+custom_env <- rlang::env(x = 100)
+
+expr <- quote(x + 1)
+eval(expr, envir = custom_env)
+```
+
+Even though there's a global `x <- 5`, the expression is evaluated in `custom_env`, where `x = 100`.
+
+### Why This Is Powerful
+
+This behavior is foundational for base R tools like `with()` and `subset()`, and for tidyverse functions like `dplyr::filter()`:
+
+```{R}
+eval(quote(mpg > 25), envir = mtcars)
+```
+
+Here, `mpg` is treated as a column inside `mtcars`, not as a variable in the global environment. This is exactly how `dplyr::filter(mtcars, mpg > 25)` works internally.
+
+
+### How to Use It in Your Own Code
+
+You can add an optional `.env` argument to your own functions to control evaluation location:
+
+```{R}
+log_eval_env <- function(expr, .env = parent.frame()) {
+  code <- substitute(expr)
+  text <- deparse(code)
+
+  result <- tryCatch(
+    eval(code, envir = .env),
+    error = function(e) {
+      message("Error in: ", text)
+      message("→ ", e$message)
+      return(NULL)
+    }
+  )
+
+  message("Successfully evaluated in custom environment: ", text)
+  invisible(result)
+}
+```
+
+Usage:
+
+```{R}
+my_env <- rlang::env(a = 42)
+log_eval_env(a + 1, .env = my_env)
+```
+
+This lets you use **environment-aware logging**, evaluation, and even scoping systems — crucial when building packages that need to be robust in different execution contexts (e.g., R Markdown, Shiny, pipelines).
+
+### Summary
+
+- `eval(expr)` runs in the current environment.
+- `eval(expr, envir = some_env)` lets you **choose where names get resolved**.
+- This allows functions to:
+  - Evaluate in data frames (`dplyr`)
+  - Simulate delayed execution (`purrr::map`)
+  - Create reproducible scoped environments (`rlang::env()`)
 
