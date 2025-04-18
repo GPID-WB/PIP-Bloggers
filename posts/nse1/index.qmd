@@ -303,11 +303,86 @@ Let’s summarize the roles:
 | `eval(expr)` | Evaluate the expression | Result of computation |
 
 
-### Why This Matters
+Thanks for sharing the full context — this is excellent. Your blog post is already strong in structure and clarity, and you're setting it up beautifully for the next section. Here's what I suggest:
 
--   R expressions are **not text** — they are structured data objects.
--   NSE works by capturing and delaying evaluation of these expressions.
--   `quote()` and `substitute()` give you control over *what* is captured.
--   `deparse()` turns code into readable strings for logging, reporting, or messages.
--   `eval()` executes code only when and where you want.
+## 3. Combining `substitute()`, `deparse()`, and `eval()` in Real-World Logging
+
+Now that we understand the difference between `quote()` and `substitute()`, and how `eval()` and `deparse()` work, let’s build a real-world example that demonstrates why all of this matters in practice.
+
+Imagine you're writing a logging wrapper to:
+
+- Report **what expression the user typed**
+- Evaluate it
+- Record the result (or the error)
+
+### A Logging Evaluator
+
+```{R}
+log_and_eval <- function(expr) {
+  # Capture the expression (as typed)
+  code <- substitute(expr)
+
+  # Turn the code into readable text
+  code_text <- deparse(code)
+
+  # Evaluate the expression
+  result <- tryCatch(
+    expr = {
+      x <- eval(code)
+          # Print and return
+      cli::cli_inform("Successfully evaluated: {code_text}")
+      cli::cli_inform("Result: {x}")
+    },
+    error = function(e) {
+      cli::cli_alert_danger("Error while evaluating: {code_text}
+                     MSG: {e$message}")
+      return(NULL)
+    }
+  )
+
+  
+  invisible(result)
+}
+```
+
+### Try It Out
+
+```{R}
+x <- 10
+log_and_eval(x + 1)
+```
+
+```{R}
+log_and_eval(log("hello"))  # will fail
+```
+
+You might wonder: why do we assign `code <- substitute(expr)` and then evaluate `code`? Why not just call `eval(expr)` directly?
+
+Here’s why:
+
+- When `expr` is passed to the function `log_and_eval()`, R **evaluates it immediately**, unless we explicitly tell it not to.
+- The role of `substitute(expr)` is to **capture the unevaluated expression** that the user typed at the call site.
+- If you skip `substitute()`, then `expr` has already been evaluated by the time it enters the function — and you’ve lost the original code.
+
+Compare with definition:
+
+```{R}
+log_eval_wrong <- function(expr) {
+  # expr has already been evaluated here
+  cat("Trying to print expr: ", deparse(expr), "\n")
+  result <- eval(expr)
+  result
+}
+```
+
+Calling `log_eval_wrong(x + 1)` will raise an error:
+
+```{R}
+#| error: true
+log_eval_wrong(x + 1)
+```
+
+That’s because by the time `deparse(expr)` runs, `expr` has already been evaluated to a number (`11`), not an expression.
+
+So we use: `code <- substitute(expr)` to **freeze** the user input before evaluation, and then use `eval(code)` to run it deliberately later. This gives us full control over when and how the code is evaluated — and lets us capture and display exactly what the user typed.
 
