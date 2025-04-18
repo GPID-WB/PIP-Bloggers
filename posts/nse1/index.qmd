@@ -18,12 +18,9 @@ execute:
   output: true
 ---
 
-
 ## 1. Intro
 
 Non-Standard Evaluation (NSE) is one of the most powerful — and most confusing — features of the R language. It allows functions to manipulate the **expressions** that users write, instead of just their evaluated values. This behavior is at the heart of many modeling and data manipulation tools in R, including `with()`, `subset()`, and all of the tidyverse.
-
-
 
 ### Historical Roots: `with()` and `subset()` in Base R
 
@@ -43,8 +40,6 @@ In both cases, you are allowed to write expressions like `mpg + cyl` or `mpg > 2
 
 This ability to manipulate expressions and control where they are evaluated is exactly what Non-Standard Evaluation enables.
 
-
-
 ### What Is Standard Evaluation?
 
 To appreciate what NSE changes, it helps to understand what R does **by default** — which is standard evaluation (SE).
@@ -63,9 +58,9 @@ Here, `x` is evaluated to `10`, and `f()` receives that value.
 
 With NSE, a function can capture **what the user typed** — the unevaluated expression — and decide:
 
-- **When** to evaluate it,
-- **Where** to evaluate it,
-- Or even whether to evaluate it at all.
+-   **When** to evaluate it,
+-   **Where** to evaluate it,
+-   Or even whether to evaluate it at all.
 
 Let’s create a minimal example:
 
@@ -104,14 +99,13 @@ log_eval(x + 3)
 
 This function:
 
-- Uses `substitute()` to capture the expression `x + 3`,
-- Prints the expression,
-- Then evaluates it.
-
+-   Uses `substitute()` to capture the expression `x + 3`,
+-   Prints the expression,
+-   Then evaluates it.
 
 ## 2. Expressions Are Not Strings: Understanding How R Represents Code
 
-To understand that piece of code fully, we need to know five into tools like `substitute()`, `deparse()`, or `eval()`. Yet, there is something even more fundamental to  understand first:
+To understand that piece of code fully, we need to know five into tools like `substitute()`, `deparse()`, or `eval()`. Yet, there is something even more fundamental to understand first:
 
 > In R, **code is data**.
 
@@ -196,11 +190,10 @@ deparse(expr)
 
 So:
 
-- `quote(x + 1)` → structured expression
-- `deparse(quote(x + 1))` → character string `"x + 1"`
+-   `quote(x + 1)` → structured expression
+-   `deparse(quote(x + 1))` → character string `"x + 1"`
 
 This distinction is critical. If you treat expressions like strings too early, you lose their structure.
-
 
 ### `substitute()` – Capturing Expressions from Arguments
 
@@ -227,8 +220,7 @@ quote(x + 1) == substitute(x + 1)
 
 But `substitute(arg)` only works inside a function — because it inspects the actual expression passed to `arg`.
 
-
-### So, What's the differen between  `quote()` and `substitute()`?
+### So, What's the differen between `quote()` and `substitute()`?
 
 Although both `quote()` and `substitute()` capture unevaluated expressions, they are **not the same**, and understanding when they diverge is critical for writing correct NSE-aware code.
 
@@ -236,24 +228,27 @@ Although both `quote()` and `substitute()` capture unevaluated expressions, they
 
 At first glance, `quote()` and `substitute()` may seem interchangeable — and in some cases, they behave the same. For example, when used **at the top level**, both will return the same unevaluated expression:
 
-
 ```{R}
 quote(x + 1)
 substitute(x + 1)
 ```
 
-
-- Using `quote()` inside a function will **not** show what the user typed — it just gives you the name of the argument.
-- If you're writing logging wrappers, DSLs, or tidy-eval-like interfaces, `substitute()` is what gives you access to the **real input**.
-
+-   Using `quote()` inside a function will **not** show what the user typed — it just gives you the name of the argument.
+-   If you're writing logging wrappers, DSLs, or tidy-eval-like interfaces, `substitute()` is what gives you access to the **real input**.
 
 #### Inside a Function
 
 ```{R}
-expr_catcher <- function(arg) {
-  cat("substitute(arg):", deparse(substitute(arg)), "\n")
-  cat("quote(arg):     ", deparse(quote(arg)), "\n")
+x <- 2
+
+expr_catcher <- function(expr) {
+  code <- substitute(expr)
+  cat("You typed: ", deparse(code), "\n")
+  result <- eval(code)
+  cat("It evaluated to: ", result, "\n")
 }
+
+expr_catcher(x + 3)
 ```
 
 ```{R}
@@ -261,10 +256,8 @@ x <- 10
 expr_catcher(x + 1)
 ```
 
-
-- `substitute(arg)` inspects the **expression passed to `arg`**, and returns it: `x + 1`.
-- `quote(arg)` simply returns the symbol `arg` — it doesn’t know what was passed in the call.
-
+-   `substitute(arg)` inspects the **expression passed to `arg`**, and returns it: `x + 1`.
+-   `quote(arg)` simply returns the symbol `arg` — it doesn’t know what was passed in the call.
 
 Now define a function that compares `quote()`, `substitute()`, and direct evaluation:
 
@@ -286,55 +279,35 @@ x <- 3
 inspect(x + 1)
 ```
 
+**Conclusion**:\
+- Use `quote()` when you want to **manually construct reusable expressions** in code. - Use `substitute()` when you want to **capture what someone passed to a function**.
 
-**Conclusion**:  
-- Use `quote()` when you want to **manually construct reusable expressions** in code.
-- Use `substitute()` when you want to **capture what someone passed to a function**.
+#### When to Use Each
 
-####  When to Use Each
-
-| Use case                            | Use `quote()`             | Use `substitute()`         |
-|-------------------------------------|----------------------------|-----------------------------|
-| Capture a static expression         | ✅ Yes                    | ❌ No                       |
-| Capture what the user typed in a function | ❌ No                    | ✅ Yes                      |
-| Manual metaprogramming or testing   | ✅ Yes                    | Sometimes (but trickier)    |
-| Logging or error messages inside functions | ❌ No                 | ✅ Yes                      |
-
+| Use case | Use `quote()` | Use `substitute()` |
+|----------------------------|----------------------|----------------------|
+| Capture a static expression | ✅ Yes | ❌ No |
+| Capture what the user typed in a function | ❌ No | ✅ Yes |
+| Manual metaprogramming or testing | ✅ Yes | Sometimes (but trickier) |
+| Logging or error messages inside functions | ❌ No | ✅ Yes |
 
 ### Putting It All Together
 
 Let’s summarize the roles:
 
-| Function        | Purpose                                   | Returns                |
-|------------------|--------------------------------------------|------------------------|
-| `quote(expr)`   | Capture unevaluated code                   | Expression / call      |
-| `substitute(arg)`| Capture the *argument* passed to a function | Expression / call      |
-| `deparse(expr)` | Convert an expression to a string          | Character string       |
-| `eval(expr)`    | Evaluate the expression                    | Result of computation  |
-
-They often appear together:
-
-```{R}
-x <- 2
-
-inspect <- function(expr) {
-  code <- substitute(expr)
-  cat("You typed: ", deparse(code), "\n")
-  result <- eval(code)
-  cat("It evaluated to: ", result, "\n")
-}
-
-inspect(x + 3)
-```
+| Function | Purpose | Returns |
+|------------------|-----------------------------------|--------------------|
+| `quote(expr)` | Capture unevaluated code | Expression / call |
+| `substitute(arg)` | Capture the *argument* passed to a function | Expression / call |
+| `deparse(expr)` | Convert an expression to a string | Character string |
+| `eval(expr)` | Evaluate the expression | Result of computation |
 
 
 ### Why This Matters
 
-- R expressions are **not text** — they are structured data objects.
-- NSE works by capturing and delaying evaluation of these expressions.
-- `quote()` and `substitute()` give you control over *what* is captured.
-- `deparse()` turns code into readable strings for logging, reporting, or messages.
-- `eval()` executes code only when and where you want.
-
-Understanding how R stores and manipulates expressions is the first step to mastering metaprogramming, the tidy evaluation framework, and robust logging or transformation pipelines.
+-   R expressions are **not text** — they are structured data objects.
+-   NSE works by capturing and delaying evaluation of these expressions.
+-   `quote()` and `substitute()` give you control over *what* is captured.
+-   `deparse()` turns code into readable strings for logging, reporting, or messages.
+-   `eval()` executes code only when and where you want.
 
