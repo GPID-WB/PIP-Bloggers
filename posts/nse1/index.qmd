@@ -222,69 +222,34 @@ But `substitute(arg)` only works inside a function — because it inspects the a
 
 ### So, What's the differen between `quote()` and `substitute()`?
 
-Although both `quote()` and `substitute()` capture unevaluated expressions, they are **not the same**, and understanding when they diverge is critical for writing correct NSE-aware code.
+Both `quote()` and `substitute()` capture unevaluated code, but **context matters**.
 
-#### Outside a Function (They Behave the Same)
+- `quote()` always returns the literal symbol or expression, without considering the call context.
+- `substitute()` captures **what the user typed**, dynamically, at the function call site.
 
-At first glance, `quote()` and `substitute()` may seem interchangeable — and in some cases, they behave the same. For example, when used **at the top level**, both will return the same unevaluated expression:
-
-```{R}
-quote(x + 1)
-substitute(x + 1)
-```
-
--   Using `quote()` inside a function will **not** show what the user typed — it just gives you the name of the argument.
--   If you're writing logging wrappers, DSLs, or tidy-eval-like interfaces, `substitute()` is what gives you access to the **real input**.
-
-#### Inside a Function
-
-```{R}
-x <- 2
-
-expr_catcher <- function(expr) {
-  code <- substitute(expr)
-  cat("You typed: ", deparse(code), "\n")
-  result <- eval(code)
-  cat("It evaluated to: ", result, "\n")
-}
-
-expr_catcher(x + 3)
-```
-
-```{R}
-x <- 10
-expr_catcher(x + 1)
-```
-
--   `substitute(arg)` inspects the **expression passed to `arg`**, and returns it: `x + 1`.
--   `quote(arg)` simply returns the symbol `arg` — it doesn’t know what was passed in the call.
-
-Now define a function that compares `quote()`, `substitute()`, and direct evaluation:
+#### Example: Compare Their Behavior Inside a Function
 
 ```{R}
 inspect <- function(expr) {
   list(
-    quoted = quote(expr),         # Always returns the symbol 'expr'
-    substituted = substitute(expr), # Captures what was passed to 'expr'
-    evaluated = eval(expr)        # Actually runs the code
+    quoted      = quote(expr),         # Always returns the symbol 'expr'
+    substituted = substitute(expr),    # Captures the user's input expression
+    evaluated   = eval(expr)           # Executes the expression
   )
 }
 
-```
-
-Now call the function with quoted objects:
-
-```{R}
 x <- 3
 inspect(x + 1)
-
-# this is just quoted, does nothing
-inspect("x + 1")
-
 ```
 
-**Conclusion**:\
-- Use `quote()` when you want to **manually construct reusable expressions** in code. - Use `substitute()` when you want to **capture what someone passed to a function**.
+#### Key Point:
+
+- `quote(expr)` always gives you `expr` — the literal name.
+- `substitute(expr)` gives you `x + 1` — what the user typed.
+- `eval(expr)` computes the result.
+
+Use `substitute()` when **writing functions** that need to inspect or log **user input**. Use `quote()` when you need to **manually build expressions**.
+
 
 ### Putting It All Together
 
