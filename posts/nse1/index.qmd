@@ -1,13 +1,13 @@
 ---
 title: "What Is Non-Standard Evaluation (NSE) and Why Does It Matter?"
-description: "Understanding how R treats code as first-class data is essential for anyone working with logging, metaprogramming, or tidy evaluation. In this post, we demystify the core tools of Non-Standard Evaluation: quote(), substitute(), deparse(), and eval(). Through practical examples and careful explanation, you'll learn how to capture expressions, convert them to strings, evaluate them later, and understand when these tools behave differently — and why it matters."
+description: "Learn how to use R’s Non-Standard Evaluation tools — `quote()`, `substitute()`, `deparse()`, and `eval()` — to capture, inspect, and control code execution. This post breaks down these core functions with clear examples for logging, metaprogramming, and tidy evaluation."
 author:
   - name: R.Andres Castaneda
     email: acastanedaa@worldbank.org
     affiliation: 
       - The World Bank
       - DECDG
-date: "2025-04-17"
+date: "2025-04-30"
 categories: [R, NSE, Metaprogramming]
 format:
   html:
