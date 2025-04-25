@@ -277,19 +277,14 @@ Now call the function with quoted objects:
 ```{R}
 x <- 3
 inspect(x + 1)
+
+# this is just quoted, does nothing
+inspect("x + 1")
+
 ```
 
 **Conclusion**:\
 - Use `quote()` when you want to **manually construct reusable expressions** in code. - Use `substitute()` when you want to **capture what someone passed to a function**.
-
-#### When to Use Each
-
-| Use case | Use `quote()` | Use `substitute()` |
-|----------------------------|----------------------|----------------------|
-| Capture a static expression | ✅ Yes | ❌ No |
-| Capture what the user typed in a function | ❌ No | ✅ Yes |
-| Manual metaprogramming or testing | ✅ Yes | Sometimes (but trickier) |
-| Logging or error messages inside functions | ❌ No | ✅ Yes |
 
 ### Putting It All Together
 
@@ -368,25 +363,28 @@ Here’s why:
 
 Compare with definition:
 
+
 ```{R}
 log_eval_wrong <- function(expr) {
   # expr has already been evaluated here
-  cat("Trying to print expr: ", deparse(expr), "\n")
-  result <- eval(expr)
-  result
+  cat("Trying to print the expr. We just get the result: ", 
+      deparse(expr), "\n")
+  expr 
 }
 ```
 
-Calling `log_eval_wrong(x + 1)` will raise an error:
+Calling `log_eval_wrong(x + 1)` can't show us the expression:
 
 ```{R}
 #| error: true
+
+x <- 10
 log_eval_wrong(x + 1)
 ```
 
 That’s because by the time `deparse(expr)` runs, `expr` has already been evaluated to a number (`11`), not an expression.
 
-So we use: `code <- substitute(expr)` to **freeze** the user input before evaluation, and then use `eval(code)` to run it deliberately later. This gives us full control over when and how the code is evaluated — and lets us capture and display exactly what the user typed.
+We use `substitute()` to freeze user input and `eval()` to control exactly when and where it runs.
 
 To really see the importance of `substitute()`, let’s consider a slightly more advanced case: evaluating code in a **different environment**.
 
@@ -416,6 +414,7 @@ log_and_eval_env <- function(expr, env = parent.frame()) {
   invisible(result)
 }
 
+x <- 10
 log_and_eval_env(x + 1, env = e)
 ```
 
@@ -442,11 +441,12 @@ log_eval_env_wrong(x + 1, env = e)
 
 rm(x)
 log_eval_env_wrong(x + 1, env = e)
+
 ```
 
-This code first throws an error, then returns 11 — as expected. This happens because when `expr` reaches `eval()` it is already too late bvecause it has already been evaluated to in `deparse()`, so `eval()` simply returns `11`. In the second case, where `x` is removed from the Global environment, `expr` is evaluated in `deparse()` and fails.  
-That’s why `substitute()` is essential in any function that wants to control **when** and **where** evaluation happens.
+This code first returns 11, then throws an error. This happens because when `expr` reaches `eval()` it is already too late because it has already been evaluated to in `deparse()`, so `eval()` simply returns `11`. In the second case, where `x` is removed from the Global environment, `expr` is evaluated in `deparse()` and fails.  
 
+That’s why `substitute()` is essential in any function that wants to control **when** and **where** evaluation happens.
 
 ## 4. Controlling *Where* Code Is Evaluated with `eval(expr, envir)`
 
@@ -487,7 +487,7 @@ This behavior is foundational for base R tools like `with()` and `subset()`, and
 eval(quote(mpg > 25), envir = mtcars)
 ```
 
-Here, `mpg` is treated as a column inside `mtcars`, not as a variable in the global environment. This is exactly how `dplyr::filter(mtcars, mpg > 25)` works internally.
+Here, `mpg` is treated as a column inside `mtcars`, not as a variable in the global environment. This is how `dplyr::filter(mtcars, mpg > 25)` works internally.
 
 
 ### How to Use It in Your Own Code
@@ -502,14 +502,14 @@ log_eval_env <- function(expr, .env = parent.frame()) {
   result <- tryCatch(
     eval(code, envir = .env),
     error = function(e) {
-      message("Error in: ", text)
-      message("→ ", e$message)
+      cli::cli_inform("Error in: {text}")
+      cli::cli_inform("→ {e$message}")
       return(NULL)
     }
   )
 
-  message("Successfully evaluated in custom environment: ", text)
-  invisible(result)
+  cli::cli_inform("Successfully evaluated in custom environment: {text}")
+  result
 }
 ```
 
