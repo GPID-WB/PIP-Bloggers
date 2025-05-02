@@ -510,3 +510,5 @@ foo()
 
 ```
 
+However, as we will see in another post, the best way to do this is
+`assign("z", value, envir = target_env)`. This is the safest and most readable. 
