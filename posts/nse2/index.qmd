@@ -142,10 +142,30 @@ eval(code, envir = env)
 
 Here, `code` is already a proper unevaluated call object — using `substitute()` on it would just return the symbol `code`, not the inner expression (similar to what happen when you use `quote()` inside a function).
 
+## 3. Using `get()` and `assign()` for Controlled Evaluation
 
-### 2.5 When `get()` Still Helps
+In some cases, we don’t just want to evaluate expressions or capture what the user typed — we want to **manipulate variables by name**: retrieve their values from a particular environment, or assign new ones dynamically. That’s exactly what `get()` and `assign()` let us do.
 
-In very specific cases, `get()` is handy:
+These tools operate on variable *names as strings*, which makes them incredibly flexible — and also risky if not used carefully. In this section, we’ll break down both functions and show how they interact with environments and evaluation.
+
+### 3.1 `get()` — Look Up a Variable by Name
+
+The base R function `get()` retrieves the value of a variable, **given its name as a string**, and optionally, an environment in which to look.
+
+```{R}
+x <- 100
+get("x")
+```
+
+It’s equivalent to just writing `x`, but you can control where to search:
+
+```{R}
+e <- rlang::env(x = 42)
+get("x", envir = e)
+```
+
+If `x` is not found, `get()` walks up the chain of parent environments, just like R’s normal variable resolution.
+
 
 ```{R}
 #| error: true
@@ -163,4 +183,182 @@ get_and_print("x", env = env2) # 10 again because of the env chain
 get_and_print("zz", env = env2) # error trigger by stop()
 ```
 
-But avoid this style for anything more complex than a single symbol — it breaks easily and is hard to extend.
+
+#### Use Case: Controlled Lookup in Logging
+
+Suppose you want to log both the **name** of the variable the user passed, and its **value**, without evaluating the entire expression. This is the same that we saw in the previous post with `eval()` but instead of having an expression, we have a the name of a variable. 
+
+```{R}
+log_value <- function(varname) {
+  # Capture the name (unevaluated)
+  name <- substitute(varname)
+
+  # Deparse to string
+  var_str <- deparse(name)
+
+  # Lookup the value
+  value <- get(var_str, envir = parent.frame())
+
+  cli::cli_inform("Variable {.code {var_str}} has value: {value}")
+}
+
+score <- 88
+log_value(score)
+```
+
+This is cleaner and safer than passing `varname` directly (which would evaluate to the value before we can inspect it).
+
+### 3.2 `assign()` — Create or Modify a Variable by Name
+
+Now suppose you want to set a variable dynamically. `assign()` does the opposite of `get()` — it takes a **name as a string** and gives it a value:
+
+```{R}
+assign("z", 999)
+z
+```
+
+You can also specify the environment where the variable should be created or updated:
+
+```{R}
+e <- rlang::env()
+assign("x", 123, envir = e)
+e$x
+```
+
+This is useful in programmatic pipelines, custom data transformations, or internal helpers where variable names are passed as arguments.
+
+
+#### Example: Dynamic Variable Creation in a Custom Environment
+
+```{R}
+set_and_show <- function(name, value) {
+  name_str <- deparse(substitute(name))
+  env <- rlang::env()
+
+  assign(name_str, value, envir = env)
+  
+  # notice that we are extracting the value using `get()` not `value`
+
+  cli::cli_inform("Created {.code {name_str}} with value {.val {get(name_str, env)}}")
+}
+```
+
+```{R}
+set_and_show(score, 75)
+```
+
+This gives you total control over naming, assignment, and lookup — useful for package internals, simulations, or even domain-specific languages (DSLs).
+
+
+### To keep in mind
+
+* `get()` and `assign()` allow for **string-based variable manipulation**.
+* They respect **environments**, which is critical for reproducibility and scoping.
+* Combined with `substitute()`, you can safely bridge **symbolic expressions** and **string-based evaluation**.
+* Use with care: dynamic variable manipulation can make code harder to debug.
+
+
+### 3.3 `{rlang}` Equivalents: `env_get()`, `env_poke()`, and Friends
+
+If you’re writing packages or advanced tools, it’s usually better to avoid base R’s `get()` and `assign()` in favor of `{rlang}`'s **environment manipulation functions**, which are:
+
+* **explicit about scoping**
+* **type-safe and testable**
+* and **play nicely with modern metaprogramming idioms**
+
+
+#### `rlang::env_get()`: Safer Alternative to `get()`
+
+```{R}
+e <- rlang::env(x = 42)
+rlang::env_get(e, "x")
+```
+
+You can also provide a **default** value if the variable is missing:
+
+```{R}
+#| error: true
+rlang::env_get(e, "y")
+
+rlang::env_get(e, "y", default = NA)
+
+```
+
+By default, `rlang::env_get()` **does not walk up** the parent environments — unlike `get()`. If you want it to, use:
+
+```{R}
+#| error: true
+get_and_print_rlang <- function(name, 
+                          env = parent.frame(), 
+                          inherit = FALSE) {
+  if (!exists(name, envir = env)) stop("Boo! it is not here")
+  val <- rlang::env_get(env = env, 
+                        nm = name, 
+                        inherit = inherit)
+  print(val)
+}
+
+env2 <- rlang::env(y = 2)
+x <- 10
+get_and_print("x") # 10
+get_and_print("x", env = env) # 100
+get_and_print("x", env = env2) # 10 again because of the env chain
+get_and_print_rlang("x", env = env2) # error because it does not walk up
+get_and_print_rlang("x", env = env2, TRUE) # 10 again because of the env chain
+```
+
+
+#### `rlang::env_poke()`: Replacement for `assign()`
+
+`env_poke()` sets a binding in an environment:
+
+```{R}
+e <- rlang::env()
+rlang::env_poke(e, "z", 100)
+e$z
+```
+
+This is clearer and more explicit than using `assign()` with a string.
+
+
+#### Why Use `{rlang}` Instead of Base R?
+
+| Task           | Base R                        | `{rlang}`               | Benefit                                 |
+| -------------- | ----------------------------- | ----------------------- | --------------------------------------- |
+| Get value      | `get("x", envir = e)`         | `env_get(e, "x")`       | No surprises, inherits only if you want |
+| Set value      | `assign("x", val, envir = e)` | `env_poke(e, "x", val)` | Cleaner and safer                       |
+| Has binding?   | `exists("x", envir = e)`      | `env_has(e, "x")`       | Vectorized and clear                    |
+| Remove binding | `rm("x", envir = e)`          | `env_unbind(e, "x")`    | Safer removal                           |
+
+
+#### Bonus: `env_has()` and `env_unbind()`
+
+Want to check if a variable exists?
+
+```{R}
+rlang::env_has(e, "z")
+```
+
+Remove a variable:
+
+```{R}
+rlang::env_unbind(e, "z")
+rlang::env_has(e, "z")
+```
+
+
+#### Final Tip: Combine with `substitute()` or `enquo()`
+
+For advanced use, you can combine `env_get()` with `substitute()` to convert a symbol to a string before lookup:
+
+```{R}
+get_value <- function(x, .env = rlang::caller_env()) {
+  name <- deparse(substitute(x))
+  rlang::env_get(.env, name)
+}
+
+foo <- 123
+get_value(foo)
+```
+
+This is a safer, scoped version of `get("foo")`.

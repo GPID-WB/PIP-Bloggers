@@ -198,7 +198,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#why-get-is-not-enough" id="toc-why-get-is-not-enough" class="nav-link" data-scroll-target="#why-get-is-not-enough">2.2 Why <code>get()</code> Is Not Enough</a></li>
   <li><a href="#using-eval-instead-of-get" id="toc-using-eval-instead-of-get" class="nav-link" data-scroll-target="#using-eval-instead-of-get">2.3 Using <code>eval()</code> Instead of <code>get()</code></a></li>
   <li><a href="#what-about-substitute" id="toc-what-about-substitute" class="nav-link" data-scroll-target="#what-about-substitute">2.4 What about <code>substitute()</code></a></li>
-  <li><a href="#when-get-still-helps" id="toc-when-get-still-helps" class="nav-link" data-scroll-target="#when-get-still-helps">2.5 When <code>get()</code> Still Helps</a></li>
+  </ul></li>
+  <li><a href="#using-get-and-assign-for-controlled-evaluation" id="toc-using-get-and-assign-for-controlled-evaluation" class="nav-link" data-scroll-target="#using-get-and-assign-for-controlled-evaluation">3. Using <code>get()</code> and <code>assign()</code> for Controlled Evaluation</a>
+  <ul class="collapse">
+  <li><a href="#get-look-up-a-variable-by-name" id="toc-get-look-up-a-variable-by-name" class="nav-link" data-scroll-target="#get-look-up-a-variable-by-name">3.1 <code>get()</code> — Look Up a Variable by Name</a></li>
+  <li><a href="#assign-create-or-modify-a-variable-by-name" id="toc-assign-create-or-modify-a-variable-by-name" class="nav-link" data-scroll-target="#assign-create-or-modify-a-variable-by-name">3.2 <code>assign()</code> — Create or Modify a Variable by Name</a></li>
+  <li><a href="#to-keep-in-mind" id="toc-to-keep-in-mind" class="nav-link" data-scroll-target="#to-keep-in-mind">To keep in mind</a></li>
+  <li><a href="#rlang-equivalents-env_get-env_poke-and-friends" id="toc-rlang-equivalents-env_get-env_poke-and-friends" class="nav-link" data-scroll-target="#rlang-equivalents-env_get-env_poke-and-friends">3.3 <code>{rlang}</code> Equivalents: <code>env_get()</code>, <code>env_poke()</code>, and Friends</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -321,38 +327,297 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Here, <code>code</code> is already a proper unevaluated call object — using <code>substitute()</code> on it would just return the symbol <code>code</code>, not the inner expression (similar to what happen when you use <code>quote()</code> inside a function).</p>
 </section>
-<section id="when-get-still-helps" class="level3">
-<h3 class="anchored" data-anchor-id="when-get-still-helps">2.5 When <code>get()</code> Still Helps</h3>
-<p>In very specific cases, <code>get()</code> is handy:</p>
+</section>
+<section id="using-get-and-assign-for-controlled-evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="using-get-and-assign-for-controlled-evaluation">3. Using <code>get()</code> and <code>assign()</code> for Controlled Evaluation</h2>
+<p>In some cases, we don’t just want to evaluate expressions or capture what the user typed — we want to <strong>manipulate variables by name</strong>: retrieve their values from a particular environment, or assign new ones dynamically. That’s exactly what <code>get()</code> and <code>assign()</code> let us do.</p>
+<p>These tools operate on variable <em>names as strings</em>, which makes them incredibly flexible — and also risky if not used carefully. In this section, we’ll break down both functions and show how they interact with environments and evaluation.</p>
+<section id="get-look-up-a-variable-by-name" class="level3">
+<h3 class="anchored" data-anchor-id="get-look-up-a-variable-by-name">3.1 <code>get()</code> — Look Up a Variable by Name</h3>
+<p>The base R function <code>get()</code> retrieves the value of a variable, <strong>given its name as a string</strong>, and optionally, an environment in which to look.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>get_and_print <span class="ot">&lt;-</span> <span class="cf">function</span>(name, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">exists</span>(name, <span class="at">envir =</span> env)) <span class="fu">stop</span>(<span class="st">"Boo! it is not here"</span>)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> <span class="fu">get</span>(name, <span class="at">envir =</span> env)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(val)</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>env2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">y =</span> <span class="dv">2</span>)</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>) <span class="co"># 10</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 10</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env) <span class="co"># 100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 100</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2) <span class="co"># 10 again because of the env chain</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>It’s equivalent to just writing <code>x</code>, but you can control where to search:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">42</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>, <span class="at">envir =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 42</code></pre>
+</div>
+</div>
+<p>If <code>x</code> is not found, <code>get()</code> walks up the chain of parent environments, just like R’s normal variable resolution.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>get_and_print <span class="ot">&lt;-</span> <span class="cf">function</span>(name, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">exists</span>(name, <span class="at">envir =</span> env)) <span class="fu">stop</span>(<span class="st">"Boo! it is not here"</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> <span class="fu">get</span>(name, <span class="at">envir =</span> env)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(val)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>env2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">y =</span> <span class="dv">2</span>)</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>) <span class="co"># 10</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 10</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"zz"</span>, <span class="at">env =</span> env2) <span class="co"># error trigger by stop()</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env) <span class="co"># 100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2) <span class="co"># 10 again because of the env chain</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"zz"</span>, <span class="at">env =</span> env2) <span class="co"># error trigger by stop()</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-error">
 <pre><code>Error in get_and_print("zz", env = env2): Boo! it is not here</code></pre>
 </div>
 </div>
-<p>But avoid this style for anything more complex than a single symbol — it breaks easily and is hard to extend.</p>
+<section id="use-case-controlled-lookup-in-logging" class="level4">
+<h4 class="anchored" data-anchor-id="use-case-controlled-lookup-in-logging">Use Case: Controlled Lookup in Logging</h4>
+<p>Suppose you want to log both the <strong>name</strong> of the variable the user passed, and its <strong>value</strong>, without evaluating the entire expression. This is the same that we saw in the previous post with <code>eval()</code> but instead of having an expression, we have a the name of a variable.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>log_value <span class="ot">&lt;-</span> <span class="cf">function</span>(varname) {</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Capture the name (unevaluated)</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">substitute</span>(varname)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Deparse to string</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  var_str <span class="ot">&lt;-</span> <span class="fu">deparse</span>(name)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Lookup the value</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>  value <span class="ot">&lt;-</span> <span class="fu">get</span>(var_str, <span class="at">envir =</span> <span class="fu">parent.frame</span>())</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Variable {.code {var_str}} has value: {value}"</span>)</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>score <span class="ot">&lt;-</span> <span class="dv">88</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a><span class="fu">log_value</span>(score)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variable `score` has value: 88</code></pre>
+</div>
+</div>
+<p>This is cleaner and safer than passing <code>varname</code> directly (which would evaluate to the value before we can inspect it).</p>
+</section>
+</section>
+<section id="assign-create-or-modify-a-variable-by-name" class="level3">
+<h3 class="anchored" data-anchor-id="assign-create-or-modify-a-variable-by-name">3.2 <code>assign()</code> — Create or Modify a Variable by Name</h3>
+<p>Now suppose you want to set a variable dynamically. <code>assign()</code> does the opposite of <code>get()</code> — it takes a <strong>name as a string</strong> and gives it a value:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">assign</span>(<span class="st">"z"</span>, <span class="dv">999</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>z</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 999</code></pre>
+</div>
+</div>
+<p>You can also specify the environment where the variable should be created or updated:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>()</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">assign</span>(<span class="st">"x"</span>, <span class="dv">123</span>, <span class="at">envir =</span> e)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>x</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 123</code></pre>
+</div>
+</div>
+<p>This is useful in programmatic pipelines, custom data transformations, or internal helpers where variable names are passed as arguments.</p>
+<section id="example-dynamic-variable-creation-in-a-custom-environment" class="level4">
+<h4 class="anchored" data-anchor-id="example-dynamic-variable-creation-in-a-custom-environment">Example: Dynamic Variable Creation in a Custom Environment</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>set_and_show <span class="ot">&lt;-</span> <span class="cf">function</span>(name, value) {</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  name_str <span class="ot">&lt;-</span> <span class="fu">deparse</span>(<span class="fu">substitute</span>(name))</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>()</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">assign</span>(name_str, value, <span class="at">envir =</span> env)</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># notice that we are extracting the value using `get()` not `value`</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Created {.code {name_str}} with value {.val {get(name_str, env)}}"</span>)</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set_and_show</span>(score, <span class="dv">75</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Created `score` with value 75</code></pre>
+</div>
+</div>
+<p>This gives you total control over naming, assignment, and lookup — useful for package internals, simulations, or even domain-specific languages (DSLs).</p>
+</section>
+</section>
+<section id="to-keep-in-mind" class="level3">
+<h3 class="anchored" data-anchor-id="to-keep-in-mind">To keep in mind</h3>
+<ul>
+<li><code>get()</code> and <code>assign()</code> allow for <strong>string-based variable manipulation</strong>.</li>
+<li>They respect <strong>environments</strong>, which is critical for reproducibility and scoping.</li>
+<li>Combined with <code>substitute()</code>, you can safely bridge <strong>symbolic expressions</strong> and <strong>string-based evaluation</strong>.</li>
+<li>Use with care: dynamic variable manipulation can make code harder to debug.</li>
+</ul>
+</section>
+<section id="rlang-equivalents-env_get-env_poke-and-friends" class="level3">
+<h3 class="anchored" data-anchor-id="rlang-equivalents-env_get-env_poke-and-friends">3.3 <code>{rlang}</code> Equivalents: <code>env_get()</code>, <code>env_poke()</code>, and Friends</h3>
+<p>If you’re writing packages or advanced tools, it’s usually better to avoid base R’s <code>get()</code> and <code>assign()</code> in favor of <code>{rlang}</code>’s <strong>environment manipulation functions</strong>, which are:</p>
+<ul>
+<li><strong>explicit about scoping</strong></li>
+<li><strong>type-safe and testable</strong></li>
+<li>and <strong>play nicely with modern metaprogramming idioms</strong></li>
+</ul>
+<section id="rlangenv_get-safer-alternative-to-get" class="level4">
+<h4 class="anchored" data-anchor-id="rlangenv_get-safer-alternative-to-get"><code>rlang::env_get()</code>: Safer Alternative to <code>get()</code></h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">42</span>)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"x"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 42</code></pre>
+</div>
+</div>
+<p>You can also provide a <strong>default</strong> value if the variable is missing:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"y"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `rlang::env_get()`:
+! Can't find `y` in environment.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"y"</span>, <span class="at">default =</span> <span class="cn">NA</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] NA</code></pre>
+</div>
+</div>
+<p>By default, <code>rlang::env_get()</code> <strong>does not walk up</strong> the parent environments — unlike <code>get()</code>. If you want it to, use:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>get_and_print_rlang <span class="ot">&lt;-</span> <span class="cf">function</span>(name, </span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>                          <span class="at">env =</span> <span class="fu">parent.frame</span>(), </span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">inherit =</span> <span class="cn">FALSE</span>) {</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">exists</span>(name, <span class="at">envir =</span> env)) <span class="fu">stop</span>(<span class="st">"Boo! it is not here"</span>)</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env_get</span>(<span class="at">env =</span> env, </span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">nm =</span> name, </span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>                        <span class="at">inherit =</span> inherit)</span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(val)</span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>env2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">y =</span> <span class="dv">2</span>)</span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>) <span class="co"># 10</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env) <span class="co"># 100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2) <span class="co"># 10 again because of the env chain</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print_rlang</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2) <span class="co"># error because it does not walk up</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `rlang::env_get()`:
+! Can't find `x` in environment.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print_rlang</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2, <span class="cn">TRUE</span>) <span class="co"># 10 again because of the env chain</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+</div>
+</section>
+<section id="rlangenv_poke-replacement-for-assign" class="level4">
+<h4 class="anchored" data-anchor-id="rlangenv_poke-replacement-for-assign"><code>rlang::env_poke()</code>: Replacement for <code>assign()</code></h4>
+<p><code>env_poke()</code> sets a binding in an environment:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>()</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_poke</span>(e, <span class="st">"z"</span>, <span class="dv">100</span>)</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>z</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+</div>
+<p>This is clearer and more explicit than using <code>assign()</code> with a string.</p>
+</section>
+<section id="why-use-rlang-instead-of-base-r" class="level4">
+<h4 class="anchored" data-anchor-id="why-use-rlang-instead-of-base-r">Why Use <code>{rlang}</code> Instead of Base R?</h4>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 13%">
+<col style="width: 27%">
+<col style="width: 21%">
+<col style="width: 37%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task</th>
+<th>Base R</th>
+<th><code>{rlang}</code></th>
+<th>Benefit</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Get value</td>
+<td><code>get("x", envir = e)</code></td>
+<td><code>env_get(e, "x")</code></td>
+<td>No surprises, inherits only if you want</td>
+</tr>
+<tr class="even">
+<td>Set value</td>
+<td><code>assign("x", val, envir = e)</code></td>
+<td><code>env_poke(e, "x", val)</code></td>
+<td>Cleaner and safer</td>
+</tr>
+<tr class="odd">
+<td>Has binding?</td>
+<td><code>exists("x", envir = e)</code></td>
+<td><code>env_has(e, "x")</code></td>
+<td>Vectorized and clear</td>
+</tr>
+<tr class="even">
+<td>Remove binding</td>
+<td><code>rm("x", envir = e)</code></td>
+<td><code>env_unbind(e, "x")</code></td>
+<td>Safer removal</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bonus-env_has-and-env_unbind" class="level4">
+<h4 class="anchored" data-anchor-id="bonus-env_has-and-env_unbind">Bonus: <code>env_has()</code> and <code>env_unbind()</code></h4>
+<p>Want to check if a variable exists?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_has</span>(e, <span class="st">"z"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   z 
+TRUE </code></pre>
+</div>
+</div>
+<p>Remove a variable:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_unbind</span>(e, <span class="st">"z"</span>)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_has</span>(e, <span class="st">"z"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    z 
+FALSE </code></pre>
+</div>
+</div>
+</section>
+<section id="final-tip-combine-with-substitute-or-enquo" class="level4">
+<h4 class="anchored" data-anchor-id="final-tip-combine-with-substitute-or-enquo">Final Tip: Combine with <code>substitute()</code> or <code>enquo()</code></h4>
+<p>For advanced use, you can combine <code>env_get()</code> with <code>substitute()</code> to convert a symbol to a string before lookup:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>get_value <span class="ot">&lt;-</span> <span class="cf">function</span>(x, <span class="at">.env =</span> rlang<span class="sc">::</span><span class="fu">caller_env</span>()) {</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">deparse</span>(<span class="fu">substitute</span>(x))</span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>  rlang<span class="sc">::</span><span class="fu">env_get</span>(.env, name)</span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a>foo <span class="ot">&lt;-</span> <span class="dv">123</span></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a><span class="fu">get_value</span>(foo)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 123</code></pre>
+</div>
+</div>
+<p>This is a safer, scoped version of <code>get("foo")</code>.</p>
 
 
+</section>
 </section>
 </section>
 
