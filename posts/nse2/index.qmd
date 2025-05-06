@@ -18,3 +18,149 @@ execute:
   output: true
 ---
 
+
+## 1. Why NSE Matters for Developers
+
+Non-Standard Evaluation (NSE) is not just a curiosity — it's a core part of modern R programming, especially for package developers who want to:
+
+* Build clean, expressive interfaces (like `dplyr::filter(mpg > 20)`)
+* Delay or relocate expression evaluation
+* Write tools for logging, debugging, or metaprogramming
+
+To use NSE effectively, you need more than `quote()` or `substitute()`. You need tools that work *inside functions*, play well with environments, and support user-friendly interfaces. That’s where base tools like `get()` and modern tools from `{rlang}` come in.
+
+
+## 2. Retrieving Variables from Custom Environments
+
+Let’s start with something simple — but deceptive: using `get()` to evaluate code in a different environment.
+
+### 2.1 The Basic Idea of `get()`
+
+`get()` is a base R function that retrieves the **value bound to a name** from an environment. It's equivalent to doing `env$name`, but with more flexibility:
+
+```{R}
+env <- rlang::env(x = 100)
+get("x", envir = env)
+```
+
+This looks simple. But it only works if you **already know the name** as a string.
+
+If you try:
+
+```{R}
+#| error: true
+var <- quote(x + 1)
+get(var, envir = env)
+```
+
+You’ll get an error: `get()` doesn’t evaluate expressions — just single **symbols** (variable names). This limitation is why `get()` is only useful in very narrow NSE contexts.
+
+
+
+### 2.2 Why `get()` Is Not Enough
+
+Suppose you write a generic logging function like this:
+
+```{R}
+log_get <- function(var_name, env = parent.frame()) {
+  value <- get(var_name, envir = env)
+  cat("Found", var_name, "with value:", value, "\n")
+}
+```
+
+It works:
+
+```{R}
+x <- 42
+log_get("x")
+```
+
+But now try:
+
+```{R}
+#| error: true
+log_get("x + 1")
+```
+
+This fails — because `"x + 1"` is not a symbol. It's a string that represents an expression, and `get()` can’t parse or evaluate it.
+
+
+### 2.3 Using `eval()` Instead of `get()`
+
+To evaluate **expressions**, we need `eval()`:
+
+```{R}
+env <- rlang::env(x = 100)
+expr <- quote(x + 1)
+eval(expr, envir = env)
+```
+
+This works because `eval()` knows how to process structured expressions (not just names) and can recursively resolve variables.
+
+Now wrap this in a function:
+
+```{R}
+log_eval_expr <- function(expr, env = parent.frame()) {
+  val <- eval(expr, envir = env)
+  cat("Expression", deparse(expr), "evaluated to", val, "\n")
+}
+
+x <- 5
+log_eval_expr(quote(x + 1))
+```
+
+**Takeaway**: Use `get()` when you have a **name**, use `eval()` when you have a **language object** (i.e., an expression).
+
+
+
+### 2.4 What about `substitute()`
+
+You may wonder why we are not using substitute in this function as we learned in the previous post? Good question.  You need `substitute()` when you're writing a function that receives **user-typed code** (unevaluated), and you want to **capture the expression itself** — before R evaluates it.
+
+Example:
+
+```{r}
+my_logger <- function(expr) {
+  code <- substitute(expr)
+  cat("You typed: ", deparse(code), "\n")
+  val <- eval(code)
+  val
+}
+```
+
+Here, `expr` is just a placeholder. Without `substitute()`, R evaluates it **before** the function body runs, so the function can’t recover the original code.
+
+
+If you're writing a function where `expr` is **already an expression** (e.g., something like `expr <- quote(a + b)` or `expr <- rlang::expr(a + b)`), then you don’t want `substitute()` — because the expression is already captured.
+
+For example:
+
+```{r}
+code <- quote(x + 1)
+eval(code, envir = env)
+```
+
+Here, `code` is already a proper unevaluated call object — using `substitute()` on it would just return the symbol `code`, not the inner expression (similar to what happen when you use `quote()` inside a function).
+
+
+### 2.5 When `get()` Still Helps
+
+In very specific cases, `get()` is handy:
+
+```{R}
+#| error: true
+get_and_print <- function(name, env = parent.frame()) {
+  if (!exists(name, envir = env)) stop("Boo! it is not here")
+  val <- get(name, envir = env)
+  print(val)
+}
+
+env2 <- rlang::env(y = 2)
+x <- 10
+get_and_print("x") # 10
+get_and_print("x", env = env) # 100
+get_and_print("x", env = env2) # 10 again because of the env chain
+get_and_print("zz", env = env2) # error trigger by stop()
+```
+
+But avoid this style for anything more complex than a single symbol — it breaks easily and is hard to extend.
