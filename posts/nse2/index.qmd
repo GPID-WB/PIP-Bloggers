@@ -362,3 +362,79 @@ get_value(foo)
 ```
 
 This is a safer, scoped version of `get("foo")`.
+
+
+## 4. `rlang::eval_tidy()` and Data-Masked Evaluation
+
+When writing user-friendly R packages — especially those involving modeling, plotting, or data manipulation — it’s not enough to evaluate expressions in a custom environment. Often, you want to evaluate expressions **as if columns of a data frame were variables**, the way `dplyr::filter()` and `ggplot2::aes()` do it.
+
+This is where **data-masked evaluation** comes in, and `{rlang}` provides the perfect tool for this: `rlang::eval_tidy()`.
+
+### 4.1 What Is a Data Mask?
+
+A **data mask** is an environment that makes the columns of a data frame behave like variables. In practice, it means users can write expressions like `mpg > 25` instead of `df$mpg > 25`, and your function will still understand what they meant.
+
+The data mask lets you evaluate those expressions in a way that prioritizes the **columns of the data frame** while still allowing access to other objects from parent environments.
+
+This evaluation strategy is essential for tidyverse functions — and it's now easy to replicate thanks to `rlang::eval_tidy()`.
+
+#### Basic Example
+
+Let’s say we want to filter rows of a data frame using a custom function:
+
+```{R}
+
+my_filter <- function(data, expr) {
+  expr <- rlang::enquo(expr)
+  rows <- rlang::eval_tidy(expr, data)
+  data[rows, ]
+}
+```
+
+This lets you write:
+
+```{R}
+my_filter(mtcars, mpg > 25)
+```
+
+Inside `eval_tidy()`, `{rlang}` creates a special environment where `mpg` is resolved to the column `mtcars$mpg`, not to any global variable. The masking happens safely and transparently.
+
+### What If You Just Used `eval()`?
+
+To emphasize the difference, try this:
+
+```{R}
+#| error: true 
+my_filter_wrong <- function(data, expr) {
+  expr <- rlang::enquo(expr)
+  rows <- eval(rlang::get_expr(expr))
+  data[rows, ]
+}
+
+# this fails
+my_filter_wrong(mtcars, mpg > 25)
+```
+
+
+Why? Because `eval()` looks for `mpg` in the calling environment — not inside `data`. It has no idea that `mpg` is a column. This is the core problem `eval_tidy()` solves.
+
+### You Can Still Refer to Outer Variables
+
+The power of `eval_tidy()` is that it doesn’t *replace* your environment — it *augments* it. You can still use objects from outside the data mask:
+
+```{R}
+threshold <- 100
+
+my_filter(mtcars, hp > threshold)
+```
+
+As long as `threshold` exists in the parent environment, it will be found — but column names like `hp` will take priority.
+
+This layered lookup structure makes your functions flexible and safe to use.
+
+### Why This Matters
+
+* `eval_tidy()` is the core of how packages like `{ggplot2}`, `{dplyr}`, `{purrr}` and `{rlang}` achieve their user-friendly syntax.
+* If you’re writing a function that evaluates expressions inside data frames, this is the right tool.
+* Unlike `eval()`, it is **safe**, **consistent**, and **scoped** to your data.
+
