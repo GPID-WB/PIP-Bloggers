@@ -206,7 +206,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#to-keep-in-mind" id="toc-to-keep-in-mind" class="nav-link" data-scroll-target="#to-keep-in-mind">To keep in mind</a></li>
   <li><a href="#rlang-equivalents-env_get-env_poke-and-friends" id="toc-rlang-equivalents-env_get-env_poke-and-friends" class="nav-link" data-scroll-target="#rlang-equivalents-env_get-env_poke-and-friends">3.3 <code>{rlang}</code> Equivalents: <code>env_get()</code>, <code>env_poke()</code>, and Friends</a></li>
   </ul></li>
-  <li><a href="#rlangeval_tidy-and-data-masked-evaluation" id="toc-rlangeval_tidy-and-data-masked-evaluation" class="nav-link" data-scroll-target="#rlangeval_tidy-and-data-masked-evaluation">4. <code>rlang::eval_tidy()</code> and Data-Masked Evaluation</a>
+  <li><a href="#data-masked-evaluation" id="toc-data-masked-evaluation" class="nav-link" data-scroll-target="#data-masked-evaluation">4. Data-Masked Evaluation</a>
   <ul class="collapse">
   <li><a href="#what-is-a-data-mask" id="toc-what-is-a-data-mask" class="nav-link" data-scroll-target="#what-is-a-data-mask">4.1 What Is a Data Mask?</a></li>
   <li><a href="#what-if-you-just-used-eval" id="toc-what-if-you-just-used-eval" class="nav-link" data-scroll-target="#what-if-you-just-used-eval">What If You Just Used <code>eval()</code>?</a></li>
@@ -625,28 +625,80 @@ FALSE </code></pre>
 </section>
 </section>
 </section>
-<section id="rlangeval_tidy-and-data-masked-evaluation" class="level2">
-<h2 class="anchored" data-anchor-id="rlangeval_tidy-and-data-masked-evaluation">4. <code>rlang::eval_tidy()</code> and Data-Masked Evaluation</h2>
+<section id="data-masked-evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="data-masked-evaluation">4. Data-Masked Evaluation</h2>
 <p>When writing user-friendly R packages — especially those involving modeling, plotting, or data manipulation — it’s not enough to evaluate expressions in a custom environment. Often, you want to evaluate expressions <strong>as if columns of a data frame were variables</strong>, the way <code>dplyr::filter()</code> and <code>ggplot2::aes()</code> do it.</p>
-<p>This is where <strong>data-masked evaluation</strong> comes in, and <code>{rlang}</code> provides the perfect tool for this: <code>rlang::eval_tidy()</code>.</p>
 <section id="what-is-a-data-mask" class="level3">
 <h3 class="anchored" data-anchor-id="what-is-a-data-mask">4.1 What Is a Data Mask?</h3>
 <p>A <strong>data mask</strong> is an environment that makes the columns of a data frame behave like variables. In practice, it means users can write expressions like <code>mpg &gt; 25</code> instead of <code>df$mpg &gt; 25</code>, and your function will still understand what they meant.</p>
 <p>The data mask lets you evaluate those expressions in a way that prioritizes the <strong>columns of the data frame</strong> while still allowing access to other objects from parent environments.</p>
-<p>This evaluation strategy is essential for tidyverse functions — and it’s now easy to replicate thanks to <code>rlang::eval_tidy()</code>.</p>
+<p>This is where <strong>data-masked evaluation</strong> comes in, and <code>{rlang}</code> provides the perfect tool for this: <code>rlang::eval_tidy()</code>.</p>
+<p>But first, we need to understand the difference between <code>{rlang}</code> and <code>base B</code></p>
+<section id="enquo-vs.-substitute-tidy-capture-vs.-base-capture" class="level4">
+<h4 class="anchored" data-anchor-id="enquo-vs.-substitute-tidy-capture-vs.-base-capture"><code>enquo()</code> vs.&nbsp;<code>substitute()</code>: Tidy Capture vs.&nbsp;Base Capture</h4>
+<p>In base R, you use <code>substitute(expr)</code> to capture the unevaluated expression passed to a function. This gives you access to <em>what the user typed</em>, not the result of evaluation:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>log_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">substitute</span>(expr))</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="fu">log_expr</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x + 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; x + 1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>However, <code>substitute()</code> has no built-in way to capture <strong>quosures</strong> — expressions <em>plus</em> their environment. This is where <code>rlang::enquo()</code> comes in.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>log_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>  quo <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(expr)</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(quo)</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a><span class="fu">log_expr</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;quosure&gt;
+expr: ^x + 1
+env:  global</code></pre>
+</div>
+</div>
+<ul>
+<li><code>substitute()</code> gives you a <strong>raw expression</strong>.</li>
+<li><code>rlang::enquo()</code> gives you a <strong>quosure</strong>: an expression <em>and</em> the environment where it was typed.</li>
+</ul>
+<p>This matters for tidy evaluation, where functions need to know not just <em>what</em> was written, but also <em>where</em> to evaluate it — especially if variables can be found in different environments.</p>
+</section>
+<section id="eval_tidy-vs.-eval-masked-vs.-regular-evaluation" class="level4">
+<h4 class="anchored" data-anchor-id="eval_tidy-vs.-eval-masked-vs.-regular-evaluation"><code>eval_tidy()</code> vs.&nbsp;<code>eval()</code>: Masked vs.&nbsp;Regular Evaluation</h4>
+<p>In base R, <code>eval(expr, envir)</code> evaluates <code>expr</code> using the provided environment <code>envir</code>. But that’s it — it treats <code>envir</code> as a regular environment.</p>
+<p>In contrast, <code>rlang::eval_tidy(expr, data)</code> evaluates <code>expr</code> in a <strong>data mask</strong>, where:</p>
+<ol type="1">
+<li>Column names in <code>data</code> behave like variables.</li>
+<li>Outer variables (e.g., from global or calling environments) are still accessible if not masked by data columns.</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">25</span></span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(<span class="fu">quote</span>(mpg <span class="sc">&gt;</span> threshold), <span class="at">data =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE
+[25] FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE</code></pre>
+</div>
+</div>
+<p>This behaves as if both <code>mpg</code> and <code>threshold</code> were variables in the same environment. Internally, <code>eval_tidy()</code> creates a <strong>layered environment</strong> — first the data, then the calling environment — and evaluates <code>expr</code> inside that composite structure.</p>
+</section>
 <section id="basic-example" class="level4">
 <h4 class="anchored" data-anchor-id="basic-example">Basic Example</h4>
 <p>Let’s say we want to filter rows of a data frame using a custom function:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>my_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, expr) {</span>
-<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(expr)</span>
-<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
-<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
-<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>my_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, expr) {</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(expr)</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>This lets you write:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter</span>(mtcars, mpg <span class="sc">&gt;</span> <span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter</span>(mtcars, mpg <span class="sc">&gt;</span> <span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
 Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
@@ -664,14 +716,14 @@ Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
 <h3 class="anchored" data-anchor-id="what-if-you-just-used-eval">What If You Just Used <code>eval()</code>?</h3>
 <p>To emphasize the difference, try this:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>my_filter_wrong <span class="ot">&lt;-</span> <span class="cf">function</span>(data, expr) {</span>
-<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(expr)</span>
-<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">eval</span>(rlang<span class="sc">::</span><span class="fu">get_expr</span>(expr))</span>
-<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
-<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a><span class="co"># this fails</span></span>
-<span id="cb65-8"><a href="#cb65-8" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter_wrong</span>(mtcars, mpg <span class="sc">&gt;</span> <span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>my_filter_wrong <span class="ot">&lt;-</span> <span class="cf">function</span>(data, expr) {</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(expr)</span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">eval</span>(rlang<span class="sc">::</span><span class="fu">get_expr</span>(expr))</span>
+<span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb72-5"><a href="#cb72-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb72-6"><a href="#cb72-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-7"><a href="#cb72-7" aria-hidden="true" tabindex="-1"></a><span class="co"># this fails</span></span>
+<span id="cb72-8"><a href="#cb72-8" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter_wrong</span>(mtcars, mpg <span class="sc">&gt;</span> <span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-error">
 <pre><code>Error in eval(rlang::get_expr(expr)): object 'mpg' not found</code></pre>
 </div>
@@ -682,9 +734,9 @@ Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
 <h3 class="anchored" data-anchor-id="you-can-still-refer-to-outer-variables">You Can Still Refer to Outer Variables</h3>
 <p>The power of <code>eval_tidy()</code> is that it doesn’t <em>replace</em> your environment — it <em>augments</em> it. You can still use objects from outside the data mask:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">100</span></span>
-<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter</span>(mtcars, hp <span class="sc">&gt;</span> threshold)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter</span>(mtcars, hp <span class="sc">&gt;</span> threshold)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
 Mazda RX4           21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4

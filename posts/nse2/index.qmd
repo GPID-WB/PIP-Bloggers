@@ -364,11 +364,10 @@ get_value(foo)
 This is a safer, scoped version of `get("foo")`.
 
 
-## 4. `rlang::eval_tidy()` and Data-Masked Evaluation
+## 4. Data-Masked Evaluation
 
 When writing user-friendly R packages — especially those involving modeling, plotting, or data manipulation — it’s not enough to evaluate expressions in a custom environment. Often, you want to evaluate expressions **as if columns of a data frame were variables**, the way `dplyr::filter()` and `ggplot2::aes()` do it.
 
-This is where **data-masked evaluation** comes in, and `{rlang}` provides the perfect tool for this: `rlang::eval_tidy()`.
 
 ### 4.1 What Is a Data Mask?
 
@@ -376,7 +375,55 @@ A **data mask** is an environment that makes the columns of a data frame behave 
 
 The data mask lets you evaluate those expressions in a way that prioritizes the **columns of the data frame** while still allowing access to other objects from parent environments.
 
-This evaluation strategy is essential for tidyverse functions — and it's now easy to replicate thanks to `rlang::eval_tidy()`.
+This is where **data-masked evaluation** comes in, and `{rlang}` provides the perfect tool for this: `rlang::eval_tidy()`.
+
+But first, we need to understand the difference between `{rlang}` and `base B`
+
+#### `enquo()` vs. `substitute()`: Tidy Capture vs. Base Capture
+
+In base R, you use `substitute(expr)` to capture the unevaluated expression passed to a function. This gives you access to *what the user typed*, not the result of evaluation:
+
+```{R}
+log_expr <- function(expr) {
+  print(substitute(expr))
+}
+log_expr(x + 1)
+#> x + 1
+```
+
+However, `substitute()` has no built-in way to capture **quosures** — expressions *plus* their environment. This is where `rlang::enquo()` comes in.
+
+```{R}
+log_expr <- function(expr) {
+  quo <- rlang::enquo(expr)
+  print(quo)
+}
+log_expr(x + 1)
+```
+
+* `substitute()` gives you a **raw expression**.
+* `rlang::enquo()` gives you a **quosure**: an expression *and* the environment where it was typed.
+
+This matters for tidy evaluation, where functions need to know not just *what* was written, but also *where* to evaluate it — especially if variables can be found in different environments.
+
+#### `eval_tidy()` vs. `eval()`: Masked vs. Regular Evaluation
+
+In base R, `eval(expr, envir)` evaluates `expr` using the provided environment `envir`. But that’s it — it treats `envir` as a regular environment.
+
+In contrast, `rlang::eval_tidy(expr, data)` evaluates `expr` in a **data mask**, where:
+
+1. Column names in `data` behave like variables.
+2. Outer variables (e.g., from global or calling environments) are still accessible if not masked by data columns.
+
+```{R}
+threshold <- 25
+
+rlang::eval_tidy(quote(mpg > threshold), data = mtcars)
+```
+
+This behaves as if both `mpg` and `threshold` were variables in the same environment. Internally, `eval_tidy()` creates a **layered environment** — first the data, then the calling environment — and evaluates `expr` inside that composite structure.
+
+
 
 #### Basic Example
 
