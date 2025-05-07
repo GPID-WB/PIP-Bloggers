@@ -1,31 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://GPID-WB.github.io/PIP-Bloggers/posts/SysCall/index.html</loc>
-    <lastmod>2025-04-15T17:57:24.976Z</lastmod>
+    <loc>https://GPID-WB.github.io/PIP-Bloggers/about.html</loc>
+    <lastmod>2025-05-07T13:27:22.421Z</lastmod>
+  </url>
+  <url>
+    <loc>https://GPID-WB.github.io/PIP-Bloggers/posts/nse1/index.html</loc>
+    <lastmod>2025-05-07T13:27:22.465Z</lastmod>
   </url>
   <url>
     <loc>https://GPID-WB.github.io/PIP-Bloggers/posts/Check_args/index.html</loc>
-    <lastmod>2025-04-15T17:57:24.975Z</lastmod>
+    <lastmod>2025-05-07T13:27:22.450Z</lastmod>
   </url>
   <url>
     <loc>https://GPID-WB.github.io/PIP-Bloggers/posts/nested_trycatch/index.html</loc>
-    <lastmod>2025-04-15T17:57:24.993Z</lastmod>
+    <lastmod>2025-05-07T13:27:22.464Z</lastmod>
   </url>
   <url>
-    <loc>https://GPID-WB.github.io/PIP-Bloggers/index.html</loc>
-    <lastmod>2025-04-15T17:57:24.975Z</lastmod>
-  </url>
-  <url>
-    <loc>https://GPID-WB.github.io/PIP-Bloggers/about.html</loc>
-    <lastmod>2025-04-15T17:57:24.967Z</lastmod>
-  </url>
-  <url>
-    <loc>https://GPID-WB.github.io/PIP-Bloggers/posts/collapse_cheat_sheet/index.html</loc>
-    <lastmod>2025-04-15T17:57:24.983Z</lastmod>
+    <loc>https://GPID-WB.github.io/PIP-Bloggers/posts/SysCall/index.html</loc>
+    <lastmod>2025-05-07T13:27:22.450Z</lastmod>
   </url>
   <url>
     <loc>https://GPID-WB.github.io/PIP-Bloggers/posts/Excp_Hndl/index.html</loc>
-    <lastmod>2025-04-15T17:57:24.975Z</lastmod>
+    <lastmod>2025-05-07T13:27:22.450Z</lastmod>
+  </url>
+  <url>
+    <loc>https://GPID-WB.github.io/PIP-Bloggers/posts/collapse_cheat_sheet/index.html</loc>
+    <lastmod>2025-05-07T13:27:22.458Z</lastmod>
+  </url>
+  <url>
+    <loc>https://GPID-WB.github.io/PIP-Bloggers/index.html</loc>
+    <lastmod>2025-05-07T13:27:22.450Z</lastmod>
   </url>
 </urlset>
