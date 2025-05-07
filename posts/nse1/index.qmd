@@ -103,6 +103,19 @@ This function:
 -   Prints the expression,
 -   Then evaluates it.
 
+As an aside, this can also be done using `match.call()`, which you can read more about using `?match.call()`. Note the way the `match.call()` is subsetted -- what does that tell you about the output of the function?
+
+```{R}
+log_eval <- function(expr) {
+  p <- match.call()
+  cat("About to evaluate:", deparse(p[[2]]), "\n")
+  result <- eval(expr)
+  result
+}
+log_eval(x + 3)
+```
+
+
 ## 2. Expressions Are Not Strings: Understanding How R Represents Code
 
 To understand that piece of code fully, we need to know five into tools like `substitute()`, `deparse()`, or `eval()`. Yet, there is something even more fundamental to understand first:
@@ -181,6 +194,7 @@ x + 1
 In the first case, R captures the expression; in the second, it evaluates it.
 
 `bquote()` allows partial evaluation inside a quoted expression, useful for plotting or math expressions.
+
 ```{R}
 quote(.(x) + 1)
 bquote(.(x) + 1)
