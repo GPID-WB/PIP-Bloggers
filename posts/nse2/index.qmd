@@ -18,17 +18,15 @@ execute:
   output: true
 ---
 
-
 ## 1. Why NSE Matters for Developers
 
 Non-Standard Evaluation (NSE) is not just a curiosity — it's a core part of modern R programming, especially for package developers who want to:
 
-* Build clean, expressive interfaces (like `dplyr::filter(mpg > 20)`)
-* Delay or relocate expression evaluation
-* Write tools for logging, debugging, or metaprogramming
+-   Build clean, expressive interfaces (like `dplyr::filter(mpg > 20)`)
+-   Delay or relocate expression evaluation
+-   Write tools for logging, debugging, or metaprogramming
 
 To use NSE effectively, you need more than `quote()` or `substitute()`. You need tools that work *inside functions*, play well with environments, and support user-friendly interfaces. That’s where base tools like `get()` and modern tools from `{rlang}` come in.
-
 
 ## 2. Retrieving Variables from Custom Environments
 
@@ -54,8 +52,6 @@ get(var, envir = env)
 ```
 
 You’ll get an error: `get()` doesn’t evaluate expressions — just single **symbols** (variable names). This limitation is why `get()` is only useful in very narrow NSE contexts.
-
-
 
 ### 2.2 Why `get()` Is Not Enough
 
@@ -84,7 +80,6 @@ log_get("x + 1")
 
 This fails — because `"x + 1"` is not a symbol. It's a string that represents an expression, and `get()` can’t parse or evaluate it.
 
-
 ### 2.3 Using `eval()` Instead of `get()`
 
 To evaluate **expressions**, we need `eval()`:
@@ -111,11 +106,9 @@ log_eval_expr(quote(x + 1))
 
 **Takeaway**: Use `get()` when you have a **name**, use `eval()` when you have a **language object** (i.e., an expression).
 
-
-
 ### 2.4 What about `substitute()`
 
-You may wonder why we are not using substitute in this function as we learned in the previous post? Good question.  You need `substitute()` when you're writing a function that receives **user-typed code** (unevaluated), and you want to **capture the expression itself** — before R evaluates it.
+You may wonder why we are not using substitute in this function as we learned in the previous post? Good question. You need `substitute()` when you're writing a function that receives **user-typed code** (unevaluated), and you want to **capture the expression itself** — before R evaluates it.
 
 Example:
 
@@ -129,7 +122,6 @@ my_logger <- function(expr) {
 ```
 
 Here, `expr` is just a placeholder. Without `substitute()`, R evaluates it **before** the function body runs, so the function can’t recover the original code.
-
 
 If you're writing a function where `expr` is **already an expression** (e.g., something like `expr <- quote(a + b)` or `expr <- rlang::expr(a + b)`), then you don’t want `substitute()` — because the expression is already captured.
 
@@ -166,7 +158,6 @@ get("x", envir = e)
 
 If `x` is not found, `get()` walks up the chain of parent environments, just like R’s normal variable resolution.
 
-
 ```{R}
 #| error: true
 get_and_print <- function(name, env = parent.frame()) {
@@ -183,10 +174,9 @@ get_and_print("x", env = env2) # 10 again because of the env chain
 get_and_print("zz", env = env2) # error trigger by stop()
 ```
 
-
 #### Use Case: Controlled Lookup in Logging
 
-Suppose you want to log both the **name** of the variable the user passed, and its **value**, without evaluating the entire expression. This is the same that we saw in the previous post with `eval()` but instead of having an expression, we have a the name of a variable. 
+Suppose you want to log both the **name** of the variable the user passed, and its **value**, without evaluating the entire expression. This is the same that we saw in the previous post with `eval()` but instead of having an expression, we have a the name of a variable.
 
 ```{R}
 log_value <- function(varname) {
@@ -227,7 +217,6 @@ e$x
 
 This is useful in programmatic pipelines, custom data transformations, or internal helpers where variable names are passed as arguments.
 
-
 #### Example: Dynamic Variable Creation in a Custom Environment
 
 ```{R}
@@ -249,23 +238,20 @@ set_and_show(score, 75)
 
 This gives you total control over naming, assignment, and lookup — useful for package internals, simulations, or even domain-specific languages (DSLs).
 
-
 ### To keep in mind
 
-* `get()` and `assign()` allow for **string-based variable manipulation**.
-* They respect **environments**, which is critical for reproducibility and scoping.
-* Combined with `substitute()`, you can safely bridge **symbolic expressions** and **string-based evaluation**.
-* Use with care: dynamic variable manipulation can make code harder to debug.
-
+-   `get()` and `assign()` allow for **string-based variable manipulation**.
+-   They respect **environments**, which is critical for reproducibility and scoping.
+-   Combined with `substitute()`, you can safely bridge **symbolic expressions** and **string-based evaluation**.
+-   Use with care: dynamic variable manipulation can make code harder to debug.
 
 ### 3.3 `{rlang}` Equivalents: `env_get()`, `env_poke()`, and Friends
 
 If you’re writing packages or advanced tools, it’s usually better to avoid base R’s `get()` and `assign()` in favor of `{rlang}`'s **environment manipulation functions**, which are:
 
-* **explicit about scoping**
-* **type-safe and testable**
-* and **play nicely with modern metaprogramming idioms**
-
+-   **explicit about scoping**
+-   **type-safe and testable**
+-   and **play nicely with modern metaprogramming idioms**
 
 #### `rlang::env_get()`: Safer Alternative to `get()`
 
@@ -307,7 +293,6 @@ get_and_print_rlang("x", env = env2) # error because it does not walk up
 get_and_print_rlang("x", env = env2, TRUE) # 10 again because of the env chain
 ```
 
-
 #### `rlang::env_poke()`: Replacement for `assign()`
 
 `env_poke()` sets a binding in an environment:
@@ -320,16 +305,14 @@ e$z
 
 This is clearer and more explicit than using `assign()` with a string.
 
-
 #### Why Use `{rlang}` Instead of Base R?
 
-| Task           | Base R                        | `{rlang}`               | Benefit                                 |
-| -------------- | ----------------------------- | ----------------------- | --------------------------------------- |
-| Get value      | `get("x", envir = e)`         | `env_get(e, "x")`       | No surprises, inherits only if you want |
-| Set value      | `assign("x", val, envir = e)` | `env_poke(e, "x", val)` | Cleaner and safer                       |
-| Has binding?   | `exists("x", envir = e)`      | `env_has(e, "x")`       | Vectorized and clear                    |
-| Remove binding | `rm("x", envir = e)`          | `env_unbind(e, "x")`    | Safer removal                           |
-
+| Task | Base R | `{rlang}` | Benefit |
+|----------------|-----------------|----------------|------------------------|
+| Get value | `get("x", envir = e)` | `env_get(e, "x")` | No surprises, inherits only if you want |
+| Set value | `assign("x", val, envir = e)` | `env_poke(e, "x", val)` | Cleaner and safer |
+| Has binding? | `exists("x", envir = e)` | `env_has(e, "x")` | Vectorized and clear |
+| Remove binding | `rm("x", envir = e)` | `env_unbind(e, "x")` | Safer removal |
 
 #### Bonus: `env_has()` and `env_unbind()`
 
@@ -345,7 +328,6 @@ Remove a variable:
 rlang::env_unbind(e, "z")
 rlang::env_has(e, "z")
 ```
-
 
 #### Final Tip: Combine with `substitute()` or `enquo()`
 
@@ -363,11 +345,9 @@ get_value(foo)
 
 This is a safer, scoped version of `get("foo")`.
 
-
 ## 4. Data-Masked Evaluation
 
 When writing user-friendly R packages — especially those involving modeling, plotting, or data manipulation — it’s not enough to evaluate expressions in a custom environment. Often, you want to evaluate expressions **as if columns of a data frame were variables**, the way `dplyr::filter()` and `ggplot2::aes()` do it.
-
 
 ### 4.1 What Is a Data Mask?
 
@@ -401,8 +381,8 @@ log_expr <- function(expr) {
 log_expr(x + 1)
 ```
 
-* `substitute()` gives you a **raw expression**.
-* `rlang::enquo()` gives you a **quosure**: an expression *and* the environment where it was typed.
+-   `substitute()` gives you a **raw expression**.
+-   `rlang::enquo()` gives you a **quosure**: an expression *and* the environment where it was typed.
 
 This matters for tidy evaluation, where functions need to know not just *what* was written, but also *where* to evaluate it — especially if variables can be found in different environments.
 
@@ -412,8 +392,8 @@ In base R, `eval(expr, envir)` evaluates `expr` using the provided environment `
 
 In contrast, `rlang::eval_tidy(expr, data)` evaluates `expr` in a **data mask**, where:
 
-1. Column names in `data` behave like variables.
-2. Outer variables (e.g., from global or calling environments) are still accessible if not masked by data columns.
+1.  Column names in `data` behave like variables.
+2.  Outer variables (e.g., from global or calling environments) are still accessible if not masked by data columns.
 
 ```{R}
 threshold <- 25
@@ -422,8 +402,6 @@ rlang::eval_tidy(quote(mpg > threshold), data = mtcars)
 ```
 
 This behaves as if both `mpg` and `threshold` were variables in the same environment. Internally, `eval_tidy()` creates a **layered environment** — first the data, then the calling environment — and evaluates `expr` inside that composite structure.
-
-
 
 #### Basic Example
 
@@ -462,7 +440,6 @@ my_filter_wrong <- function(data, expr) {
 my_filter_wrong(mtcars, mpg > 25)
 ```
 
-
 Why? Because `eval()` looks for `mpg` in the calling environment — not inside `data`. It has no idea that `mpg` is a column. This is the core problem `eval_tidy()` solves.
 
 ### You Can Still Refer to Outer Variables
@@ -481,7 +458,6 @@ This layered lookup structure makes your functions flexible and safe to use.
 
 ### Why This Matters
 
-* `eval_tidy()` is the core of how packages like `{ggplot2}`, `{dplyr}`, `{purrr}` and `{rlang}` achieve their user-friendly syntax.
-* If you’re writing a function that evaluates expressions inside data frames, this is the right tool.
-* Unlike `eval()`, it is **safe**, **consistent**, and **scoped** to your data.
-
+-   `eval_tidy()` is the core of how packages like `{ggplot2}`, `{dplyr}`, `{purrr}` and `{rlang}` achieve their user-friendly syntax.
+-   If you’re writing a function that evaluates expressions inside data frames, this is the right tool.
+-   Unlike `eval()`, it is **safe**, **consistent**, and **scoped** to your data.
