@@ -19,7 +19,7 @@ format:
     css: styles.css
     toc: true
 
-editor: visual
+editor: source
 
 execute:
   freeze: auto
