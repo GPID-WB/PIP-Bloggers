@@ -200,9 +200,13 @@ In the first case, R captures the expression; in the second, it evaluates it.
 `bquote()` allows partial evaluation inside a quoted expression, useful for plotting or math expressions.
 
 ```{R}
-quote(.(x) + 1)
-bquote(.(x) + 1)
-bquote((x) + 1)
+e <- rlang::env(x = 100, y = 300)
+y <-  1
+quote(.(x) + y)
+bquote(.(x) + y) 
+# part in .() is evaluated in `where` 
+bquote(.(x) + y, where = e) 
+bquote((x) + y)
 ```
 
 ### `deparse()` -- Turning Code into Strings
