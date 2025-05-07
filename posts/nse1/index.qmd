@@ -20,11 +20,11 @@ execute:
 
 ## 1. Intro
 
-Non-Standard Evaluation (NSE) is one of the most powerful — and most confusing — features of the R language. It allows functions to manipulate the **expressions** that users write, instead of just their evaluated values. This behavior is at the heart of many modeling and data manipulation tools in R, including `with()`, `subset()`, and all of the tidyverse.
+Non-Standard Evaluation (NSE) is one of the most powerful --- and most confusing --- features of the R language. It allows functions to manipulate the **expressions** that users write, instead of just their evaluated values. This behavior is at the heart of many modeling and data manipulation tools in R, including `with()`, `subset()`, and all of the tidyverse.
 
 ### Historical Roots: `with()` and `subset()` in Base R
 
-Before packages like `dplyr`, base R already offered functions that evaluated expressions **in a different context** — usually within a data frame — without requiring users to quote variable names.
+Before packages like `dplyr`, base R already offered functions that evaluated expressions **in a different context** --- usually within a data frame --- without requiring users to quote variable names.
 
 Here are two classic examples:
 
@@ -42,7 +42,7 @@ This ability to manipulate expressions and control where they are evaluated is e
 
 ### What Is Standard Evaluation?
 
-To appreciate what NSE changes, it helps to understand what R does **by default** — which is standard evaluation (SE).
+To appreciate what NSE changes, it helps to understand what R does **by default** --- which is standard evaluation (SE).
 
 In SE, R evaluates every name and expression **before** passing it to a function. For example:
 
@@ -56,13 +56,13 @@ Here, `x` is evaluated to `10`, and `f()` receives that value.
 
 ### What Is Non-Standard Evaluation?
 
-With NSE, a function can capture **what the user typed** — the unevaluated expression — and decide:
+With NSE, a function can capture **what the user typed** --- the unevaluated expression --- and decide:
 
 -   **When** to evaluate it,
 -   **Where** to evaluate it,
 -   Or even whether to evaluate it at all.
 
-Let’s create a minimal example:
+Let's create a minimal example:
 
 ```{R}
 print_expr <- function(expr) {
@@ -80,11 +80,11 @@ print_expr <- function(expr) {
 print_expr(x + 1)
 ```
 
-Now we’re seeing the **expression** `x + 1` itself, rather than the result `11`. That’s NSE in action: we intercepted the unevaluated code.
+Now we're seeing the **expression** `x + 1` itself, rather than the result `11`. That's NSE in action: we intercepted the unevaluated code.
 
 ### A Concrete Example: Logging
 
-Let’s write a simple logger that prints the code you typed:
+Let's write a simple logger that prints the code you typed:
 
 ```{R}
 log_eval <- function(expr) {
@@ -109,7 +109,7 @@ To understand that piece of code fully, we need to know five into tools like `su
 
 > In R, **code is data**.
 
-When you write `x + 1`, R does **not** treat that as text or as a string. Instead, it creates a structured object — an **expression** — that the interpreter can inspect, manipulate, or evaluate later.
+When you write `x + 1`, R does **not** treat that as text or as a string. Instead, it creates a structured object --- an **expression** --- that the interpreter can inspect, manipulate, or evaluate later.
 
 This idea is essential to understanding how Non-Standard Evaluation (NSE) works.
 
@@ -117,14 +117,14 @@ This idea is essential to understanding how Non-Standard Evaluation (NSE) works.
 
 In R, an **expression** is an object that represents unevaluated code.
 
-Here’s how you create one:
+Here's how you create one:
 
 ```{R}
 expr <- quote(x + 1)
 expr
 ```
 
-This object is **not** the result of `x + 1`, and it’s not the character string `"x + 1"` (notice that it does not have quotes in the console). It’s a special object of class `"call"` — sometimes also called a **language object**.
+This object is **not** the result of `x + 1`, and it's not the character string `"x + 1"` (notice that it does not have quotes in the console). It's a special object of class `"call"` --- sometimes also called a **language object**.
 
 You can verify this:
 
@@ -133,7 +133,7 @@ class(expr)
 typeof(expr)
 ```
 
-This means that R has captured the code itself — as structured, evaluable (i.e., unevaluated) data.
+This means that R has captured the code itself --- as structured, evaluable (i.e., unevaluated) data.
 
 ### Why Expressions Are Not Strings
 
@@ -157,7 +157,8 @@ expr[[3]]  # second argument
 
 This kind of structure is what makes metaprogramming possible in R.
 
-### `quote()` – The Basic Tool to Capture Code
+
+### `quote()` -- The Basic Tool to Capture Code
 
 `quote()` is the most direct way to create an expression.
 
@@ -179,7 +180,15 @@ x + 1
 
 In the first case, R captures the expression; in the second, it evaluates it.
 
-### `deparse()` – Turning Code into Strings
+`bquote()` allows partial evaluation inside a quoted expression, useful for plotting or math expressions.
+```{R}
+quote(.(x) + 1)
+bquote(.(x) + 1)
+bquote((x) + 1)
+```
+
+
+### `deparse()` -- Turning Code into Strings
 
 Now suppose you want to print this expression. If you use `print(expr)`, you get a nice display. But if you need the **actual string** `"x + 1"` (e.g. for logging or incluting it in `cat()` or `paste()`), you need `deparse()`:
 
@@ -195,7 +204,7 @@ So:
 
 This distinction is critical. If you treat expressions like strings too early, you lose their structure.
 
-### `substitute()` – Capturing Expressions from Arguments
+### `substitute()` -- Capturing Expressions from Arguments
 
 While `quote()` is explicit, `substitute()` works *implicitly* by intercepting **what the user typed as an argument**.
 
@@ -210,7 +219,7 @@ log_expr <- function(arg) {
 log_expr(x + 1)
 ```
 
-Behind the scenes, `substitute(arg)` is doing the same thing as `quote(x + 1)` — except it’s happening **within the calling context**. That’s why we often say that `substitute()` is a dynamic version of `quote()` — it’s context-sensitive.
+Behind the scenes, `substitute(arg)` is doing the same thing as `quote(x + 1)` --- except it's happening **within the calling context**. That's why we often say that `substitute()` is a dynamic version of `quote()` --- it's context-sensitive.
 
 To show the equivalence:
 
@@ -218,14 +227,14 @@ To show the equivalence:
 quote(x + 1) == substitute(x + 1)
 ```
 
-But `substitute(arg)` only works inside a function — because it inspects the actual expression passed to `arg`.
+But `substitute(arg)` only works inside a function --- because it inspects the actual expression passed to `arg`.
 
 ### So, What's the differen between `quote()` and `substitute()`?
 
 Both `quote()` and `substitute()` capture unevaluated code, but **context matters**.
 
-- `quote()` always returns the literal symbol or expression, without considering the call context.
-- `substitute()` captures **what the user typed**, dynamically, at the function call site.
+-   `quote()` always returns the literal symbol or expression, without considering the call context.
+-   `substitute()` captures **what the user typed**, dynamically, at the function call site.
 
 #### Example: Compare Their Behavior Inside a Function
 
@@ -244,36 +253,34 @@ inspect(x + 1)
 
 #### Key Point:
 
-- `quote(expr)` always gives you `expr` — the literal name.
-- `substitute(expr)` gives you `x + 1` — what the user typed.
-- `eval(expr)` computes the result.
+-   `quote(expr)` always gives you `expr` --- the literal name.
+-   `substitute(expr)` gives you `x + 1` --- what the user typed.
+-   `eval(expr)` computes the result.
 
 Use `substitute()` when **writing functions** that need to inspect or log **user input**. Use `quote()` when you need to **manually build expressions**.
 
-
 ### Putting It All Together
 
-Let’s summarize the roles:
+Let's summarize the roles:
 
-| Function | Purpose | Returns |
-|------------------|-----------------------------------|--------------------|
-| `quote(expr)` | Capture unevaluated code | Expression / call |
-| `substitute(arg)` | Capture the *argument* passed to a function | Expression / call |
-| `deparse(expr)` | Convert an expression to a string | Character string |
-| `eval(expr)` | Evaluate the expression | Result of computation |
+| Function          | Purpose                                     | Returns               |
+|------------------|----------------------------------|--------------------|
+| `quote(expr)`     | Capture unevaluated code                    | Expression / call     |
+| `substitute(arg)` | Capture the *argument* passed to a function | Expression / call     |
+| `deparse(expr)`   | Convert an expression to a string           | Character string      |
+| `eval(expr)`      | Evaluate the expression                     | Result of computation |
 
-
-Thanks for sharing the full context — this is excellent. Your blog post is already strong in structure and clarity, and you're setting it up beautifully for the next section. Here's what I suggest:
+Thanks for sharing the full context --- this is excellent. Your blog post is already strong in structure and clarity, and you're setting it up beautifully for the next section. Here's what I suggest:
 
 ## 3. Combining `substitute()`, `deparse()`, and `eval()` in Real-World Logging
 
-Now that we understand the difference between `quote()` and `substitute()`, and how `eval()` and `deparse()` work, let’s build a real-world example that demonstrates why all of this matters in practice.
+Now that we understand the difference between `quote()` and `substitute()`, and how `eval()` and `deparse()` work, let's build a real-world example that demonstrates why all of this matters in practice.
 
 Imagine you're writing a logging wrapper to:
 
-- Report **what expression the user typed**
-- Evaluate it
-- Record the result (or the error)
+-   Report **what expression the user typed**
+-   Evaluate it
+-   Record the result (or the error)
 
 ### A Logging Evaluator
 
@@ -320,14 +327,13 @@ log_and_eval(log("hello"))  # will fail
 
 You might wonder: why do we assign `code <- substitute(expr)` and then evaluate `code`? Why not just call `eval(expr)` directly?
 
-Here’s why:
+Here's why:
 
-- When `expr` is passed to the function `log_and_eval()`, R **evaluates it immediately**, unless we explicitly tell it not to.
-- The role of `substitute(expr)` is to **capture the unevaluated expression** that the user typed at the call site.
-- If you skip `substitute()`, then `expr` has already been evaluated by the time it enters the function — and you’ve lost the original code.
+-   When `expr` is passed to the function `log_and_eval()`, R **evaluates it immediately**, unless we explicitly tell it not to.
+-   The role of `substitute(expr)` is to **capture the unevaluated expression** that the user typed at the call site.
+-   If you skip `substitute()`, then `expr` has already been evaluated by the time it enters the function --- and you've lost the original code.
 
 Compare with definition:
-
 
 ```{R}
 log_eval_wrong <- function(expr) {
@@ -347,15 +353,13 @@ x <- 10
 log_eval_wrong(x + 1)
 ```
 
-That’s because by the time `deparse(expr)` runs, `expr` has already been evaluated to a number (`11`), not an expression.
+That's because by the time `deparse(expr)` runs, `expr` has already been evaluated to a number (`11`), not an expression.
 
 We use `substitute()` to freeze user input and `eval()` to control exactly when and where it runs.
 
-
 ## 4. Controlling *Where* Code Is Evaluated with `eval(expr, envir)`
 
-So far, we've used `eval(expr)` to run expressions in the current environment. But a key feature of `eval()` is that it also lets you choose **where** the code is evaluated — and this is essential for many real-world use cases.
-
+So far, we've used `eval(expr)` to run expressions in the current environment. But a key feature of `eval()` is that it also lets you choose **where** the code is evaluated --- and this is essential for many real-world use cases.
 
 ### Changing the Environment
 
@@ -381,10 +385,9 @@ eval(quote(mpg > 25), envir = mtcars)
 
 Here, `mpg` is treated as a column inside `mtcars`, not as a variable in the global environment. This is how `dplyr::filter(mtcars, mpg > 25)` works internally.
 
-
 ### How to Use It in Your Own Code
 
-To really see the importance of `substitute()`, let’s consider a slightly more advanced case: evaluating code in a **different environment**.
+To really see the importance of `substitute()`, let's consider a slightly more advanced case: evaluating code in a **different environment**.
 
 Suppose you want to evaluate an expression using variables defined in a **custom environment**, not the global one. Here's how it works when done **correctly**:
 
@@ -442,7 +445,7 @@ y
 
 This works because `substitute()` captured the unevaluated expression `x + 1`, and `eval()` was able to look up `x` in the `env` environment.
 
-But what happens if we don’t use `substitute()`?
+But what happens if we don't use `substitute()`?
 
 ```{R}
 log_eval_env_wrong <- function(expr, env = parent.frame()) {
@@ -466,9 +469,9 @@ log_eval_env_wrong(x + 1, env = e)
 
 ```
 
-This code first returns 11, then throws an error. This happens because when `expr` reaches `eval()` it is already too late because it has already been evaluated to in `deparse()`, so `eval()` simply returns `11`. In the second case, where `x` is removed from the Global environment, `expr` is evaluated in `deparse()` and fails.  
+This code first returns 11, then throws an error. This happens because when `expr` reaches `eval()` it is already too late because it has already been evaluated to in `deparse()`, so `eval()` simply returns `11`. In the second case, where `x` is removed from the Global environment, `expr` is evaluated in `deparse()` and fails.
 
-This is also evident in the following code. 
+This is also evident in the following code.
 
 Since the expression is `y <- x + 1`, and `e` is passed as the evaluation environment, **the assignment takes place in `e`**.
 
@@ -492,7 +495,7 @@ foo()
 
 ```
 
-That’s why `substitute()` is essential in any function that wants to control **when** and **where** evaluation happens. Now, this is how it works:
+That's why `substitute()` is essential in any function that wants to control **when** and **where** evaluation happens. Now, this is how it works:
 
 ```{R}
 # Why this does not work. 
@@ -510,5 +513,4 @@ foo()
 
 ```
 
-However, as we will see in another post, the best way to do this is
-`assign("z", value, envir = target_env)`. This is the safest and most readable. 
+However, as we will see in another post, the best way to do this is `assign("z", value, envir = target_env)`. This is the safest and most readable.
