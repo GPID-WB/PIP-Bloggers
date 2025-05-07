@@ -577,8 +577,8 @@ Note
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Preview the raw log</span></span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="fu">readLines</span>(logfile)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "[2025-05-07 13:34:06] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022"                      
-[2] "[2025-05-07 13:34:06] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'"</code></pre>
+<pre><code>[1] "[2025-05-07 13:38:11] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022"                      
+[2] "[2025-05-07 13:38:11] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'"</code></pre>
 </div>
 </div>
 </section>
@@ -625,10 +625,10 @@ Known 'dup_pfw' errors: 1
 Other (unknown) errors: 1 
 
 Known issues:
-- [2025-05-07 13:34:06] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022
+- [2025-05-07 13:38:11] [dup_pfw] Found 2 duplicated row(s) in the dataset. | IDs: A2020, C2022
 
 Unknown issues:
-- [2025-05-07 13:34:06] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'</code></pre>
+- [2025-05-07 13:38:11] [simpleError] argument specifying columns received non-existing column(s): cols[1]='wrongVar'</code></pre>
 </div>
 </div>
 <p>This small addition turns your log from a flat text dump into a searchable, inspectable tool — one that could be expanded later to generate HTML reports, markdown diagnostics, or summaries across datasets.</p>
@@ -751,12 +751,12 @@ Known 'dup_pfw' errors: 2
 Other (unknown) errors: 2 
 
 Known issues:
-- [2025-05-07 13:34:06] [dup_pfw] Found 1 duplicated row. | IDs: A2020
-- [2025-05-07 13:34:07] [dup_pfw] Found 1 duplicated row. | IDs: A2020
+- [2025-05-07 13:38:11] [dup_pfw] Found 1 duplicated row. | IDs: A2020
+- [2025-05-07 13:38:12] [dup_pfw] Found 1 duplicated row. | IDs: A2020
 
 Unknown issues:
-- [2025-05-07 13:34:07] [simpleError] Duplicate data found and skip_err = FALSE. See log.
-- [2025-05-07 13:34:07] [simpleError] argument specifying columns received non-existing column(s): cols[1]='bad_column'</code></pre>
+- [2025-05-07 13:38:12] [simpleError] Duplicate data found and skip_err = FALSE. See log.
+- [2025-05-07 13:38:12] [simpleError] argument specifying columns received non-existing column(s): cols[1]='bad_column'</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Or use  `readLines(logfile)` </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
