@@ -308,7 +308,7 @@ This is clearer and more explicit than using `assign()` with a string.
 #### Why Use `{rlang}` Instead of Base R?
 
 | Task | Base R | `{rlang}` | Benefit |
-|----------------|-----------------|----------------|------------------------|
+|------------------|------------------|------------------|------------------|
 | Get value | `get("x", envir = e)` | `env_get(e, "x")` | No surprises, inherits only if you want |
 | Set value | `assign("x", val, envir = e)` | `env_poke(e, "x", val)` | Cleaner and safer |
 | Has binding? | `exists("x", envir = e)` | `env_has(e, "x")` | Vectorized and clear |
@@ -357,9 +357,9 @@ The data mask lets you evaluate those expressions in a way that prioritizes the 
 
 This is where **data-masked evaluation** comes in, and `{rlang}` provides the perfect tool for this: `rlang::eval_tidy()`.
 
-But first, we need to understand the difference between `{rlang}` and `base B`
+But first, we need to understand the difference between `{rlang}` and `base R`
 
-#### `enquo()` vs. `substitute()`: Tidy Capture vs. Base Capture
+### 4.2 `enquo()` vs. `substitute()`: Tidy Capture vs. Base Capture
 
 In base R, you use `substitute(expr)` to capture the unevaluated expression passed to a function. This gives you access to *what the user typed*, not the result of evaluation:
 
@@ -386,78 +386,90 @@ log_expr(x + 1)
 
 This matters for tidy evaluation, where functions need to know not just *what* was written, but also *where* to evaluate it — especially if variables can be found in different environments.
 
-#### `eval_tidy()` vs. `eval()`: Masked vs. Regular Evaluation
 
-In base R, `eval(expr, envir)` evaluates `expr` using the provided environment `envir`. But that’s it — it treats `envir` as a regular environment.
+### 4.3 `eval_tidy()` vs. `eval()`: Masked vs. Regular Evaluation
 
-In contrast, `rlang::eval_tidy(expr, data)` evaluates `expr` in a **data mask**, where:
+In base R, `eval(expr, envir)` simply evaluates `expr` using the environment `envir` — no special treatment. But it can **fail** if the expression requires variables from *both* the data and the calling environment.
 
-1.  Column names in `data` behave like variables.
-2.  Outer variables (e.g., from global or calling environments) are still accessible if not masked by data columns.
+In contrast, `rlang::eval_tidy(expr, data, env)` evaluates `expr` in a **data mask**: a special layered environment where:
+
+1. **Variable names** are looked up in `data` (e.g. column names or list elements),
+2. If not found, the search continues in the **enclosing environment** — typically the environment where the function was called.
+
+This allows expressions to blend **data variables** and **contextual variables** naturally — just like in `dplyr`, `ggplot2`, or `purrr`.
+
+#### A Minimal Example
 
 ```{R}
-threshold <- 25
+data <- list(x = 1:5)
+env  <- rlang::env(threshold = 3)
 
-rlang::eval_tidy(quote(mpg > threshold), data = mtcars)
+expr <- quote(x > threshold)
+# This works: x from data, threshold from env
+right <- rlang::eval_tidy(expr, data = data, env = env)
+
+
+# This fails: base R's eval() only sees data, not env
+wrong <- eval(expr, envir = data)
+
+all.equal(right, wrong)
 ```
 
-This behaves as if both `mpg` and `threshold` were variables in the same environment. Internally, `eval_tidy()` creates a **layered environment** — first the data, then the calling environment — and evaluates `expr` inside that composite structure.
+Here, `eval()` can’t see `threshold`, because it’s not in `data`. But `eval_tidy()` builds a layered environment where both `x` (from `data`) and `threshold` (from `env`) are visible.
 
-#### Basic Example
+#### Writing Functions: `eval_tidy()` Makes It Easy
 
-Let’s say we want to filter rows of a data frame using a custom function:
+Let’s say we want to write a filtering function that behaves like `dplyr::filter()` — letting users refer to columns *and* outside variables naturally.
 
 ```{R}
-
 my_filter <- function(data, expr) {
-  expr <- rlang::enquo(expr)
+  expr <- substitute(expr)
   rows <- rlang::eval_tidy(expr, data)
   data[rows, ]
 }
 ```
 
-This lets you write:
+Now this works:
 
 ```{R}
 my_filter(mtcars, mpg > 25)
-```
 
-Inside `eval_tidy()`, `{rlang}` creates a special environment where `mpg` is resolved to the column `mtcars$mpg`, not to any global variable. The masking happens safely and transparently.
-
-### What If You Just Used `eval()`?
-
-To emphasize the difference, try this:
-
-```{R}
-#| error: true 
-my_filter_wrong <- function(data, expr) {
-  expr <- rlang::enquo(expr)
-  rows <- eval(rlang::get_expr(expr))
-  data[rows, ]
-}
-
-# this fails
-my_filter_wrong(mtcars, mpg > 25)
-```
-
-Why? Because `eval()` looks for `mpg` in the calling environment — not inside `data`. It has no idea that `mpg` is a column. This is the core problem `eval_tidy()` solves.
-
-### You Can Still Refer to Outer Variables
-
-The power of `eval_tidy()` is that it doesn’t *replace* your environment — it *augments* it. You can still use objects from outside the data mask:
-
-```{R}
-threshold <- 100
-
+threshold <- 200
 my_filter(mtcars, hp > threshold)
 ```
 
-As long as `threshold` exists in the parent environment, it will be found — but column names like `hp` will take priority.
 
-This layered lookup structure makes your functions flexible and safe to use.
+Inside `eval_tidy()`, `{rlang}` creates a **data mask** where:
+
+* `mpg` is found in `data`, not in the global env.
+* `threshold` is found in the parent frame (where the function was called).
+
+This is the core mechanism that enables tidy evaluation to feel so natural.
+
+#### What If You Just Used `eval()`?
+
+To see why `eval()` isn’t enough, try this version:
+
+```{R}
+my_filter_wrong <- function(data, expr) {
+  expr <- substitute(expr)
+  rows <- eval(expr, envir = data)
+  data[rows, ]
+}
+```
+
+Now try:
+
+```{R}
+threshold <- 200
+my_filter_wrong(mtcars, hp > threshold)
+```
+
+Why does this fail? Because `eval()` only looks in `data`, not in the calling environment — it doesn’t know where `threshold` lives.
 
 ### Why This Matters
 
--   `eval_tidy()` is the core of how packages like `{ggplot2}`, `{dplyr}`, `{purrr}` and `{rlang}` achieve their user-friendly syntax.
--   If you’re writing a function that evaluates expressions inside data frames, this is the right tool.
--   Unlike `eval()`, it is **safe**, **consistent**, and **scoped** to your data.
+* `rlang::eval_tidy()` builds a **layered lookup system**: first `data`, then the caller’s environment.
+* This matches the mental model of users writing `filter(df, mpg > threshold)`.
+* If you’re writing functions for data manipulation, modeling, or interactive tools, `eval_tidy()` gives you **safe, powerful, and consistent** control over evaluation.
+* Base R’s `eval()` is great for evaluating code in a single environment — but it lacks the nuance that tidy evaluation provides.
