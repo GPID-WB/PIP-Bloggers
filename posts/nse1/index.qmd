@@ -108,13 +108,14 @@ As an aside, this can also be done using `match.call()`, which you can read more
 ```{R}
 log_eval <- function(expr) {
   p <- match.call()
+  cat("calling function:", deparse(p[[1]]), "\n")
   cat("About to evaluate:", deparse(p[[2]]), "\n")
   result <- eval(expr)
   result
 }
 log_eval(x + 3)
+log_eval(mean(x + c(5:10)))
 ```
-
 
 ## 2. Expressions Are Not Strings: Understanding How R Represents Code
 
@@ -170,7 +171,6 @@ expr[[3]]  # second argument
 
 This kind of structure is what makes metaprogramming possible in R.
 
-
 ### `quote()` -- The Basic Tool to Capture Code
 
 `quote()` is the most direct way to create an expression.
@@ -187,7 +187,11 @@ Compare:
 
 ```{R}
 x <- 10
+
+# This
 quote(x + 1)
+
+# To this
 x + 1
 ```
 
@@ -200,7 +204,6 @@ quote(.(x) + 1)
 bquote(.(x) + 1)
 bquote((x) + 1)
 ```
-
 
 ### `deparse()` -- Turning Code into Strings
 
@@ -277,13 +280,12 @@ Use `substitute()` when **writing functions** that need to inspect or log **user
 
 Let's summarize the roles:
 
-| Function          | Purpose                                     | Returns               |
+| Function | Purpose | Returns |
 |------------------|----------------------------------|--------------------|
-| `quote(expr)`     | Capture unevaluated code                    | Expression / call     |
-| `substitute(arg)` | Capture the *argument* passed to a function | Expression / call     |
-| `deparse(expr)`   | Convert an expression to a string           | Character string      |
-| `eval(expr)`      | Evaluate the expression                     | Result of computation |
-
+| `quote(expr)` | Capture unevaluated code | Expression / call |
+| `substitute(arg)` | Capture the *argument* passed to a function | Expression / call |
+| `deparse(expr)` | Convert an expression to a string | Character string |
+| `eval(expr)` | Evaluate the expression | Result of computation |
 
 ## 3. Combining `substitute()`, `deparse()`, and `eval()` in Real-World Logging
 

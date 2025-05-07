@@ -211,7 +211,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#quote-the-basic-tool-to-capture-code" id="toc-quote-the-basic-tool-to-capture-code" class="nav-link" data-scroll-target="#quote-the-basic-tool-to-capture-code"><code>quote()</code> – The Basic Tool to Capture Code</a></li>
   <li><a href="#deparse-turning-code-into-strings" id="toc-deparse-turning-code-into-strings" class="nav-link" data-scroll-target="#deparse-turning-code-into-strings"><code>deparse()</code> – Turning Code into Strings</a></li>
   <li><a href="#substitute-capturing-expressions-from-arguments" id="toc-substitute-capturing-expressions-from-arguments" class="nav-link" data-scroll-target="#substitute-capturing-expressions-from-arguments"><code>substitute()</code> – Capturing Expressions from Arguments</a></li>
-  <li><a href="#so-whats-the-differen-between-quote-and-substitute" id="toc-so-whats-the-differen-between-quote-and-substitute" class="nav-link" data-scroll-target="#so-whats-the-differen-between-quote-and-substitute">So, What’s the differen between <code>quote()</code> and <code>substitute()</code>?</a></li>
+  <li><a href="#so-whats-the-difference-between-quote-and-substitute" id="toc-so-whats-the-difference-between-quote-and-substitute" class="nav-link" data-scroll-target="#so-whats-the-difference-between-quote-and-substitute">So, what’s the difference between <code>quote()</code> and <code>substitute()</code>?</a></li>
   <li><a href="#putting-it-all-together" id="toc-putting-it-all-together" class="nav-link" data-scroll-target="#putting-it-all-together">Putting It All Together</a></li>
   </ul></li>
   <li><a href="#combining-substitute-deparse-and-eval-in-real-world-logging" id="toc-combining-substitute-deparse-and-eval-in-real-world-logging" class="nav-link" data-scroll-target="#combining-substitute-deparse-and-eval-in-real-world-logging">3. Combining <code>substitute()</code>, <code>deparse()</code>, and <code>eval()</code> in Real-World Logging</a>
@@ -344,11 +344,37 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <li>Prints the expression,</li>
 <li>Then evaluates it.</li>
 </ul>
+<p>As an aside, this can also be done using <code>match.call()</code>, which you can read more about using <code>?match.call()</code>. Note the way the <code>match.call()</code> is subsetted – what does that tell you about the output of the function?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>log_eval <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">match.call</span>()</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"calling function:"</span>, <span class="fu">deparse</span>(p[[<span class="dv">1</span>]]), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"About to evaluate:"</span>, <span class="fu">deparse</span>(p[[<span class="dv">2</span>]]), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  result</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval</span>(x <span class="sc">+</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>calling function: log_eval 
+About to evaluate: x + 3 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval</span>(<span class="fu">mean</span>(x <span class="sc">+</span> <span class="fu">c</span>(<span class="dv">5</span><span class="sc">:</span><span class="dv">10</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>calling function: log_eval 
+About to evaluate: mean(x + c(5:10)) </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 9.5</code></pre>
+</div>
+</div>
 </section>
 </section>
 <section id="expressions-are-not-strings-understanding-how-r-represents-code" class="level2">
 <h2 class="anchored" data-anchor-id="expressions-are-not-strings-understanding-how-r-represents-code">2. Expressions Are Not Strings: Understanding How R Represents Code</h2>
-<p>To understand that piece of code fully, we need to know five into tools like <code>substitute()</code>, <code>deparse()</code>, or <code>eval()</code>. Yet, there is something even more fundamental to understand first:</p>
+<p>To understand that piece of code fully, we need to know tools like <code>substitute()</code>, <code>deparse()</code>, or <code>eval()</code>. Yet, there is something even more fundamental to understand first:</p>
 <blockquote class="blockquote">
 <p>In R, <strong>code is data</strong>.</p>
 </blockquote>
@@ -359,8 +385,8 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <p>In R, an <strong>expression</strong> is an object that represents unevaluated code.</p>
 <p>Here’s how you create one:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>x + 1</code></pre>
 </div>
@@ -368,11 +394,11 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <p>This object is <strong>not</strong> the result of <code>x + 1</code>, and it’s not the character string <code>"x + 1"</code> (notice that it does not have quotes in the console). It’s a special object of class <code>"call"</code> — sometimes also called a <strong>language object</strong>.</p>
 <p>You can verify this:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "call"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">typeof</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">typeof</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "language"</code></pre>
 </div>
@@ -383,12 +409,12 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <h3 class="anchored" data-anchor-id="why-expressions-are-not-strings">Why Expressions Are Not Strings</h3>
 <p>Try this:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">is.character</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">is.character</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] FALSE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>x + 1</code></pre>
 </div>
@@ -396,15 +422,15 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <p>Even though it <em>looks like</em> a string when printed, it’s not. R stores the structure of the code, not its textual representation.</p>
 <p>In fact, expressions behave like recursive lists. You can inspect their components:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>expr[[<span class="dv">1</span>]]  <span class="co"># the function being called</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>expr[[<span class="dv">1</span>]]  <span class="co"># the function being called</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>`+`</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>expr[[<span class="dv">2</span>]]  <span class="co"># first argument</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>expr[[<span class="dv">2</span>]]  <span class="co"># first argument</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>x</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>expr[[<span class="dv">3</span>]]  <span class="co"># second argument</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>expr[[<span class="dv">3</span>]]  <span class="co"># second argument</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 1</code></pre>
 </div>
@@ -415,7 +441,7 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <h3 class="anchored" data-anchor-id="quote-the-basic-tool-to-capture-code"><code>quote()</code> – The Basic Tool to Capture Code</h3>
 <p><code>quote()</code> is the most direct way to create an expression.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(<span class="fu">mean</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(<span class="fu">mean</span>(x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>mean(x, na.rm = TRUE)</code></pre>
 </div>
@@ -424,24 +450,42 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <p><code>quote()</code> prevents R from evaluating the expression. It captures it <em>as is</em>, before any names are resolved.</p>
 <p>Compare:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="co"># This</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>x + 1</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>x <span class="sc">+</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># To this</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>x <span class="sc">+</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 11</code></pre>
 </div>
 </div>
 <p>In the first case, R captures the expression; in the second, it evaluates it.</p>
+<p><code>bquote()</code> allows partial evaluation inside a quoted expression, useful for plotting or math expressions.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(.(x) <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>.(x) + 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bquote</span>(.(x) <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>10 + 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bquote</span>((x) <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(x) + 1</code></pre>
+</div>
+</div>
 </section>
 <section id="deparse-turning-code-into-strings" class="level3">
 <h3 class="anchored" data-anchor-id="deparse-turning-code-into-strings"><code>deparse()</code> – Turning Code into Strings</h3>
-<p>Now suppose you want to print this expression. If you use <code>print(expr)</code>, you get a nice display. But if you need the <strong>actual string</strong> <code>"x + 1"</code> (e.g.&nbsp;for logging or incluting it in <code>cat()</code> or <code>paste()</code>), you need <code>deparse()</code>:</p>
+<p>Now suppose you want to print this expression. If you use <code>print(expr)</code>, you get a nice display. But if you need the <strong>actual string</strong> <code>"x + 1"</code> (e.g.&nbsp;for logging or including it in <code>cat()</code> or <code>paste()</code>), you need <code>deparse()</code>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="fu">deparse</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="fu">deparse</span>(expr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "x + 1"</code></pre>
 </div>
@@ -458,12 +502,12 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <p>While <code>quote()</code> is explicit, <code>substitute()</code> works <em>implicitly</em> by intercepting <strong>what the user typed as an argument</strong>.</p>
 <p>Example:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>log_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(arg) {</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(arg)</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(code)</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="fu">log_expr</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>log_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(arg) {</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(arg)</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(code)</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a><span class="fu">log_expr</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>x + 1</code></pre>
 </div>
@@ -471,15 +515,15 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <p>Behind the scenes, <code>substitute(arg)</code> is doing the same thing as <code>quote(x + 1)</code> — except it’s happening <strong>within the calling context</strong>. That’s why we often say that <code>substitute()</code> is a dynamic version of <code>quote()</code> — it’s context-sensitive.</p>
 <p>To show the equivalence:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>) <span class="sc">==</span> <span class="fu">substitute</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>) <span class="sc">==</span> <span class="fu">substitute</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] TRUE</code></pre>
 </div>
 </div>
 <p>But <code>substitute(arg)</code> only works inside a function — because it inspects the actual expression passed to <code>arg</code>.</p>
 </section>
-<section id="so-whats-the-differen-between-quote-and-substitute" class="level3">
-<h3 class="anchored" data-anchor-id="so-whats-the-differen-between-quote-and-substitute">So, What’s the differen between <code>quote()</code> and <code>substitute()</code>?</h3>
+<section id="so-whats-the-difference-between-quote-and-substitute" class="level3">
+<h3 class="anchored" data-anchor-id="so-whats-the-difference-between-quote-and-substitute">So, what’s the difference between <code>quote()</code> and <code>substitute()</code>?</h3>
 <p>Both <code>quote()</code> and <code>substitute()</code> capture unevaluated code, but <strong>context matters</strong>.</p>
 <ul>
 <li><code>quote()</code> always returns the literal symbol or expression, without considering the call context.</li>
@@ -488,16 +532,16 @@ Volvo 142E     21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
 <section id="example-compare-their-behavior-inside-a-function" class="level4">
 <h4 class="anchored" data-anchor-id="example-compare-their-behavior-inside-a-function">Example: Compare Their Behavior Inside a Function</h4>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>inspect <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">quoted      =</span> <span class="fu">quote</span>(expr),         <span class="co"># Always returns the symbol 'expr'</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">substituted =</span> <span class="fu">substitute</span>(expr),    <span class="co"># Captures the user's input expression</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">evaluated   =</span> <span class="fu">eval</span>(expr)           <span class="co"># Executes the expression</span></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">3</span></span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="fu">inspect</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>inspect <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">quoted      =</span> <span class="fu">quote</span>(expr),         <span class="co"># Always returns the symbol 'expr'</span></span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">substituted =</span> <span class="fu">substitute</span>(expr),    <span class="co"># Captures the user's input expression</span></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">evaluated   =</span> <span class="fu">eval</span>(expr)           <span class="co"># Executes the expression</span></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a><span class="fu">inspect</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>$quoted
 expr
@@ -525,7 +569,7 @@ $evaluated
 <p>Let’s summarize the roles:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 24%">
+<col style="width: 25%">
 <col style="width: 47%">
 <col style="width: 27%">
 </colgroup>
@@ -559,7 +603,6 @@ $evaluated
 </tr>
 </tbody>
 </table>
-<p>Thanks for sharing the full context — this is excellent. Your blog post is already strong in structure and clarity, and you’re setting it up beautifully for the next section. Here’s what I suggest:</p>
 </section>
 </section>
 <section id="combining-substitute-deparse-and-eval-in-real-world-logging" class="level2">
@@ -574,45 +617,45 @@ $evaluated
 <section id="a-logging-evaluator" class="level3">
 <h3 class="anchored" data-anchor-id="a-logging-evaluator">A Logging Evaluator</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>log_and_eval <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Capture the expression (as typed)</span></span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Turn the code into readable text</span></span>
-<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>  code_text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(code)</span>
-<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Evaluate the expression</span></span>
-<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
-<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> {</span>
-<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>      x <span class="ot">&lt;-</span> <span class="fu">eval</span>(code)</span>
-<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Print and return</span></span>
-<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Successfully evaluated: {code_text}"</span>)</span>
-<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Result: {x}"</span>)</span>
-<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
-<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_alert_danger</span>(<span class="st">"Error while evaluating: {code_text}</span></span>
-<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a><span class="st">                     MSG: {e$message}"</span>)</span>
-<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
-<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb45-21"><a href="#cb45-21" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb45-22"><a href="#cb45-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb45-23"><a href="#cb45-23" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb45-24"><a href="#cb45-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
-<span id="cb45-25"><a href="#cb45-25" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>log_and_eval <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Capture the expression (as typed)</span></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Turn the code into readable text</span></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>  code_text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(code)</span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Evaluate the expression</span></span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb57-10"><a href="#cb57-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> {</span>
+<span id="cb57-11"><a href="#cb57-11" aria-hidden="true" tabindex="-1"></a>      x <span class="ot">&lt;-</span> <span class="fu">eval</span>(code)</span>
+<span id="cb57-12"><a href="#cb57-12" aria-hidden="true" tabindex="-1"></a>          <span class="co"># Print and return</span></span>
+<span id="cb57-13"><a href="#cb57-13" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Successfully evaluated: {code_text}"</span>)</span>
+<span id="cb57-14"><a href="#cb57-14" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Result: {x}"</span>)</span>
+<span id="cb57-15"><a href="#cb57-15" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb57-16"><a href="#cb57-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb57-17"><a href="#cb57-17" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_alert_danger</span>(<span class="st">"Error while evaluating: {code_text}</span></span>
+<span id="cb57-18"><a href="#cb57-18" aria-hidden="true" tabindex="-1"></a><span class="st">                     MSG: {e$message}"</span>)</span>
+<span id="cb57-19"><a href="#cb57-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb57-20"><a href="#cb57-20" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb57-21"><a href="#cb57-21" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb57-22"><a href="#cb57-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-23"><a href="#cb57-23" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb57-24"><a href="#cb57-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
+<span id="cb57-25"><a href="#cb57-25" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="try-it-out" class="level3">
 <h3 class="anchored" data-anchor-id="try-it-out">Try It Out</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Successfully evaluated: x + 1
 Result: 11</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval</span>(<span class="fu">log</span>(<span class="st">"hello"</span>))  <span class="co"># will fail</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval</span>(<span class="fu">log</span>(<span class="st">"hello"</span>))  <span class="co"># will fail</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>✖ Error while evaluating: log("hello")
 MSG: non-numeric argument to mathematical function</code></pre>
@@ -630,17 +673,17 @@ MSG: non-numeric argument to mathematical function</code></pre>
 </ul>
 <p>Compare with definition:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>log_eval_wrong <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># expr has already been evaluated here</span></span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Trying to print the expr. We just get the result: "</span>, </span>
-<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>      <span class="fu">deparse</span>(expr), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>  expr </span>
-<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>log_eval_wrong <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># expr has already been evaluated here</span></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Trying to print the expr. We just get the result: "</span>, </span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>      <span class="fu">deparse</span>(expr), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>  expr </span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Calling <code>log_eval_wrong(x + 1)</code> can’t show us the expression:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_wrong</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_wrong</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to print the expr. We just get the result:  11 </code></pre>
 </div>
@@ -659,11 +702,11 @@ MSG: non-numeric argument to mathematical function</code></pre>
 <h3 class="anchored" data-anchor-id="changing-the-environment">Changing the Environment</h3>
 <p>You can use <code>eval(expr, envir = ...)</code> to evaluate the code in <strong>a different environment</strong>. This lets you build flexible tools like scoped evaluators, delayed execution, and data-aware functions.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a custom environment</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>custom_env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">100</span>)</span>
-<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
-<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> custom_env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a custom environment</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>custom_env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">100</span>)</span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> custom_env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 101</code></pre>
 </div>
@@ -674,7 +717,7 @@ MSG: non-numeric argument to mathematical function</code></pre>
 <h3 class="anchored" data-anchor-id="why-this-is-powerful">Why This Is Powerful</h3>
 <p>This behavior is foundational for base R tools like <code>with()</code> and <code>subset()</code>, and for tidyverse functions like <code>dplyr::filter()</code>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(<span class="fu">quote</span>(mpg <span class="sc">&gt;</span> <span class="dv">25</span>), <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(<span class="fu">quote</span>(mpg <span class="sc">&gt;</span> <span class="dv">25</span>), <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
 [13] FALSE FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE
@@ -688,68 +731,68 @@ MSG: non-numeric argument to mathematical function</code></pre>
 <p>To really see the importance of <code>substitute()</code>, let’s consider a slightly more advanced case: evaluating code in a <strong>different environment</strong>.</p>
 <p>Suppose you want to evaluate an expression using variables defined in a <strong>custom environment</strong>, not the global one. Here’s how it works when done <strong>correctly</strong>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>log_and_eval_env <span class="ot">&lt;-</span> <span class="cf">function</span>(expr, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
-<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
-<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>  code_text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(code)</span>
-<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
-<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> {</span>
-<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>      x <span class="ot">&lt;-</span> <span class="fu">eval</span>(code, <span class="at">envir =</span> env)</span>
-<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>           <span class="co"># Print and return</span></span>
-<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Evaluated in custom env: {code_text}"</span>)</span>
-<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Result: {x}"</span>)</span>
-<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
-<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_alert_danger</span>(<span class="st">"Error in {code_text}: {e$message}"</span>)</span>
-<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
-<span id="cb58-15"><a href="#cb58-15" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb58-16"><a href="#cb58-16" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb58-17"><a href="#cb58-17" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb58-18"><a href="#cb58-18" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb58-19"><a href="#cb58-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
-<span id="cb58-20"><a href="#cb58-20" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>log_and_eval_env <span class="ot">&lt;-</span> <span class="cf">function</span>(expr, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>  code_text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(code)</span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">expr =</span> {</span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>      x <span class="ot">&lt;-</span> <span class="fu">eval</span>(code, <span class="at">envir =</span> env)</span>
+<span id="cb70-8"><a href="#cb70-8" aria-hidden="true" tabindex="-1"></a>           <span class="co"># Print and return</span></span>
+<span id="cb70-9"><a href="#cb70-9" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Evaluated in custom env: {code_text}"</span>)</span>
+<span id="cb70-10"><a href="#cb70-10" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Result: {x}"</span>)</span>
+<span id="cb70-11"><a href="#cb70-11" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb70-12"><a href="#cb70-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb70-13"><a href="#cb70-13" aria-hidden="true" tabindex="-1"></a>      cli<span class="sc">::</span><span class="fu">cli_alert_danger</span>(<span class="st">"Error in {code_text}: {e$message}"</span>)</span>
+<span id="cb70-14"><a href="#cb70-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb70-15"><a href="#cb70-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb70-16"><a href="#cb70-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb70-17"><a href="#cb70-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb70-18"><a href="#cb70-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb70-19"><a href="#cb70-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
+<span id="cb70-20"><a href="#cb70-20" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we create x in env e</span></span>
-<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">100</span>)</span>
-<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a><span class="co"># and also have `x` in global </span></span>
-<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Here the code is evaluated in env `e`</span></span>
-<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we create x in env e</span></span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">100</span>)</span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a><span class="co"># and also have `x` in global </span></span>
+<span id="cb71-5"><a href="#cb71-5" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb71-6"><a href="#cb71-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb71-7"><a href="#cb71-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Here the code is evaluated in env `e`</span></span>
+<span id="cb71-8"><a href="#cb71-8" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Evaluated in custom env: x + 1
 Result: 101</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="co"># This is evaluated in global env</span></span>
-<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="co"># This is evaluated in global env</span></span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Evaluated in custom env: x + 1
 Result: 11</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Notice that we could create `y` in `e`</span></span>
-<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(y <span class="ot">&lt;-</span> x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Notice that we could create `y` in `e`</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(y <span class="ot">&lt;-</span> x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Evaluated in custom env: y &lt;- x + 1
 Result: 101</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>y</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>y</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 101</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="co"># And it was not create in Global because it was evaluated in `e`</span></span>
-<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>y <span class="co"># this gives you error. </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="co"># And it was not create in Global because it was evaluated in `e`</span></span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>y <span class="co"># this gives you error. </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-error">
 <pre><code>Error: object 'y' not found</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="co"># But here, it was created in `y`</span></span>
-<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(y <span class="ot">&lt;-</span> x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="co"># But here, it was created in `y`</span></span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_and_eval_env</span>(y <span class="ot">&lt;-</span> x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Evaluated in custom env: y &lt;- x + 1
 Result: 11</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>y</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>y</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 11</code></pre>
 </div>
@@ -757,23 +800,23 @@ Result: 11</code></pre>
 <p>This works because <code>substitute()</code> captured the unevaluated expression <code>x + 1</code>, and <code>eval()</code> was able to look up <code>x</code> in the <code>env</code> environment.</p>
 <p>But what happens if we don’t use <code>substitute()</code>?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>log_eval_env_wrong <span class="ot">&lt;-</span> <span class="cf">function</span>(expr, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
-<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># expr has already been evaluated here!</span></span>
-<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>  text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(expr)  <span class="co"># will  fail</span></span>
-<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> env)</span>
-<span id="cb73-5"><a href="#cb73-5" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Result: {result}"</span>)</span>
-<span id="cb73-6"><a href="#cb73-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
-<span id="cb73-7"><a href="#cb73-7" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a>log_eval_env_wrong <span class="ot">&lt;-</span> <span class="cf">function</span>(expr, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># expr has already been evaluated here!</span></span>
+<span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a>  text <span class="ot">&lt;-</span> <span class="fu">deparse</span>(expr)  <span class="co"># will  fail</span></span>
+<span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> env)</span>
+<span id="cb85-5"><a href="#cb85-5" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Result: {result}"</span>)</span>
+<span id="cb85-6"><a href="#cb85-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">invisible</span>(result)</span>
+<span id="cb85-7"><a href="#cb85-7" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Now try:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
-<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_env_wrong</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_env_wrong</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Result: 11</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(x)</span>
-<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_env_wrong</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(x)</span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_env_wrong</span>(x <span class="sc">+</span> <span class="dv">1</span>, <span class="at">env =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-error">
 <pre><code>Error: object 'x' not found</code></pre>
 </div>
@@ -784,35 +827,35 @@ Result: 11</code></pre>
 <p>In R, <code>eval(expr, envir = some_env)</code> <em>does</em> make assignments into <code>some_env</code> <strong>if the expression is syntactically an assignment</strong>, like <code>y &lt;- something</code>.</p>
 <p>But this fails for assigning into <code>foo()</code>’s environment</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Why this does not work. </span></span>
-<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>foo <span class="ot">&lt;-</span> \() {</span>
-<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="dv">3</span> <span class="sc">+</span> <span class="dv">2</span></span>
-<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>  goo <span class="ot">&lt;-</span> \() {</span>
-<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb78-6"><a href="#cb78-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">eval</span>(z <span class="ot">&lt;-</span> y <span class="sc">+</span> <span class="dv">2</span>, <span class="at">envir =</span> <span class="fu">parent.frame</span>())</span>
-<span id="cb78-7"><a href="#cb78-7" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb78-8"><a href="#cb78-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">goo</span>()</span>
-<span id="cb78-9"><a href="#cb78-9" aria-hidden="true" tabindex="-1"></a>  z   <span class="co"># Error: object 'z' not found</span></span>
-<span id="cb78-10"><a href="#cb78-10" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb78-11"><a href="#cb78-11" aria-hidden="true" tabindex="-1"></a><span class="fu">foo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Why this does not work. </span></span>
+<span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>foo <span class="ot">&lt;-</span> \() {</span>
+<span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="dv">3</span> <span class="sc">+</span> <span class="dv">2</span></span>
+<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a>  goo <span class="ot">&lt;-</span> \() {</span>
+<span id="cb90-5"><a href="#cb90-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb90-6"><a href="#cb90-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">eval</span>(z <span class="ot">&lt;-</span> y <span class="sc">+</span> <span class="dv">2</span>, <span class="at">envir =</span> <span class="fu">parent.frame</span>())</span>
+<span id="cb90-7"><a href="#cb90-7" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb90-8"><a href="#cb90-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">goo</span>()</span>
+<span id="cb90-9"><a href="#cb90-9" aria-hidden="true" tabindex="-1"></a>  z   <span class="co"># Error: object 'z' not found</span></span>
+<span id="cb90-10"><a href="#cb90-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb90-11"><a href="#cb90-11" aria-hidden="true" tabindex="-1"></a><span class="fu">foo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-error">
 <pre><code>Error in foo(): object 'z' not found</code></pre>
 </div>
 </div>
 <p>That’s why <code>substitute()</code> is essential in any function that wants to control <strong>when</strong> and <strong>where</strong> evaluation happens. Now, this is how it works:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Why this does not work. </span></span>
-<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>foo <span class="ot">&lt;-</span> \() {</span>
-<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="dv">3</span> <span class="sc">+</span> <span class="dv">2</span></span>
-<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>  goo <span class="ot">&lt;-</span> \() {</span>
-<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>    expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(z <span class="ot">&lt;-</span> y <span class="sc">+</span> <span class="dv">2</span>) <span class="co"># this makes it work</span></span>
-<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">eval</span>(expr, <span class="at">envir =</span> <span class="fu">parent.frame</span>())</span>
-<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb80-9"><a href="#cb80-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">goo</span>()</span>
-<span id="cb80-10"><a href="#cb80-10" aria-hidden="true" tabindex="-1"></a>  z </span>
-<span id="cb80-11"><a href="#cb80-11" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb80-12"><a href="#cb80-12" aria-hidden="true" tabindex="-1"></a><span class="fu">foo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Why this does not work. </span></span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>foo <span class="ot">&lt;-</span> \() {</span>
+<span id="cb92-3"><a href="#cb92-3" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="dv">3</span> <span class="sc">+</span> <span class="dv">2</span></span>
+<span id="cb92-4"><a href="#cb92-4" aria-hidden="true" tabindex="-1"></a>  goo <span class="ot">&lt;-</span> \() {</span>
+<span id="cb92-5"><a href="#cb92-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb92-6"><a href="#cb92-6" aria-hidden="true" tabindex="-1"></a>    expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(z <span class="ot">&lt;-</span> y <span class="sc">+</span> <span class="dv">2</span>) <span class="co"># this makes it work</span></span>
+<span id="cb92-7"><a href="#cb92-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">eval</span>(expr, <span class="at">envir =</span> <span class="fu">parent.frame</span>())</span>
+<span id="cb92-8"><a href="#cb92-8" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb92-9"><a href="#cb92-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">goo</span>()</span>
+<span id="cb92-10"><a href="#cb92-10" aria-hidden="true" tabindex="-1"></a>  z </span>
+<span id="cb92-11"><a href="#cb92-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb92-12"><a href="#cb92-12" aria-hidden="true" tabindex="-1"></a><span class="fu">foo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 7</code></pre>
 </div>
