@@ -221,7 +221,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#using-rlang-sym-and-parse_expr" id="toc-using-rlang-sym-and-parse_expr" class="nav-link" data-scroll-target="#using-rlang-sym-and-parse_expr">5.3 Using <code>{rlang}</code>: <code>sym()</code> and <code>parse_expr()</code></a></li>
   <li><a href="#rlangenv_get-controlled-lookup-in-custom-environments" id="toc-rlangenv_get-controlled-lookup-in-custom-environments" class="nav-link" data-scroll-target="#rlangenv_get-controlled-lookup-in-custom-environments">5.4 <code>rlang::env_get()</code> – Controlled Lookup in Custom Environments</a></li>
   <li><a href="#real-example-lookup-by-string" id="toc-real-example-lookup-by-string" class="nav-link" data-scroll-target="#real-example-lookup-by-string">5.5 Real Example: Lookup by String</a></li>
-  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
+  <li><a href="#and-expr-a-better-way-to-inject-variables-into-expressions" id="toc-and-expr-a-better-way-to-inject-variables-into-expressions" class="nav-link" data-scroll-target="#and-expr-a-better-way-to-inject-variables-into-expressions">5.6 <code>!!</code> and <code>expr()</code> – A Better Way to Inject Variables into Expressions</a></li>
+  <li><a href="#splicing-multiple-arguments-into-an-expression" id="toc-splicing-multiple-arguments-into-an-expression" class="nav-link" data-scroll-target="#splicing-multiple-arguments-into-an-expression">5.7 <code>!!!</code> – Splicing Multiple Arguments into an Expression</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1152,103 +1153,155 @@ env:  global</code></pre>
 <span id="cb148-3"><a href="#cb148-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> data)</span>
 <span id="cb148-4"><a href="#cb148-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
 <span id="cb148-5"><a href="#cb148-5" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb148-6"><a href="#cb148-6" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_by_name_base</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">150</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb148-6"><a href="#cb148-6" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_by_name_base</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">200</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>                     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
-Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
-Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
-Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
-Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
-Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
-Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
-Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
-Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
-Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
-Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
-Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
-Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
-Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+<pre><code>                     mpg cyl disp  hp drat    wt  qsec vs am gear carb
+Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre>
 </div>
 </div>
 <p>This works — but becomes brittle if <code>data</code> isn’t a proper environment, or if the expression becomes more complex. <code>eval_tidy()</code> solves this by creating a proper data mask, where names are resolved safely.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb150"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb150-1"><a href="#cb150-1" aria-hidden="true" tabindex="-1"></a>filter_by_name <span class="ot">&lt;-</span> <span class="cf">function</span>(data, varname, cutoff) {</span>
 <span id="cb150-2"><a href="#cb150-2" aria-hidden="true" tabindex="-1"></a>  var_sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(varname)</span>
-<span id="cb150-3"><a href="#cb150-3" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>var_sym <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb150-3"><a href="#cb150-3" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(v <span class="sc">&gt;</span> t, <span class="fu">list</span>(<span class="at">v =</span> <span class="fu">as.name</span>(varname), <span class="at">t =</span> cutoff)) </span>
 <span id="cb150-4"><a href="#cb150-4" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
 <span id="cb150-5"><a href="#cb150-5" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
 <span id="cb150-6"><a href="#cb150-6" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb150-7"><a href="#cb150-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb150-8"><a href="#cb150-8" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_by_name</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">150</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb150-8"><a href="#cb150-8" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_by_name</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">200</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>                     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
-Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
-Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
-Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
-Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
-Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
-Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
-Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
-Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
-Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
-Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
-Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
-Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
-Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+<pre><code>                     mpg cyl disp  hp drat    wt  qsec vs am gear carb
+Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+</div>
+</div>
+</section>
+<section id="and-expr-a-better-way-to-inject-variables-into-expressions" class="level3">
+<h3 class="anchored" data-anchor-id="and-expr-a-better-way-to-inject-variables-into-expressions">5.6 <code>!!</code> and <code>expr()</code> – A Better Way to Inject Variables into Expressions</h3>
+<p>In base R, if you want to create an expression like <code>hp &gt; 200</code> programmatically, you need to use <code>substitute()</code> and build a list of values:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb152"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb152-1"><a href="#cb152-1" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"hp"</span></span>
+<span id="cb152-2"><a href="#cb152-2" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb152-3"><a href="#cb152-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb152-4"><a href="#cb152-4" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(v <span class="sc">&gt;</span> t, <span class="fu">list</span>(<span class="at">v =</span> <span class="fu">as.name</span>(var), <span class="at">t =</span> cutoff))</span>
+<span id="cb152-5"><a href="#cb152-5" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb154"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb154-1"><a href="#cb154-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
+</div>
+</div>
+<p>This works — but it’s not very readable, and becomes hard to manage when expressions get more complex.</p>
+<section id="the-rlang-way-quoting-and-unquoting" class="level4">
+<h4 class="anchored" data-anchor-id="the-rlang-way-quoting-and-unquoting">The <code>{rlang}</code> Way: Quoting and Unquoting</h4>
+<p><code>rlang::expr()</code> lets you build expressions <strong>just like writing them by hand</strong>. And <code>!!</code> (called <strong>bang-bang</strong>) lets you inject programmatic values directly into those expressions.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb156"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb156-1"><a href="#cb156-1" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(<span class="st">"hp"</span>)</span>
+<span id="cb156-2"><a href="#cb156-2" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb156-3"><a href="#cb156-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb156-4"><a href="#cb156-4" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>var <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb156-5"><a href="#cb156-5" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb158"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, <span class="at">data =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
+</div>
+</div>
+<p>Same result — but:</p>
+<ul>
+<li>No need for <code>substitute()</code></li>
+<li>No need for <code>list()</code></li>
+<li>You’re writing what looks like natural code</li>
+</ul>
+</section>
+<section id="rlang-version-of-the-filter_by_name" class="level4">
+<h4 class="anchored" data-anchor-id="rlang-version-of-the-filter_by_name"><code>{rlang}</code> Version of the <code>filter_by_name()</code></h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb160"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a>filter_tidy <span class="ot">&lt;-</span> <span class="cf">function</span>(data, varname, cutoff) {</span>
+<span id="cb160-2"><a href="#cb160-2" aria-hidden="true" tabindex="-1"></a>  var_sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(varname)</span>
+<span id="cb160-3"><a href="#cb160-3" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>var_sym <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb160-4"><a href="#cb160-4" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb160-5"><a href="#cb160-5" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb160-6"><a href="#cb160-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb160-7"><a href="#cb160-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb160-8"><a href="#cb160-8" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_tidy</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">200</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     mpg cyl disp  hp drat    wt  qsec vs am gear carb
+Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+</div>
+</div>
+<p>Both functions return the same result — but the <code>{rlang}</code> version is <strong>cleaner</strong>, <strong>composable</strong>, and plays well with the rest of the tidyverse metaprogramming tools.</p>
+</section>
+</section>
+<section id="splicing-multiple-arguments-into-an-expression" class="level3">
+<h3 class="anchored" data-anchor-id="splicing-multiple-arguments-into-an-expression">5.7 <code>!!!</code> – Splicing Multiple Arguments into an Expression</h3>
+<p>If <code>!!</code> lets you inject a <strong>single</strong> value or symbol into an expression, then <code>!!!</code> lets you <strong>inject a list of values</strong> — as if you’d written them out one by one.</p>
+<p>This is called <strong>unquote-splicing</strong>, and it’s especially useful when building calls with a variable number of arguments.</p>
+<section id="base-r-comparison" class="level4">
+<h4 class="anchored" data-anchor-id="base-r-comparison">Base R Comparison</h4>
+<p>In base R, if you want to programmatically build <code>mean(x, na.rm = TRUE)</code>, you’d do something like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb162"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb162-1"><a href="#cb162-1" aria-hidden="true" tabindex="-1"></a>args <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">quote</span>(x), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb162-2"><a href="#cb162-2" aria-hidden="true" tabindex="-1"></a>call <span class="ot">&lt;-</span> <span class="fu">as.call</span>(<span class="fu">c</span>(<span class="fu">quote</span>(mean), args))</span>
+<span id="cb162-3"><a href="#cb162-3" aria-hidden="true" tabindex="-1"></a>call</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mean(x = x, na.rm = TRUE)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb164"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb164-1"><a href="#cb164-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(call, <span class="at">envir =</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="cn">NA</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.5</code></pre>
+</div>
+</div>
+<p>It works — but it’s awkward and hard to read.</p>
+</section>
+<section id="rlang-with" class="level4">
+<h4 class="anchored" data-anchor-id="rlang-with"><code>{rlang}</code> with <code>!!!</code></h4>
+<p>With <code>rlang</code>, this becomes more readable:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb166"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb166-1"><a href="#cb166-1" aria-hidden="true" tabindex="-1"></a>args <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> rlang<span class="sc">::</span><span class="fu">sym</span>(<span class="st">"x"</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb166-2"><a href="#cb166-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb166-3"><a href="#cb166-3" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="fu">mean</span>(<span class="sc">!!!</span>args))</span>
+<span id="cb166-4"><a href="#cb166-4" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mean(x = x, na.rm = TRUE)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb168"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb168-1"><a href="#cb168-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, <span class="at">data =</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="cn">NA</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.5</code></pre>
 </div>
 </div>
 <ul>
-<li><code>rlang::sym()</code> turns <code>"hp"</code> into the symbol <code>hp</code>.</li>
-<li><code>rlang::expr()</code> + <code>!!</code> unquotes the symbol and value.</li>
-<li><code>eval_tidy()</code> safely evaluates inside the data mask.</li>
+<li><code>!!!</code> splices the contents of the list into the call to <code>mean()</code>.</li>
+<li>This allows dynamic injection of multiple arguments at once.</li>
 </ul>
-<p>This is a robust, tidy-eval-friendly way to do programmatic data manipulation.</p>
+
+
 </section>
-<section id="summary" class="level3">
-<h3 class="anchored" data-anchor-id="summary">Summary</h3>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 40%">
-<col style="width: 25%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Task</th>
-<th>Base R</th>
-<th><code>{rlang}</code> Alternative</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Get variable by name</td>
-<td><code>get("x", env)</code></td>
-<td><code>env_get(env, "x")</code></td>
-</tr>
-<tr class="even">
-<td>Make symbol from string</td>
-<td><code>as.name("x")</code></td>
-<td><code>sym("x")</code></td>
-</tr>
-<tr class="odd">
-<td>Parse string into expression</td>
-<td><code>parse(text = ...)</code></td>
-<td><code>parse_expr()</code></td>
-</tr>
-<tr class="even">
-<td>Build programmatic expressions</td>
-<td><code>substitute()</code></td>
-<td><code>expr()</code> + <code>!!</code> + <code>sym()</code></td>
-</tr>
-<tr class="odd">
-<td>Evaluate inside data and env</td>
-<td><code>eval(expr, envir)</code></td>
-<td><code>eval_tidy()</code></td>
-</tr>
-</tbody>
-</table>
-
-
 </section>
 </section>
 

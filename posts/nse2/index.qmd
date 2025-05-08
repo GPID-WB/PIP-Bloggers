@@ -765,7 +765,7 @@ filter_by_name_base <- function(data, varname, cutoff) {
   rows <- eval(expr, envir = data)
   data[rows, ]
 }
-filter_by_name_base(mtcars, "hp", 150)
+filter_by_name_base(mtcars, "hp", 200)
 ```
 
 This works — but becomes brittle if `data` isn’t a proper environment, or if the expression becomes more complex. `eval_tidy()` solves this by creating a proper data mask, where names are resolved safely.
@@ -774,28 +774,95 @@ This works — but becomes brittle if `data` isn’t a proper environment, or if
 ```{R}
 filter_by_name <- function(data, varname, cutoff) {
   var_sym <- rlang::sym(varname)
+  expr <- substitute(v > t, list(v = as.name(varname), t = cutoff)) 
+  rows <- rlang::eval_tidy(expr, data)
+  data[rows, ]
+}
+
+filter_by_name(mtcars, "hp", 200)
+```
+
+
+### 5.6 `!!` and `expr()` – A Better Way to Inject Variables into Expressions
+
+In base R, if you want to create an expression like `hp > 200` programmatically, you need to use `substitute()` and build a list of values:
+
+```{R}
+var <- "hp"
+cutoff <- 200
+
+expr <- substitute(v > t, list(v = as.name(var), t = cutoff))
+expr
+eval(expr, envir = mtcars)
+```
+
+This works — but it’s not very readable, and becomes hard to manage when expressions get more complex.
+
+#### The `{rlang}` Way: Quoting and Unquoting
+
+`rlang::expr()` lets you build expressions **just like writing them by hand**. And `!!` (called **bang-bang**) lets you inject programmatic values directly into those expressions.
+
+```{R}
+var <- rlang::sym("hp")
+cutoff <- 200
+
+expr <- rlang::expr(!!var > !!cutoff)
+expr
+rlang::eval_tidy(expr, data = mtcars)
+```
+
+Same result — but:
+
+* No need for `substitute()`
+* No need for `list()`
+* You’re writing what looks like natural code
+
+#### `{rlang}` Version of the `filter_by_name()`
+
+```{R}
+filter_tidy <- function(data, varname, cutoff) {
+  var_sym <- rlang::sym(varname)
   expr <- rlang::expr(!!var_sym > !!cutoff)
   rows <- rlang::eval_tidy(expr, data)
   data[rows, ]
 }
 
-filter_by_name(mtcars, "hp", 150)
+filter_tidy(mtcars, "hp", 200)
 ```
 
-* `rlang::sym()` turns `"hp"` into the symbol `hp`.
-* `rlang::expr()` + `!!` unquotes the symbol and value.
-* `eval_tidy()` safely evaluates inside the data mask.
+Both functions return the same result — but the `{rlang}` version is **cleaner**, **composable**, and plays well with the rest of the tidyverse metaprogramming tools.
 
-This is a robust, tidy-eval-friendly way to do programmatic data manipulation.
+### 5.7 `!!!` – Splicing Multiple Arguments into an Expression
 
+If `!!` lets you inject a **single** value or symbol into an expression, then `!!!` lets you **inject a list of values** — as if you'd written them out one by one.
 
-### Summary
+This is called **unquote-splicing**, and it's especially useful when building calls with a variable number of arguments.
 
-| Task                           | Base R              | `{rlang}` Alternative     |
-| ------------------------------ | ------------------- | ------------------------- |
-| Get variable by name           | `get("x", env)`     | `env_get(env, "x")`       |
-| Make symbol from string        | `as.name("x")`      | `sym("x")`                |
-| Parse string into expression   | `parse(text = ...)` | `parse_expr()`            |
-| Build programmatic expressions | `substitute()`      | `expr()` + `!!` + `sym()` |
-| Evaluate inside data and env   | `eval(expr, envir)` | `eval_tidy()`             |
+#### Base R Comparison
 
+In base R, if you want to programmatically build `mean(x, na.rm = TRUE)`, you'd do something like this:
+
+```{R}
+args <- list(x = quote(x), na.rm = TRUE)
+call <- as.call(c(quote(mean), args))
+call
+eval(call, envir = data.frame(x = c(1, 2, NA)))
+```
+
+It works — but it’s awkward and hard to read.
+
+#### `{rlang}` with `!!!`
+
+With `rlang`, this becomes more readable:
+
+```{R}
+args <- list(x = rlang::sym("x"), na.rm = TRUE)
+
+expr <- rlang::expr(mean(!!!args))
+expr
+
+rlang::eval_tidy(expr, data = data.frame(x = c(1, 2, NA)))
+```
+
+* `!!!` splices the contents of the list into the call to `mean()`.
+* This allows dynamic injection of multiple arguments at once.
