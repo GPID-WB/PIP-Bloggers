@@ -653,15 +653,19 @@ get("x", envir = list2env(dt))
 
 ### 5.2 `as.name()` – Build a Symbol from a String
 
-Sometimes you want to **construct an expression** from variable names provided as strings. `as.name()` (or the backtick syntax `` `var` ``) turns a string into a symbol — the building block of an R expression:
+Sometimes you want to **construct an expression** from variable names provided as strings. `as.name()` (or the backtick syntax `` `var` ``) turns a string into a symbol --- the building block of an R expression:
 
 ```{R}
-var <- "x"
-expr <- as.name(var)
+x <- 101   # layer 1
+var <- "x" # layer 2
+expr <- as.name(var) #layer 3
 expr
-#> x
+
+expr2 <- quote(var) #layer 4
+expr2 # too literal
 
 eval(expr)  # same as eval(quote(x))
+eval(expr2)  # just the name
 ```
 
 This is how you build dynamic expressions:
@@ -669,14 +673,13 @@ This is how you build dynamic expressions:
 ```{R}
 var <- "hp"
 threshold <- 200
-expr <- substitute(v > t, list(v = as.name(var), t = threshold))
+expr <- substitute(v > t, list(v = as.name(var), 
+                               t = threshold))
 expr
 eval(expr, envir = mtcars)
 ```
 
 This evaluates `hp > 200` inside `mtcars`.
-
----
 
 ### 5.3 Using `{rlang}`: `sym()`, `parse_expr()`, and `env_get()`
 
