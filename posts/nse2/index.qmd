@@ -480,16 +480,6 @@ my_filter_wrong(mtcars, hp > threshold)
 Why does this fail? Because `eval()` only looks in `data`, not in the calling environment — it doesn’t know where `threshold` lives.
 
 
-
-
-
-
-
-
-
-
-
-
 ### 4.4 What If You Just Used `eval()`?
 
 You might wonder: does `eval(expr, envir = data)` already do what we need?
@@ -622,3 +612,151 @@ Here’s the difference:
   2. Then in `.env` (the quosure’s environment)
   
 * This guarantees consistent and predictable behavior for user-written expressions.
+
+
+## 5. Looking Up Variables Dynamically with `get()` and Friends
+
+So far, we’ve worked with static or captured expressions. But what if you need to look up a variable **by name**, programmatically? This is where `get()`, `as.name()`, and their `{rlang}` equivalents come in.
+
+
+### 5.1 `get()` – Retrieve an Object by Name
+
+The base R function `get()` retrieves the value of a variable **by string name**, from a specified environment.
+
+```{R}
+x <- 100
+get("x")
+```
+
+This returns `100`, because `"x"` is resolved in the global environment by default (`env = parent.frame()`).
+
+You can change the lookup environment explicitly:
+
+```{R}
+env <- rlang::env(x = 999)
+get("x", envir = env)
+```
+
+This kind of lookup is useful when you’re writing generic tools that receive the **name** of a variable and need to fetch its value dynamically.
+
+```{R}
+#| error: true
+dt <- data.frame(x = c(1:5))
+
+# you need to pass a real enviroment. Otherwise it breaks
+get("x", envir = dt)
+
+# This works
+get("x", envir = list2env(dt))
+
+```
+
+### 5.2 `as.name()` – Build a Symbol from a String
+
+Sometimes you want to **construct an expression** from variable names provided as strings. `as.name()` (or the backtick syntax `` `var` ``) turns a string into a symbol — the building block of an R expression:
+
+```{R}
+var <- "x"
+expr <- as.name(var)
+expr
+#> x
+
+eval(expr)  # same as eval(quote(x))
+```
+
+This is how you build dynamic expressions:
+
+```{R}
+var <- "hp"
+threshold <- 200
+expr <- substitute(v > t, list(v = as.name(var), t = threshold))
+expr
+eval(expr, envir = mtcars)
+```
+
+This evaluates `hp > 200` inside `mtcars`.
+
+---
+
+### 5.3 Using `{rlang}`: `sym()`, `parse_expr()`, and `env_get()`
+
+Base R’s tools work, but `{rlang}` provides safer and more composable alternatives for programmatic evaluation.
+
+#### `rlang::sym()` – Safer Symbol Construction
+
+```{R}
+var <- "mpg"
+rlang::sym(var)
+#> symbol mpg
+```
+
+This is equivalent to `as.name()` but designed to compose well with other `{rlang}` functions.
+
+#### `rlang::parse_expr()` – From String to Expression
+
+```{R}
+code <- "mpg > 20"
+expr <- rlang::parse_expr(code)
+expr
+eval(expr, envir = mtcars)
+```
+
+`parse_expr()` is better than `parse(text = ...)` because it returns a single expression, not a list.
+
+---
+
+### 5.4 `rlang::env_get()` – Controlled Lookup in Custom Environments
+
+Instead of base `get()`, `{rlang}` provides `env_get()` for controlled and safe lookups:
+
+```{R}
+e <- rlang::env(a = 1, b = 2)
+rlang::env_get(e, "a")
+#> [1] 1
+```
+
+This function:
+
+* Is strict by default (errors if the variable is missing),
+* Can be customized to return a default value if not found:
+
+```{R}
+rlang::env_get(e, "z", default = NA)
+```
+
+You can also **limit** the search to specific environments only.
+
+---
+
+### 5.5 Real Example: Lookup by String
+
+Suppose you want to write a function that filters a data frame based on a variable and a cutoff — but both are provided as arguments:
+
+```{R}
+filter_by_name <- function(data, varname, cutoff) {
+  var_sym <- rlang::sym(varname)
+  expr <- rlang::expr(!!var_sym > !!cutoff)
+  rows <- rlang::eval_tidy(expr, data)
+  data[rows, ]
+}
+
+filter_by_name(mtcars, "hp", 150)
+```
+
+* `rlang::sym()` turns `"hp"` into the symbol `hp`.
+* `rlang::expr()` + `!!` unquotes the symbol and value.
+* `eval_tidy()` safely evaluates inside the data mask.
+
+This is a robust, tidy-eval-friendly way to do programmatic data manipulation.
+
+
+### Summary
+
+| Task                           | Base R              | `{rlang}` Alternative     |
+| ------------------------------ | ------------------- | ------------------------- |
+| Get variable by name           | `get("x", env)`     | `env_get(env, "x")`       |
+| Make symbol from string        | `as.name("x")`      | `sym("x")`                |
+| Parse string into expression   | `parse(text = ...)` | `parse_expr()`            |
+| Build programmatic expressions | `substitute()`      | `expr()` + `!!` + `sym()` |
+| Evaluate inside data and env   | `eval(expr, envir)` | `eval_tidy()`             |
+
