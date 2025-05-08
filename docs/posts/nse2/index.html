@@ -224,6 +224,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#and-expr-a-better-way-to-inject-variables-into-expressions" id="toc-and-expr-a-better-way-to-inject-variables-into-expressions" class="nav-link" data-scroll-target="#and-expr-a-better-way-to-inject-variables-into-expressions">5.6 <code>!!</code> and <code>expr()</code> – A Better Way to Inject Variables into Expressions</a></li>
   <li><a href="#splicing-multiple-arguments-into-an-expression" id="toc-splicing-multiple-arguments-into-an-expression" class="nav-link" data-scroll-target="#splicing-multiple-arguments-into-an-expression">5.7 <code>!!!</code> – Splicing Multiple Arguments into an Expression</a></li>
   </ul></li>
+  <li><a href="#defensive-programming-with-nse" id="toc-defensive-programming-with-nse" class="nav-link" data-scroll-target="#defensive-programming-with-nse">6. Defensive Programming with NSE</a>
+  <ul class="collapse">
+  <li><a href="#problem-a-function-that-breaks-silently" id="toc-problem-a-function-that-breaks-silently" class="nav-link" data-scroll-target="#problem-a-function-that-breaks-silently">6.1 Problem: A Function That Breaks Silently</a></li>
+  <li><a href="#solution-develop-deffenses" id="toc-solution-develop-deffenses" class="nav-link" data-scroll-target="#solution-develop-deffenses">6.2 Solution: develop deffenses</a></li>
+  <li><a href="#supporting-both-quoted-and-unquoted-input" id="toc-supporting-both-quoted-and-unquoted-input" class="nav-link" data-scroll-target="#supporting-both-quoted-and-unquoted-input">6.3 Supporting Both Quoted and Unquoted Input</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -1299,6 +1305,245 @@ Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></p
 <li><code>!!!</code> splices the contents of the list into the call to <code>mean()</code>.</li>
 <li>This allows dynamic injection of multiple arguments at once.</li>
 </ul>
+</section>
+</section>
+</section>
+<section id="defensive-programming-with-nse" class="level2">
+<h2 class="anchored" data-anchor-id="defensive-programming-with-nse">6. Defensive Programming with NSE</h2>
+<p>Non-Standard Evaluation gives you tremendous power — but with power comes the responsibility to <strong>handle user input safely</strong>. NSE functions often delay evaluation, manipulate environments, or work with variable names as symbols. That means things can fail in subtle ways.</p>
+<p>In this section, we’ll learn how to write <strong>robust, user-friendly functions</strong> that:</p>
+<ul>
+<li>Catch invalid or missing inputs early,</li>
+<li>Validate symbols or expressions,</li>
+<li>Provide clear fallback behavior when something goes wrong.</li>
+</ul>
+<section id="problem-a-function-that-breaks-silently" class="level3">
+<h3 class="anchored" data-anchor-id="problem-a-function-that-breaks-silently">6.1 Problem: A Function That Breaks Silently</h3>
+<p>Suppose you write a dynamic filter like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb170"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb170-1"><a href="#cb170-1" aria-hidden="true" tabindex="-1"></a>bad_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var, cutoff) {</span>
+<span id="cb170-2"><a href="#cb170-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>rlang<span class="sc">::</span><span class="fu">sym</span>(var) <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb170-3"><a href="#cb170-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb170-4"><a href="#cb170-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb170-5"><a href="#cb170-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb170-6"><a href="#cb170-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb170-7"><a href="#cb170-7" aria-hidden="true" tabindex="-1"></a><span class="fu">bad_filter</span>(mtcars, <span class="st">"mpg"</span>, <span class="dv">25</span>)  <span class="co"># Works</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb172"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb172-1"><a href="#cb172-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bad_filter</span>(mtcars, <span class="st">"not_a_column"</span>, <span class="dv">25</span>)  <span class="co"># Breaks with cryptic error</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error: object 'not_a_column' not found</code></pre>
+</div>
+</div>
+<p>This is hard to debug for users because it is not telling that <code>not_a_column</code> is not part of <code>mtcars</code>.</p>
+</section>
+<section id="solution-develop-deffenses" class="level3">
+<h3 class="anchored" data-anchor-id="solution-develop-deffenses">6.2 Solution: develop deffenses</h3>
+<section id="step-1-validate-variable-names" class="level4">
+<h4 class="anchored" data-anchor-id="step-1-validate-variable-names">Step 1: Validate Variable Names</h4>
+<p>Let’s check that <code>var</code> exists in the data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb174"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb174-1"><a href="#cb174-1" aria-hidden="true" tabindex="-1"></a>safe_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var, cutoff) {</span>
+<span id="cb174-2"><a href="#cb174-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>var <span class="sc">%in%</span> <span class="fu">names</span>(data)) {</span>
+<span id="cb174-3"><a href="#cb174-3" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(</span>
+<span id="cb174-4"><a href="#cb174-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">message =</span> glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Variable '{var}' not found in data."</span>),</span>
+<span id="cb174-5"><a href="#cb174-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">class =</span> <span class="st">"invalid_column"</span></span>
+<span id="cb174-6"><a href="#cb174-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb174-7"><a href="#cb174-7" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb174-8"><a href="#cb174-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb174-9"><a href="#cb174-9" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>rlang<span class="sc">::</span><span class="fu">sym</span>(var) <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb174-10"><a href="#cb174-10" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb174-11"><a href="#cb174-11" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb174-12"><a href="#cb174-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb174-13"><a href="#cb174-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb174-14"><a href="#cb174-14" aria-hidden="true" tabindex="-1"></a><span class="fu">safe_filter</span>(mtcars, <span class="st">"gear"</span>, <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt qsec vs am gear carb
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.7  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.9  1  1    5    2
+Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.5  0  1    5    4
+Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
+Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb176"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb176-1"><a href="#cb176-1" aria-hidden="true" tabindex="-1"></a><span class="fu">safe_filter</span>(mtcars, <span class="st">"not_a_column"</span>, <span class="dv">4</span>)  <span class="co"># Now fails gracefully</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `safe_filter()`:
+! Variable 'not_a_column' not found in data.</code></pre>
+</div>
+</div>
+<p><code>rlang::abort()</code> gives you structured errors, which can be caught or logged. This is something that we learn in a previous post.</p>
+</section>
+<section id="step-2-provide-default-values" class="level4">
+<h4 class="anchored" data-anchor-id="step-2-provide-default-values">Step 2: Provide Default Values</h4>
+<p>Sometimes you want your function to <strong>fall back to a default variable</strong> if none is provided.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb178"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb178-1"><a href="#cb178-1" aria-hidden="true" tabindex="-1"></a>default_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">var =</span> <span class="cn">NULL</span>, <span class="at">cutoff =</span> <span class="dv">0</span>) {</span>
+<span id="cb178-2"><a href="#cb178-2" aria-hidden="true" tabindex="-1"></a>  var <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">is.null</span>(var)) {</span>
+<span id="cb178-3"><a href="#cb178-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"mpg"</span>  <span class="co"># fallback to "mpg" if NULL</span></span>
+<span id="cb178-4"><a href="#cb178-4" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb178-5"><a href="#cb178-5" aria-hidden="true" tabindex="-1"></a>    var</span>
+<span id="cb178-6"><a href="#cb178-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb178-7"><a href="#cb178-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-8"><a href="#cb178-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>var <span class="sc">%in%</span> <span class="fu">names</span>(data)) {</span>
+<span id="cb178-9"><a href="#cb178-9" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(</span>
+<span id="cb178-10"><a href="#cb178-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">message =</span> glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Variable '{var}' not found in data."</span>),</span>
+<span id="cb178-11"><a href="#cb178-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">class =</span> <span class="st">"invalid_column"</span></span>
+<span id="cb178-12"><a href="#cb178-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb178-13"><a href="#cb178-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb178-14"><a href="#cb178-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-15"><a href="#cb178-15" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>rlang<span class="sc">::</span><span class="fu">sym</span>(var) <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb178-16"><a href="#cb178-16" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb178-17"><a href="#cb178-17" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb178-18"><a href="#cb178-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb178-19"><a href="#cb178-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-20"><a href="#cb178-20" aria-hidden="true" tabindex="-1"></a><span class="fu">default_filter</span>(mtcars, <span class="st">"gear"</span>, <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt qsec vs am gear carb
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.7  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.9  1  1    5    2
+Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.5  0  1    5    4
+Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
+Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb180"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb180-1"><a href="#cb180-1" aria-hidden="true" tabindex="-1"></a><span class="fu">default_filter</span>(mtcars, <span class="st">"not_a_column"</span>, <span class="dv">4</span>)  <span class="co"># Now fails gracefully</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `default_filter()`:
+! Variable 'not_a_column' not found in data.</code></pre>
+</div>
+</div>
+</section>
+<section id="step-3-catch-and-re-throw-clean-errors" class="level4">
+<h4 class="anchored" data-anchor-id="step-3-catch-and-re-throw-clean-errors">Step 3: Catch and Re-throw Clean Errors</h4>
+<p>Wrap the evaluation in <code>tryCatch()</code> and rethrow helpful messages:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb182"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb182-1"><a href="#cb182-1" aria-hidden="true" tabindex="-1"></a>robust_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var, cutoff) {</span>
+<span id="cb182-2"><a href="#cb182-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>rlang<span class="sc">::</span><span class="fu">sym</span>(var) <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb182-3"><a href="#cb182-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb182-4"><a href="#cb182-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
+<span id="cb182-5"><a href="#cb182-5" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb182-6"><a href="#cb182-6" aria-hidden="true" tabindex="-1"></a>      rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb182-7"><a href="#cb182-7" aria-hidden="true" tabindex="-1"></a>      data[rows, ]</span>
+<span id="cb182-8"><a href="#cb182-8" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb182-9"><a href="#cb182-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb182-10"><a href="#cb182-10" aria-hidden="true" tabindex="-1"></a>      rlang<span class="sc">::</span><span class="fu">abort</span>(</span>
+<span id="cb182-11"><a href="#cb182-11" aria-hidden="true" tabindex="-1"></a>        glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Filtering failed for column '{var}': </span></span>
+<span id="cb182-12"><a href="#cb182-12" aria-hidden="true" tabindex="-1"></a><span class="st">                   {e$message}"</span>),</span>
+<span id="cb182-13"><a href="#cb182-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">class =</span> <span class="st">"filter_error"</span></span>
+<span id="cb182-14"><a href="#cb182-14" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb182-15"><a href="#cb182-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb182-16"><a href="#cb182-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb182-17"><a href="#cb182-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb182-18"><a href="#cb182-18" aria-hidden="true" tabindex="-1"></a><span class="fu">robust_filter</span>(mtcars, <span class="st">"gear"</span>, <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt qsec vs am gear carb
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.7  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.9  1  1    5    2
+Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.5  0  1    5    4
+Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
+Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb184"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb184-1"><a href="#cb184-1" aria-hidden="true" tabindex="-1"></a><span class="fu">robust_filter</span>(mtcars, <span class="st">"not_a_column"</span>, <span class="dv">4</span>)  <span class="co"># Now fails gracefully</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `value[[3L]]()`:
+! Filtering failed for column 'not_a_column': 
+object 'not_a_column' not found</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="supporting-both-quoted-and-unquoted-input" class="level3">
+<h3 class="anchored" data-anchor-id="supporting-both-quoted-and-unquoted-input">6.3 Supporting Both Quoted and Unquoted Input</h3>
+<p>When writing user-facing functions, it’s often helpful to accept both:</p>
+<ul>
+<li><code>var = mpg</code> (unquoted, NSE)</li>
+<li><code>var = "mpg"</code> (quoted, SE)</li>
+</ul>
+<p>This makes your function more intuitive and versatile — just like <code>library("dplyr")</code> and <code>library(dplyr)</code> both work.</p>
+<p>To support this, we’ll combine <code>rlang::enquo()</code> (to capture NSE input) with logic to convert strings to symbols when needed.</p>
+<section id="a-flexible-filter-function" class="level4">
+<h4 class="anchored" data-anchor-id="a-flexible-filter-function">A Flexible Filter Function</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb186"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb186-1"><a href="#cb186-1" aria-hidden="true" tabindex="-1"></a>smart_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var, cutoff) {</span>
+<span id="cb186-2"><a href="#cb186-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Capture the input</span></span>
+<span id="cb186-3"><a href="#cb186-3" aria-hidden="true" tabindex="-1"></a>  quo <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(var)</span>
+<span id="cb186-4"><a href="#cb186-4" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">quo_get_expr</span>(quo)</span>
+<span id="cb186-5"><a href="#cb186-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb186-6"><a href="#cb186-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Determine symbol from input</span></span>
+<span id="cb186-7"><a href="#cb186-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (rlang<span class="sc">::</span><span class="fu">is_symbol</span>(expr)) {</span>
+<span id="cb186-8"><a href="#cb186-8" aria-hidden="true" tabindex="-1"></a>    var_sym <span class="ot">&lt;-</span> expr</span>
+<span id="cb186-9"><a href="#cb186-9" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (rlang<span class="sc">::</span><span class="fu">is_string</span>(expr)) {</span>
+<span id="cb186-10"><a href="#cb186-10" aria-hidden="true" tabindex="-1"></a>    var_sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(expr)</span>
+<span id="cb186-11"><a href="#cb186-11" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb186-12"><a href="#cb186-12" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(<span class="st">"`var` must be a column name (unquoted) or a string."</span>)</span>
+<span id="cb186-13"><a href="#cb186-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb186-14"><a href="#cb186-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb186-15"><a href="#cb186-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Check if column exists</span></span>
+<span id="cb186-16"><a href="#cb186-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">as.character</span>(var_sym) <span class="sc">%in%</span> <span class="fu">names</span>(data)) {</span>
+<span id="cb186-17"><a href="#cb186-17" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Column '{var_sym}' not found in data."</span>))</span>
+<span id="cb186-18"><a href="#cb186-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb186-19"><a href="#cb186-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb186-20"><a href="#cb186-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Build and evaluate the expression</span></span>
+<span id="cb186-21"><a href="#cb186-21" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>var_sym <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb186-22"><a href="#cb186-22" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb186-23"><a href="#cb186-23" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb186-24"><a href="#cb186-24" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="examples" class="level4">
+<h4 class="anchored" data-anchor-id="examples">Examples</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb187"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb187-1"><a href="#cb187-1" aria-hidden="true" tabindex="-1"></a><span class="fu">smart_filter</span>(mtcars, mpg, <span class="dv">25</span>)         <span class="co"># unquoted NSE</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb189"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb189-1"><a href="#cb189-1" aria-hidden="true" tabindex="-1"></a><span class="fu">smart_filter</span>(mtcars, <span class="st">"mpg"</span>, <span class="dv">25</span>)       <span class="co"># quoted string</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb191"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb191-1"><a href="#cb191-1" aria-hidden="true" tabindex="-1"></a><span class="fu">smart_filter</span>(mtcars, <span class="at">var =</span> <span class="st">"mpg"</span>, <span class="dv">25</span>) <span class="co"># still works</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+</div>
+<p>All of these return the same filtered data frame.</p>
+<p>This function allows the user to pass the column name <strong>as a bare symbol</strong> (e.g.&nbsp;<code>mpg</code>) or <strong>as a string</strong> (e.g.&nbsp;<code>"mpg"</code>), just like many tidyverse functions do.</p>
+<p>How does it work?</p>
+<ol type="1">
+<li><p><code>rlang::enquo(var)</code> captures the input as a <strong>quosure</strong> — preserving both the expression and its environment.</p></li>
+<li><p><code>rlang::quo_get_expr()</code> retrieves the raw expression typed by the user.</p></li>
+<li><p>We test:</p>
+<ul>
+<li>If the expression is a <strong>symbol</strong> (e.g.&nbsp;<code>mpg</code>), we use it directly.</li>
+<li>If it is a <strong>string</strong> (e.g.&nbsp;<code>"mpg"</code>), we convert it to a symbol using <code>rlang::sym()</code>.</li>
+</ul></li>
+<li><p>We then build an expression with <code>rlang::expr(!!var_sym &gt; !!cutoff)</code> and evaluate it in the data context using <code>rlang::eval_tidy()</code>.</p></li>
+</ol>
+<p>This gives you the best of both worlds: intuitive NSE behavior and robust programmatic support.</p>
 
 
 </section>

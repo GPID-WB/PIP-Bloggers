@@ -866,3 +866,190 @@ rlang::eval_tidy(expr, data = data.frame(x = c(1, 2, NA)))
 
 * `!!!` splices the contents of the list into the call to `mean()`.
 * This allows dynamic injection of multiple arguments at once.
+
+
+
+## 6. Defensive Programming with NSE
+
+Non-Standard Evaluation gives you tremendous power — but with power comes the responsibility to **handle user input safely**. NSE functions often delay evaluation, manipulate environments, or work with variable names as symbols. That means things can fail in subtle ways.
+
+In this section, we’ll learn how to write **robust, user-friendly functions** that:
+
+* Catch invalid or missing inputs early,
+* Validate symbols or expressions,
+* Provide clear fallback behavior when something goes wrong.
+
+
+### 6.1 Problem: A Function That Breaks Silently
+
+Suppose you write a dynamic filter like this:
+
+```{R}
+#| error: true
+bad_filter <- function(data, var, cutoff) {
+  expr <- rlang::expr(!!rlang::sym(var) > !!cutoff)
+  rows <- rlang::eval_tidy(expr, data)
+  data[rows, ]
+}
+
+bad_filter(mtcars, "mpg", 25)  # Works
+bad_filter(mtcars, "not_a_column", 25)  # Breaks with cryptic error
+```
+
+This is hard to debug for users because it is not telling that `not_a_column` is not part of `mtcars`. 
+
+
+### 6.2 Solution: develop deffenses
+
+#### Step 1: Validate Variable Names
+
+Let’s check that `var` exists in the data:
+
+```{R}
+#| error: true
+safe_filter <- function(data, var, cutoff) {
+  if (!var %in% names(data)) {
+    rlang::abort(
+      message = glue::glue("Variable '{var}' not found in data."),
+      class = "invalid_column"
+    )
+  }
+
+  expr <- rlang::expr(!!rlang::sym(var) > !!cutoff)
+  rows <- rlang::eval_tidy(expr, data)
+  data[rows, ]
+}
+
+safe_filter(mtcars, "gear", 4)
+safe_filter(mtcars, "not_a_column", 4)  # Now fails gracefully
+```
+
+`rlang::abort()` gives you structured errors, which can be caught or logged. This is something that we learn in a previous post. 
+
+#### Step 2: Provide Default Values
+
+Sometimes you want your function to **fall back to a default variable** if none is provided.
+
+```{R}
+#| error: true
+default_filter <- function(data, var = NULL, cutoff = 0) {
+  var <- if (is.null(var)) {
+    "mpg"  # fallback to "mpg" if NULL
+  } else {
+    var
+  }
+
+  if (!var %in% names(data)) {
+    rlang::abort(
+      message = glue::glue("Variable '{var}' not found in data."),
+      class = "invalid_column"
+    )
+  }
+
+  expr <- rlang::expr(!!rlang::sym(var) > !!cutoff)
+  rows <- rlang::eval_tidy(expr, data)
+  data[rows, ]
+}
+
+default_filter(mtcars, "gear", 4)
+default_filter(mtcars, "not_a_column", 4)  # Now fails gracefully
+```
+
+#### Step 3: Catch and Re-throw Clean Errors
+
+Wrap the evaluation in `tryCatch()` and rethrow helpful messages:
+
+```{R}
+#| error: true 
+robust_filter <- function(data, var, cutoff) {
+  expr <- rlang::expr(!!rlang::sym(var) > !!cutoff)
+
+  tryCatch(
+    {
+      rows <- rlang::eval_tidy(expr, data)
+      data[rows, ]
+    },
+    error = function(e) {
+      rlang::abort(
+        glue::glue("Filtering failed for column '{var}': 
+                   {e$message}"),
+        class = "filter_error"
+      )
+    }
+  )
+}
+robust_filter(mtcars, "gear", 4)
+robust_filter(mtcars, "not_a_column", 4)  # Now fails gracefully
+```
+
+
+
+
+
+
+### 6.3 Supporting Both Quoted and Unquoted Input
+
+When writing user-facing functions, it’s often helpful to accept both:
+
+* `var = mpg` (unquoted, NSE)
+* `var = "mpg"` (quoted, SE)
+
+This makes your function more intuitive and versatile — just like `library("dplyr")` and `library(dplyr)` both work.
+
+To support this, we’ll combine `rlang::enquo()` (to capture NSE input) with logic to convert strings to symbols when needed.
+
+
+#### A Flexible Filter Function
+
+```{R}
+smart_filter <- function(data, var, cutoff) {
+  # Capture the input
+  quo <- rlang::enquo(var)
+  expr <- rlang::quo_get_expr(quo)
+
+  # Determine symbol from input
+  if (rlang::is_symbol(expr)) {
+    var_sym <- expr
+  } else if (rlang::is_string(expr)) {
+    var_sym <- rlang::sym(expr)
+  } else {
+    rlang::abort("`var` must be a column name (unquoted) or a string.")
+  }
+
+  # Check if column exists
+  if (!as.character(var_sym) %in% names(data)) {
+    rlang::abort(glue::glue("Column '{var_sym}' not found in data."))
+  }
+
+  # Build and evaluate the expression
+  expr <- rlang::expr(!!var_sym > !!cutoff)
+  rows <- rlang::eval_tidy(expr, data)
+  data[rows, ]
+}
+
+```
+
+#### Examples
+
+```{R}
+smart_filter(mtcars, mpg, 25)         # unquoted NSE
+smart_filter(mtcars, "mpg", 25)       # quoted string
+smart_filter(mtcars, var = "mpg", 25) # still works
+```
+
+All of these return the same filtered data frame.
+
+This function allows the user to pass the column name **as a bare symbol** (e.g. `mpg`) or **as a string** (e.g. `"mpg"`), just like many tidyverse functions do.
+
+How does it work?
+
+1. `rlang::enquo(var)` captures the input as a **quosure** — preserving both the expression and its environment.
+2. `rlang::quo_get_expr()` retrieves the raw expression typed by the user.
+3. We test:
+
+   * If the expression is a **symbol** (e.g. `mpg`), we use it directly.
+   * If it is a **string** (e.g. `"mpg"`), we convert it to a symbol using `rlang::sym()`.
+4. We then build an expression with `rlang::expr(!!var_sym > !!cutoff)` and evaluate it in the data context using `rlang::eval_tidy()`.
+
+This gives you the best of both worlds: intuitive NSE behavior and robust programmatic support.
+
