@@ -401,6 +401,7 @@ This allows expressions to blend **data variables** and **contextual variables**
 #### A Minimal Example
 
 ```{R}
+#| error: true
 data <- list(x = 1:5)
 env  <- rlang::env(threshold = 3)
 
@@ -410,12 +411,23 @@ right <- rlang::eval_tidy(expr, data = data, env = env)
 
 
 # This fails: base R's eval() only sees data, not env
+# and threshold is not in global
+eval(expr, envir = data)
+
+# Yet, if we had a threshold in global, we would get 
+# the wrong results. 
+threshold <- 2
 wrong <- eval(expr, envir = data)
 
 all.equal(right, wrong)
+
+data <- list(x = 1:5, 
+             threshold = 4)
+rlang::eval_tidy(expr, data = data, env = env)
+
 ```
 
-Here, `eval()` can’t see `threshold`, because it’s not in `data`. But `eval_tidy()` builds a layered environment where both `x` (from `data`) and `threshold` (from `env`) are visible.
+Here, `eval()` can’t see `threshold`, because it’s not in `data` nore in `env`. But `eval_tidy()` builds a layered environment where both `x` (from `data`) and `threshold` (from `env`) are visible. Notice that if `threshold` is in `data` then it is evaluated there, not in `env`
 
 #### Writing Functions: `eval_tidy()` Makes It Easy
 
@@ -467,9 +479,146 @@ my_filter_wrong(mtcars, hp > threshold)
 
 Why does this fail? Because `eval()` only looks in `data`, not in the calling environment — it doesn’t know where `threshold` lives.
 
-### Why This Matters
 
-* `rlang::eval_tidy()` builds a **layered lookup system**: first `data`, then the caller’s environment.
-* This matches the mental model of users writing `filter(df, mpg > threshold)`.
-* If you’re writing functions for data manipulation, modeling, or interactive tools, `eval_tidy()` gives you **safe, powerful, and consistent** control over evaluation.
-* Base R’s `eval()` is great for evaluating code in a single environment — but it lacks the nuance that tidy evaluation provides.
+
+
+
+
+
+
+
+
+
+
+### 4.4 What If You Just Used `eval()`?
+
+You might wonder: does `eval(expr, envir = data)` already do what we need?
+
+Sometimes, yes — for simple expressions that only reference columns, it works fine:
+
+```{R}
+my_filter_eval <- function(data, expr) {
+  expr <- substitute(expr)
+  rows <- eval(expr, envir = data)
+  data[rows, ]
+}
+
+my_filter_eval(mtcars, mpg > 25)
+threshold <- 150
+my_filter_eval(mtcars, hp > threshold)
+```
+
+
+This also works — but only because `eval()` implicitly builds an environment from `data` whose **parent is the calling frame**. That’s why `threshold` is still visible.
+
+So what’s the issue?
+
+
+#### A More Complex Case: Composing Expressions Dynamically
+
+Let’s say you're composing expressions programmatically and then want to evaluate them:
+
+```{R}
+compose_expr <- function(var, cutoff) {
+  substitute(x > y, list(x = as.name(var), y = cutoff))
+}
+
+threshold <- 150
+expr <- compose_expr("hp", threshold)
+expr
+```
+
+This produces a valid expression, now try to evaluate it with `eval()`:
+
+```{R}
+eval(expr, envir = mtcars)
+```
+
+This still works. Now imagine wrapping that into your own helper function, like this:
+
+```{R}
+run_expr_eval <- function(data, expr) {
+  # expr is already substituted when passed
+  eval(expr, envir = data)
+}
+
+run_expr_eval(mtcars, expr)  # Works only if all names are in `data`
+```
+
+If `expr` uses variables **not** in `data` (e.g., external constants), this setup **silently breaks**.
+
+
+### 4.5 Where `eval()` and `eval_tidy()` Behave Differently: Data Masking in Action
+
+So far, we’ve seen that `eval()` works fine when evaluating simple expressions in a user-provided environment. But what happens when there are **multiple environments involved** — e.g. the global environment, the function environment, and the data environment?
+
+Let’s see an example where the **same symbol** exists in three different scopes:
+
+```{R}
+fruit <- "apple"  # global
+data <- list(fruit = "banana")  # passed data
+```
+
+Now we define a function where `fruit` is redefined again:
+
+```{R}
+with_data <- function(data, expr) {
+  fruit <- "avocado"  # local inside function
+  quo <- rlang::enquo(expr)
+  # print(quo)
+  rlang::eval_tidy(quo, data)
+}
+```
+
+Let’s call it with and without data:
+
+```{R}
+with_data(data, fruit)
+with_data(NULL, fruit)
+```
+
+*  When `data` is provided, `eval_tidy()` finds `fruit` in the **data mask** and returns `"banana"`.
+
+* When no data is provided, it looks in the **quosure’s environment**, that is the env of `expr`, which is the global environment — so it returns `"apple"`.
+
+Now try the same with `eval()`:
+
+```{R}
+with_data_eval <- function(data, expr) {
+  fruit <- "avocado"
+  expr <- substitute(expr)
+  eval(expr, envir = data)
+}
+```
+
+```{R}
+with_data_eval(data, fruit)
+with_data_eval(NULL, fruit)
+```
+
+This what happens under the hood. 
+```{R}
+with_data_eval2 <- function(data, expr) {
+    fruit <- "avocado"
+    quo <- rlang::enquo(expr)
+    print(quo)
+    eval(rlang::get_expr(quo), envir = data)
+}
+```
+
+```{R}
+with_data_eval2(NULL, fruit)
+```
+
+Here’s the difference:
+
+* `substitute(expr)` captures the symbol `fruit`.
+* `eval(expr, envir = data)` creates an environment (if `data` is a list) whose **parent is the current frame**, i.e. the body of `with_data_eval()`.
+* So when `data` is `NULL`, the lookup falls back to the **local `fruit <- "avocado"`**, not the global `"apple"`.
+* `eval()` is **frame-dependent** and unpredictable when multiple layers of scoping are involved.
+* `eval_tidy()` uses a **clean and layered lookup system**:
+
+  1. Look in `.data`
+  2. Then in `.env` (the quosure’s environment)
+  
+* This guarantees consistent and predictable behavior for user-written expressions.
