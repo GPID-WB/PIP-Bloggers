@@ -218,7 +218,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#get-retrieve-an-object-by-name" id="toc-get-retrieve-an-object-by-name" class="nav-link" data-scroll-target="#get-retrieve-an-object-by-name">5.1 <code>get()</code> – Retrieve an Object by Name</a></li>
   <li><a href="#as.name-build-a-symbol-from-a-string" id="toc-as.name-build-a-symbol-from-a-string" class="nav-link" data-scroll-target="#as.name-build-a-symbol-from-a-string">5.2 <code>as.name()</code> – Build a Symbol from a String</a></li>
-  <li><a href="#using-rlang-sym-parse_expr-and-env_get" id="toc-using-rlang-sym-parse_expr-and-env_get" class="nav-link" data-scroll-target="#using-rlang-sym-parse_expr-and-env_get">5.3 Using <code>{rlang}</code>: <code>sym()</code>, <code>parse_expr()</code>, and <code>env_get()</code></a></li>
+  <li><a href="#using-rlang-sym-and-parse_expr" id="toc-using-rlang-sym-and-parse_expr" class="nav-link" data-scroll-target="#using-rlang-sym-and-parse_expr">5.3 Using <code>{rlang}</code>: <code>sym()</code> and <code>parse_expr()</code></a></li>
   <li><a href="#rlangenv_get-controlled-lookup-in-custom-environments" id="toc-rlangenv_get-controlled-lookup-in-custom-environments" class="nav-link" data-scroll-target="#rlangenv_get-controlled-lookup-in-custom-environments">5.4 <code>rlang::env_get()</code> – Controlled Lookup in Custom Environments</a></li>
   <li><a href="#real-example-lookup-by-string" id="toc-real-example-lookup-by-string" class="nav-link" data-scroll-target="#real-example-lookup-by-string">5.5 Real Example: Lookup by String</a></li>
   <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
@@ -1022,6 +1022,7 @@ env:  global</code></pre>
 <pre><code>[1] "x"</code></pre>
 </div>
 </div>
+<p><code>quote(var)</code> captures the symbol var literally — it doesn’t evaluate <code>var</code> to get “x”. That’s why we need <code>as.name(var)</code>.</p>
 <p>This is how you build dynamic expressions:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb122"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"hp"</span></span>
@@ -1041,51 +1042,93 @@ env:  global</code></pre>
 </div>
 <p>This evaluates <code>hp &gt; 200</code> inside <code>mtcars</code>.</p>
 </section>
-<section id="using-rlang-sym-parse_expr-and-env_get" class="level3">
-<h3 class="anchored" data-anchor-id="using-rlang-sym-parse_expr-and-env_get">5.3 Using <code>{rlang}</code>: <code>sym()</code>, <code>parse_expr()</code>, and <code>env_get()</code></h3>
-<p>Base R’s tools work, but <code>{rlang}</code> provides safer and more composable alternatives for programmatic evaluation.</p>
-<section id="rlangsym-safer-symbol-construction" class="level4">
-<h4 class="anchored" data-anchor-id="rlangsym-safer-symbol-construction"><code>rlang::sym()</code> – Safer Symbol Construction</h4>
+<section id="using-rlang-sym-and-parse_expr" class="level3">
+<h3 class="anchored" data-anchor-id="using-rlang-sym-and-parse_expr">5.3 Using <code>{rlang}</code>: <code>sym()</code> and <code>parse_expr()</code></h3>
+<p>While base R tools like <code>as.name()</code> and <code>parse()</code> work well for simple metaprogramming, <code>{rlang}</code> provides cleaner, safer, and more composable alternatives: <code>sym()</code> and <code>parse_expr()</code>.</p>
+<section id="sym-safer-alternative-to-as.name" class="level4">
+<h4 class="anchored" data-anchor-id="sym-safer-alternative-to-as.name"><code>sym()</code> – Safer Alternative to <code>as.name()</code></h4>
+<p><code>rlang::sym()</code> turns a character string into a <strong>symbol</strong>, just like <code>as.name()</code>, but is designed to integrate seamlessly with <code>{rlang}</code>’s metaprogramming toolkit.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb126"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"mpg"</span></span>
-<span id="cb126-2"><a href="#cb126-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">sym</span>(var)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb126"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">101</span></span>
+<span id="cb126-2"><a href="#cb126-2" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"x"</span></span>
+<span id="cb126-3"><a href="#cb126-3" aria-hidden="true" tabindex="-1"></a>sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(var)</span>
+<span id="cb126-4"><a href="#cb126-4" aria-hidden="true" tabindex="-1"></a>sym</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>mpg</code></pre>
+<pre><code>x</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb128"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; symbol mpg</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb128"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(sym)  <span class="co"># equivalent to eval(quote(x))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 101</code></pre>
 </div>
-<p>This is equivalent to <code>as.name()</code> but designed to compose well with other <code>{rlang}</code> functions.</p>
+</div>
+<p>Like <code>as.name()</code>, this converts the string <code>"x"</code> into the symbol <code>x</code>, which can be evaluated in the usual way.</p>
+<p>You can also use it inside <code>substitute()</code> or <code>bquote()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb130"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb130-1"><a href="#cb130-1" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb130-2"><a href="#cb130-2" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"hp"</span></span>
+<span id="cb130-3"><a href="#cb130-3" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(v <span class="sc">&gt;</span> t, <span class="fu">list</span>(<span class="at">v =</span> rlang<span class="sc">::</span><span class="fu">sym</span>(var), </span>
+<span id="cb130-4"><a href="#cb130-4" aria-hidden="true" tabindex="-1"></a>                               <span class="at">t =</span> threshold))</span>
+<span id="cb130-5"><a href="#cb130-5" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb132"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>At this point, <code>sym()</code> is just a drop-in replacement for <code>as.name()</code> — but when we move to building more advanced programmatic expressions, its advantages will become more evident.</p>
+</blockquote>
 </section>
-<section id="rlangparse_expr-from-string-to-expression" class="level4">
-<h4 class="anchored" data-anchor-id="rlangparse_expr-from-string-to-expression"><code>rlang::parse_expr()</code> – From String to Expression</h4>
+<section id="parse_expr-cleaner-alternative-to-parsetext-..." class="level4">
+<h4 class="anchored" data-anchor-id="parse_expr-cleaner-alternative-to-parsetext-..."><code>parse_expr()</code> – Cleaner Alternative to <code>parse(text = ...)</code></h4>
+<p>In base R, <code>parse()</code> turns a string into an <strong>expression list</strong>, which is slightly awkward:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb129"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb129-1"><a href="#cb129-1" aria-hidden="true" tabindex="-1"></a>code <span class="ot">&lt;-</span> <span class="st">"mpg &gt; 20"</span></span>
-<span id="cb129-2"><a href="#cb129-2" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">parse_expr</span>(code)</span>
-<span id="cb129-3"><a href="#cb129-3" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a>expr_list <span class="ot">&lt;-</span> <span class="fu">parse</span>(<span class="at">text =</span> <span class="st">"hp &gt; 200"</span>)</span>
+<span id="cb134-2"><a href="#cb134-2" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(expr_list)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>mpg &gt; 20</code></pre>
+<pre><code>[1] 1</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb131"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb136"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb136-1"><a href="#cb136-1" aria-hidden="true" tabindex="-1"></a>expr_list[[<span class="dv">1</span>]]  <span class="co"># You have to extract the first element</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code> [1]  TRUE  TRUE  TRUE  TRUE FALSE FALSE FALSE  TRUE  TRUE FALSE FALSE FALSE
-[13] FALSE FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE FALSE FALSE FALSE
-[25] FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE  TRUE</code></pre>
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb138"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb138-1"><a href="#cb138-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr_list[[<span class="dv">1</span>]], <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
 </div>
 </div>
-<p><code>parse_expr()</code> is better than <code>parse(text = ...)</code> because it returns a single expression, not a list.</p>
-<hr>
+<p><code>rlang::parse_expr()</code> returns a <strong>single expression</strong>, not a list, so it’s cleaner and more consistent:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb140"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb140-1"><a href="#cb140-1" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">parse_expr</span>(<span class="st">"hp &gt; 200"</span>)</span>
+<span id="cb140-2"><a href="#cb140-2" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb142"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb142-1"><a href="#cb142-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
+</div>
+</div>
+<p>You get the same result, with fewer surprises and better compatibility with <code>{rlang}</code> tools down the road.</p>
 </section>
 </section>
 <section id="rlangenv_get-controlled-lookup-in-custom-environments" class="level3">
 <h3 class="anchored" data-anchor-id="rlangenv_get-controlled-lookup-in-custom-environments">5.4 <code>rlang::env_get()</code> – Controlled Lookup in Custom Environments</h3>
 <p>Instead of base <code>get()</code>, <code>{rlang}</code> provides <code>env_get()</code> for controlled and safe lookups:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb133"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb133-1"><a href="#cb133-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="dv">2</span>)</span>
-<span id="cb133-2"><a href="#cb133-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"a"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb144"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">a =</span> <span class="dv">1</span>, <span class="at">b =</span> <span class="dv">2</span>)</span>
+<span id="cb144-2"><a href="#cb144-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"a"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 1</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb135"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb135-1"><a href="#cb135-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>This function:</p>
 <ul>
@@ -1093,26 +1136,50 @@ env:  global</code></pre>
 <li>Can be customized to return a default value if not found:</li>
 </ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb136"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb136-1"><a href="#cb136-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"z"</span>, <span class="at">default =</span> <span class="cn">NA</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb146"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb146-1"><a href="#cb146-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"z"</span>, <span class="at">default =</span> <span class="cn">NA</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] NA</code></pre>
 </div>
 </div>
-<p>You can also <strong>limit</strong> the search to specific environments only.</p>
-<hr>
+<p>You can also <strong>limit</strong> the search to specific environments only. Unlike <code>get()</code>, <code>rlang::env_get()</code> never looks beyond the given environment unless you tell it to. It avoids surprising lookups through the whole environment chain</p>
 </section>
 <section id="real-example-lookup-by-string" class="level3">
 <h3 class="anchored" data-anchor-id="real-example-lookup-by-string">5.5 Real Example: Lookup by String</h3>
 <p>Suppose you want to write a function that filters a data frame based on a variable and a cutoff — but both are provided as arguments:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb138"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb138-1"><a href="#cb138-1" aria-hidden="true" tabindex="-1"></a>filter_by_name <span class="ot">&lt;-</span> <span class="cf">function</span>(data, varname, cutoff) {</span>
-<span id="cb138-2"><a href="#cb138-2" aria-hidden="true" tabindex="-1"></a>  var_sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(varname)</span>
-<span id="cb138-3"><a href="#cb138-3" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>var_sym <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
-<span id="cb138-4"><a href="#cb138-4" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
-<span id="cb138-5"><a href="#cb138-5" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
-<span id="cb138-6"><a href="#cb138-6" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb138-7"><a href="#cb138-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb138-8"><a href="#cb138-8" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_by_name</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">150</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb148"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb148-1"><a href="#cb148-1" aria-hidden="true" tabindex="-1"></a>filter_by_name_base <span class="ot">&lt;-</span> <span class="cf">function</span>(data, varname, cutoff) {</span>
+<span id="cb148-2"><a href="#cb148-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(v <span class="sc">&gt;</span> t, <span class="fu">list</span>(<span class="at">v =</span> <span class="fu">as.name</span>(varname), <span class="at">t =</span> cutoff))</span>
+<span id="cb148-3"><a href="#cb148-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> data)</span>
+<span id="cb148-4"><a href="#cb148-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb148-5"><a href="#cb148-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb148-6"><a href="#cb148-6" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_by_name_base</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">150</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
+Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+</div>
+</div>
+<p>This works — but becomes brittle if <code>data</code> isn’t a proper environment, or if the expression becomes more complex. <code>eval_tidy()</code> solves this by creating a proper data mask, where names are resolved safely.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb150"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb150-1"><a href="#cb150-1" aria-hidden="true" tabindex="-1"></a>filter_by_name <span class="ot">&lt;-</span> <span class="cf">function</span>(data, varname, cutoff) {</span>
+<span id="cb150-2"><a href="#cb150-2" aria-hidden="true" tabindex="-1"></a>  var_sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(varname)</span>
+<span id="cb150-3"><a href="#cb150-3" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>var_sym <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb150-4"><a href="#cb150-4" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb150-5"><a href="#cb150-5" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb150-6"><a href="#cb150-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb150-7"><a href="#cb150-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb150-8"><a href="#cb150-8" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_by_name</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">150</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
 Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2

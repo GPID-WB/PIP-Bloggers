@@ -668,6 +668,8 @@ eval(expr)  # same as eval(quote(x))
 eval(expr2)  # just the name
 ```
 
+`quote(var)` captures the symbol var literally — it doesn’t evaluate `var` to get "x". That’s why we need `as.name(var)`.
+
 This is how you build dynamic expressions:
 
 ```{R}
@@ -681,32 +683,57 @@ eval(expr, envir = mtcars)
 
 This evaluates `hp > 200` inside `mtcars`.
 
-### 5.3 Using `{rlang}`: `sym()`, `parse_expr()`, and `env_get()`
+### 5.3 Using `{rlang}`: `sym()` and `parse_expr()`
 
-Base R’s tools work, but `{rlang}` provides safer and more composable alternatives for programmatic evaluation.
+While base R tools like `as.name()` and `parse()` work well for simple metaprogramming, `{rlang}` provides cleaner, safer, and more composable alternatives: `sym()` and `parse_expr()`.
 
-#### `rlang::sym()` – Safer Symbol Construction
+#### `sym()` – Safer Alternative to `as.name()`
+
+`rlang::sym()` turns a character string into a **symbol**, just like `as.name()`, but is designed to integrate seamlessly with `{rlang}`'s metaprogramming toolkit.
 
 ```{R}
-var <- "mpg"
-rlang::sym(var)
-#> symbol mpg
+x <- 101
+var <- "x"
+sym <- rlang::sym(var)
+sym
+eval(sym)  # equivalent to eval(quote(x))
 ```
 
-This is equivalent to `as.name()` but designed to compose well with other `{rlang}` functions.
+Like `as.name()`, this converts the string `"x"` into the symbol `x`, which can be evaluated in the usual way.
 
-#### `rlang::parse_expr()` – From String to Expression
+You can also use it inside `substitute()` or `bquote()`:
 
 ```{R}
-code <- "mpg > 20"
-expr <- rlang::parse_expr(code)
+threshold <- 200
+var <- "hp"
+expr <- substitute(v > t, list(v = rlang::sym(var), 
+                               t = threshold))
 expr
 eval(expr, envir = mtcars)
 ```
 
-`parse_expr()` is better than `parse(text = ...)` because it returns a single expression, not a list.
+> At this point, `sym()` is just a drop-in replacement for `as.name()` — but when we move to building more advanced programmatic expressions, its advantages will become more evident.
 
----
+#### `parse_expr()` – Cleaner Alternative to `parse(text = ...)`
+
+In base R, `parse()` turns a string into an **expression list**, which is slightly awkward:
+
+```{R}
+expr_list <- parse(text = "hp > 200")
+length(expr_list)
+expr_list[[1]]  # You have to extract the first element
+eval(expr_list[[1]], envir = mtcars)
+```
+
+`rlang::parse_expr()` returns a **single expression**, not a list, so it’s cleaner and more consistent:
+
+```{R}
+expr <- rlang::parse_expr("hp > 200")
+expr
+eval(expr, envir = mtcars)
+```
+
+You get the same result, with fewer surprises and better compatibility with `{rlang}` tools down the road.
 
 ### 5.4 `rlang::env_get()` – Controlled Lookup in Custom Environments
 
@@ -715,7 +742,6 @@ Instead of base `get()`, `{rlang}` provides `env_get()` for controlled and safe 
 ```{R}
 e <- rlang::env(a = 1, b = 2)
 rlang::env_get(e, "a")
-#> [1] 1
 ```
 
 This function:
@@ -727,13 +753,23 @@ This function:
 rlang::env_get(e, "z", default = NA)
 ```
 
-You can also **limit** the search to specific environments only.
-
----
+You can also **limit** the search to specific environments only. Unlike `get()`, `rlang::env_get()` never looks beyond the given environment unless you tell it to. It avoids surprising lookups through the whole environment chain
 
 ### 5.5 Real Example: Lookup by String
 
 Suppose you want to write a function that filters a data frame based on a variable and a cutoff — but both are provided as arguments:
+
+```{R}
+filter_by_name_base <- function(data, varname, cutoff) {
+  expr <- substitute(v > t, list(v = as.name(varname), t = cutoff))
+  rows <- eval(expr, envir = data)
+  data[rows, ]
+}
+filter_by_name_base(mtcars, "hp", 150)
+```
+
+This works — but becomes brittle if `data` isn’t a proper environment, or if the expression becomes more complex. `eval_tidy()` solves this by creating a proper data mask, where names are resolved safely.
+
 
 ```{R}
 filter_by_name <- function(data, varname, cutoff) {
