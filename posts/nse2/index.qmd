@@ -931,6 +931,16 @@ When writing metaprogramming-heavy functions—especially those using tidy evalu
 
 Below we explore key techniques to bulletproof your NSE functions.
 
+::: {.callout-tip}
+
+### Programming Vs. Metaprogramming
+
+Programming is about manipulating values. 
+
+Metaprogramming is about manipulating the code that manipulates values.
+:::
+
+
 ### 7.1 Validate Input Types Explicitly
 
 Use `rlang::is_symbol()`, `is_call()`, `is_quosure()`, etc., to check exactly what kind of object you're working with.
@@ -1007,38 +1017,4 @@ my_summarize("mpg")
 ```
 
 Notice that the error is pointing to `my_summarize()`, not to `validate_var()` even though the error is triggered there. THis is useful in you need to ponit the user to the function *they* called — not the internal one that failed.
-
-
-### 7.4 Never Assume an Argument Is a Quosure
-
-Some tidy eval tools require **quosures** (`enquo()`, `expr()`) but others work on raw calls or symbols.
-
-Always test:
-
-```{R}
-maybe_enquo <- function(arg) {
-  if (rlang::is_quosure(arg)) {
-    return(arg)
-  } else {
-    return(rlang::enquo(arg))
-  }
-}
-```
-
-This makes your code compatible with both interactive calls and programmatic use.
-
-
-
-### 7.6 Add Meaningful Defaults and Fail-Safes
-
-You can provide a fallback expression, or skip evaluation when the input is `NULL`.
-
-```{R}
-with_default <- function(expr = NULL) {
-  if (is.null(expr)) {
-    expr <- rlang::expr(42)
-  }
-  rlang::eval_tidy(expr)
-}
-```
 

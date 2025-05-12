@@ -234,8 +234,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#validate-input-types-explicitly" id="toc-validate-input-types-explicitly" class="nav-link" data-scroll-target="#validate-input-types-explicitly">7.1 Validate Input Types Explicitly</a></li>
   <li><a href="#use-.env-and-.data-pronouns-for-clarity" id="toc-use-.env-and-.data-pronouns-for-clarity" class="nav-link" data-scroll-target="#use-.env-and-.data-pronouns-for-clarity">7.2 Use <code>.env</code> and <code>.data</code> Pronouns for Clarity</a></li>
   <li><a href="#surface-helpful-errors-with-rlangabort" id="toc-surface-helpful-errors-with-rlangabort" class="nav-link" data-scroll-target="#surface-helpful-errors-with-rlangabort">7.3 Surface Helpful Errors with <code>rlang::abort()</code></a></li>
-  <li><a href="#never-assume-an-argument-is-a-quosure" id="toc-never-assume-an-argument-is-a-quosure" class="nav-link" data-scroll-target="#never-assume-an-argument-is-a-quosure">7.4 Never Assume an Argument Is a Quosure</a></li>
-  <li><a href="#add-meaningful-defaults-and-fail-safes" id="toc-add-meaningful-defaults-and-fail-safes" class="nav-link" data-scroll-target="#add-meaningful-defaults-and-fail-safes">7.6 Add Meaningful Defaults and Fail-Safes</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -1384,6 +1382,20 @@ Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
 <li>Anticipate edge cases (e.g.&nbsp;quosures passed where symbols are expected)</li>
 </ul>
 <p>Below we explore key techniques to bulletproof your NSE functions.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Programming Vs. Metaprogramming
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Programming is about manipulating values.</p>
+<p>Metaprogramming is about manipulating the code that manipulates values.</p>
+</div>
+</div>
 <section id="validate-input-types-explicitly" class="level3">
 <h3 class="anchored" data-anchor-id="validate-input-types-explicitly">7.1 Validate Input Types Explicitly</h3>
 <p>Use <code>rlang::is_symbol()</code>, <code>is_call()</code>, <code>is_quosure()</code>, etc., to check exactly what kind of object you’re working with.</p>
@@ -1459,33 +1471,6 @@ Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
 </div>
 </div>
 <p>Notice that the error is pointing to <code>my_summarize()</code>, not to <code>validate_var()</code> even though the error is triggered there. THis is useful in you need to ponit the user to the function <em>they</em> called — not the internal one that failed.</p>
-</section>
-<section id="never-assume-an-argument-is-a-quosure" class="level3">
-<h3 class="anchored" data-anchor-id="never-assume-an-argument-is-a-quosure">7.4 Never Assume an Argument Is a Quosure</h3>
-<p>Some tidy eval tools require <strong>quosures</strong> (<code>enquo()</code>, <code>expr()</code>) but others work on raw calls or symbols.</p>
-<p>Always test:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb175"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true" tabindex="-1"></a>maybe_enquo <span class="ot">&lt;-</span> <span class="cf">function</span>(arg) {</span>
-<span id="cb175-2"><a href="#cb175-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (rlang<span class="sc">::</span><span class="fu">is_quosure</span>(arg)) {</span>
-<span id="cb175-3"><a href="#cb175-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(arg)</span>
-<span id="cb175-4"><a href="#cb175-4" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
-<span id="cb175-5"><a href="#cb175-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(rlang<span class="sc">::</span><span class="fu">enquo</span>(arg))</span>
-<span id="cb175-6"><a href="#cb175-6" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb175-7"><a href="#cb175-7" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>This makes your code compatible with both interactive calls and programmatic use.</p>
-</section>
-<section id="add-meaningful-defaults-and-fail-safes" class="level3">
-<h3 class="anchored" data-anchor-id="add-meaningful-defaults-and-fail-safes">7.6 Add Meaningful Defaults and Fail-Safes</h3>
-<p>You can provide a fallback expression, or skip evaluation when the input is <code>NULL</code>.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb176"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb176-1"><a href="#cb176-1" aria-hidden="true" tabindex="-1"></a>with_default <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">expr =</span> <span class="cn">NULL</span>) {</span>
-<span id="cb176-2"><a href="#cb176-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(expr)) {</span>
-<span id="cb176-3"><a href="#cb176-3" aria-hidden="true" tabindex="-1"></a>    expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="dv">42</span>)</span>
-<span id="cb176-4"><a href="#cb176-4" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb176-5"><a href="#cb176-5" aria-hidden="true" tabindex="-1"></a>  rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr)</span>
-<span id="cb176-6"><a href="#cb176-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
 
 
 </section>
