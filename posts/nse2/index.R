@@ -3,6 +3,8 @@
 env <- rlang::env(x = 100)
 get("x", envir = env)
 
+x <- 2
+get("x")
 
 ## ----------------------------------------------------------------------
 # this is error
@@ -11,7 +13,6 @@ get(var, envir = env) # does not evaluate expressions
 
 
 ## Get is not enough
-
 log_get <- function(var_name, env = parent.frame()) {
   value <- get(var_name, envir = env)
   cat("Found", var_name, "with value:", value, "\n")
@@ -30,6 +31,7 @@ log_get("x + 1") # error
 
 env <- rlang::env(x = 100)
 expr <- quote(x + 1)
+expr <- quote(x)
 eval(expr, envir = env)
 
 
@@ -47,8 +49,7 @@ log_eval_expr(quote(x + 1))
 my_logger <- function(expr) {
   code <- substitute(expr)
   cat("You typed: ", deparse(code), "\n")
-  val <- eval(code)
-  val
+  eval(code)
 }
 
 my_logger(x + 1)
@@ -68,13 +69,13 @@ get_and_print <- function(name, env = parent.frame()) {
   print(val)
 }
 
-env <- rlang::env(x = 100)
-env2 <- rlang::env(y = 2)
+e <- rlang::env(x = 100)
+e2 <- rlang::env(y = 2)
 x <- 10
 get_and_print("x") # 10
-get_and_print("x", env = env) # 100
-get_and_print("x", env = env2) # 10 again because of the env chain
-get_and_print("zz", env = env2) # error trigger by stop()
+get_and_print("x", env = e) # 100
+get_and_print("x", env = e2) # 10 again because of the env chain
+get_and_print("zz", env = e2) # error trigger by stop()
 
 
 ## Controlled Lookup in Logging
@@ -98,13 +99,18 @@ log_value(score)
 ## assign
 assign("z", 999)
 z
-
+z <- 999
 
 ## ----------------------------------------------------------------------
 e <- rlang::env()
 assign("x", 123, envir = e)
 e$x
 
+identical(
+quote(x + 1) |> as.character(),
+quote(x + 1) |> deparse()
+)
+d <- quote(x + 1)
 
 ## ----------------------------------------------------------------------
 set_and_show <- function(name, value) {
@@ -120,7 +126,7 @@ set_and_show <- function(name, value) {
 
 
 ## ----------------------------------------------------------------------
-set_and_show(score, 75)
+set_and_show(sdsds, 75)
 
 
 ## {rlang} Equivalents: env_get(), env_poke(), and Friends
@@ -131,8 +137,10 @@ rlang::env_get(e, "x")
 ## ----------------------------------------------------------------------
 
 # error. No chain
+y <- 5
 rlang::env_get(e, "y")
 rlang::env_get(e, "y", default = NA)
+rlang::env_get(e, "y", inherit = TRUE)
 
 
 ## ----------------------------------------------------------------------
@@ -149,14 +157,13 @@ get_and_print_rlang <- function(name,
 
 env2 <- rlang::env(y = 2)
 x <- 10
-get_and_print("x") # 10
-get_and_print("x", env = env) # 100
-get_and_print("x", env = env2) # 10 again because of the env chain
-get_and_print_rlang("x", env = env2) # error because it does not walk up
+get_and_print_rlang("x") # 10
+get_and_print_rlang("x", env = env) # 100
+get_and_print_rlang("x", env = env2) # error
 get_and_print_rlang("x", env = env2, TRUE) # 10 again because of the env chain
 
 
-## exists and rm() alternatives
+## exists(), assign(), and rm() alternatives
 e <- rlang::env()
 rlang::env_poke(e, "z", 100)
 e$z
@@ -173,10 +180,10 @@ rlang::env_has(e, "z")
 
 
 ## Data masking
-log_expr <- function(expr) {
+log_expr_base <- function(expr) {
   print(substitute(expr))
 }
-log_expr(x + 1)
+log_expr_base(x + 1)
 
 # But, substitute() has no built-in way to capture quosures — expressions plus
 # their environment.
@@ -186,7 +193,8 @@ log_expr <- function(expr) {
   quo <- rlang::enquo(expr)
   print(quo)
 }
-log_expr(x + 1)
+
+quo <- log_expr(x + 1)
 
 
 ## eval_tidy
@@ -201,6 +209,7 @@ right <- rlang::eval_tidy(expr, data = data, env = env)
 # This fails: base R's eval() only sees data, not env
 # and threshold is not in global
 eval(expr, envir = data)
+eval(expr, envir = env)
 
 # Yet, if we had a threshold in global, we would get
 # the wrong results.
@@ -214,6 +223,7 @@ data <- list(x = 1:5,
 
 # will look first in data
 rlang::eval_tidy(expr, data = data, env = env)
+rlang::eval_tidy(expr, data = data)
 
 
 
@@ -253,7 +263,7 @@ data <- list(fruit = "banana")  # passed data
 with_data <- function(data, expr) {
   fruit <- "avocado"  # local inside function
   quo <- rlang::enquo(expr)
-  # print(quo)
+  print(quo)
   rlang::eval_tidy(quo, data)
 }
 
@@ -275,18 +285,6 @@ with_data_eval <- function(data, expr) {
 with_data_eval(data, fruit)
 with_data_eval(NULL, fruit)
 
-
-## ----------------------------------------------------------------------
-with_data_eval2 <- function(data, expr) {
-    fruit <- "avocado"
-    quo <- rlang::enquo(expr)
-    print(quo)
-    eval(rlang::get_expr(quo), envir = data)
-}
-
-
-## ----------------------------------------------------------------------
-with_data_eval2(NULL, fruit)
 
 
 ## return to get()
