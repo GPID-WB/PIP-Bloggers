@@ -180,11 +180,9 @@ Suppose you want to log both the **name** of the variable the user passed, and i
 
 ```{R}
 log_value <- function(varname) {
-  # Capture the name (unevaluated)
-  name <- substitute(varname)
-
-  # Deparse to string
-  var_str <- deparse(name)
+  
+  name <- substitute(varname) # Capture the name (unevaluated)
+  var_str <- deparse(name) # Deparse to string
 
   # Lookup the value
   value <- get(var_str, envir = parent.frame())
@@ -264,9 +262,12 @@ You can also provide a **default** value if the variable is missing:
 
 ```{R}
 #| error: true
-rlang::env_get(e, "y")
 
-rlang::env_get(e, "y", default = NA)
+y <-  "only in global"
+
+rlang::env_get(e, "y") # Error
+rlang::env_get(e, "y", default = NA) # default
+rlang::env_get(e, "y", inherit = TRUE) # get from Global
 
 ```
 
@@ -305,16 +306,8 @@ e$z
 
 This is clearer and more explicit than using `assign()` with a string.
 
-#### Why Use `{rlang}` Instead of Base R?
 
-| Task | Base R | `{rlang}` | Benefit |
-|------------------|------------------|------------------|------------------|
-| Get value | `get("x", envir = e)` | `env_get(e, "x")` | No surprises, inherits only if you want |
-| Set value | `assign("x", val, envir = e)` | `env_poke(e, "x", val)` | Cleaner and safer |
-| Has binding? | `exists("x", envir = e)` | `env_has(e, "x")` | Vectorized and clear |
-| Remove binding | `rm("x", envir = e)` | `env_unbind(e, "x")` | Safer removal |
-
-#### Bonus: `env_has()` and `env_unbind()`
+### 3.4 `env_has()` and `env_unbind()`
 
 Want to check if a variable exists?
 
@@ -329,21 +322,18 @@ rlang::env_unbind(e, "z")
 rlang::env_has(e, "z")
 ```
 
-#### Final Tip: Combine with `substitute()` or `enquo()`
 
-For advanced use, you can combine `env_get()` with `substitute()` to convert a symbol to a string before lookup:
 
-```{R}
-get_value <- function(x, .env = rlang::caller_env()) {
-  name <- deparse(substitute(x))
-  rlang::env_get(.env, name)
-}
+#### BONUS: Why Use `{rlang}` Instead of Base R?
 
-foo <- 123
-get_value(foo)
-```
+| Task | Base R | `{rlang}` | Benefit |
+|------------------|------------------|------------------|------------------|
+| Get value | `get("x", envir = e)` | `env_get(e, "x")` | No surprises, inherits only if you want |
+| Set value | `assign("x", val, envir = e)` | `env_poke(e, "x", val)` | Cleaner and safer |
+| Has binding? | `exists("x", envir = e)` | `env_has(e, "x")` | Vectorized and clear |
+| Remove binding | `rm("x", envir = e)` | `env_unbind(e, "x")` | Safer removal |
 
-This is a safer, scoped version of `get("foo")`.
+
 
 ## 4. Data-Masked Evaluation
 
@@ -368,7 +358,6 @@ log_expr <- function(expr) {
   print(substitute(expr))
 }
 log_expr(x + 1)
-#> x + 1
 ```
 
 However, `substitute()` has no built-in way to capture **quosures** — expressions *plus* their environment. This is where `rlang::enquo()` comes in.
@@ -421,13 +410,16 @@ wrong <- eval(expr, envir = data)
 
 all.equal(right, wrong)
 
+# If a variable exists in data, it's used first. Only if it’s not in data,
+# eval_tidy() will look in env
+
 data <- list(x = 1:5, 
              threshold = 4)
 rlang::eval_tidy(expr, data = data, env = env)
 
 ```
 
-Here, `eval()` can’t see `threshold`, because it’s not in `data` nore in `env`. But `eval_tidy()` builds a layered environment where both `x` (from `data`) and `threshold` (from `env`) are visible. Notice that if `threshold` is in `data` then it is evaluated there, not in `env`
+Here, `eval()` can’t see `threshold`, because it’s not in `data` nore in `env`. But `eval_tidy()` builds a layered environment where both `x` (from `data`) and `threshold` (from `env`) are visible. Notice that if `threshold` is in `data` then it is evaluated there, not in `env`.
 
 #### Writing Functions: `eval_tidy()` Makes It Easy
 
@@ -456,29 +448,6 @@ Inside `eval_tidy()`, `{rlang}` creates a **data mask** where:
 * `mpg` is found in `data`, not in the global env.
 * `threshold` is found in the parent frame (where the function was called).
 
-This is the core mechanism that enables tidy evaluation to feel so natural.
-
-#### What If You Just Used `eval()`?
-
-To see why `eval()` isn’t enough, try this version:
-
-```{R}
-my_filter_wrong <- function(data, expr) {
-  expr <- substitute(expr)
-  rows <- eval(expr, envir = data)
-  data[rows, ]
-}
-```
-
-Now try:
-
-```{R}
-threshold <- 200
-my_filter_wrong(mtcars, hp > threshold)
-```
-
-Why does this fail? Because `eval()` only looks in `data`, not in the calling environment — it doesn’t know where `threshold` lives.
-
 
 ### 4.4 What If You Just Used `eval()`?
 
@@ -504,39 +473,6 @@ This also works — but only because `eval()` implicitly builds an environment f
 So what’s the issue?
 
 
-#### A More Complex Case: Composing Expressions Dynamically
-
-Let’s say you're composing expressions programmatically and then want to evaluate them:
-
-```{R}
-compose_expr <- function(var, cutoff) {
-  substitute(x > y, list(x = as.name(var), y = cutoff))
-}
-
-threshold <- 150
-expr <- compose_expr("hp", threshold)
-expr
-```
-
-This produces a valid expression, now try to evaluate it with `eval()`:
-
-```{R}
-eval(expr, envir = mtcars)
-```
-
-This still works. Now imagine wrapping that into your own helper function, like this:
-
-```{R}
-run_expr_eval <- function(data, expr) {
-  # expr is already substituted when passed
-  eval(expr, envir = data)
-}
-
-run_expr_eval(mtcars, expr)  # Works only if all names are in `data`
-```
-
-If `expr` uses variables **not** in `data` (e.g., external constants), this setup **silently breaks**.
-
 
 ### 4.5 Where `eval()` and `eval_tidy()` Behave Differently: Data Masking in Action
 
@@ -552,10 +488,10 @@ data <- list(fruit = "banana")  # passed data
 Now we define a function where `fruit` is redefined again:
 
 ```{R}
-with_data <- function(data, expr) {
+with_data <- function(data, expr, print = FALSE) {
   fruit <- "avocado"  # local inside function
   quo <- rlang::enquo(expr)
-  # print(quo)
+  if (print) print(quo)
   rlang::eval_tidy(quo, data)
 }
 ```
@@ -587,17 +523,9 @@ with_data_eval(NULL, fruit)
 ```
 
 This what happens under the hood. 
-```{R}
-with_data_eval2 <- function(data, expr) {
-    fruit <- "avocado"
-    quo <- rlang::enquo(expr)
-    print(quo)
-    eval(rlang::get_expr(quo), envir = data)
-}
-```
 
 ```{R}
-with_data_eval2(NULL, fruit)
+with_data(NULL, fruit, print = TRUE)
 ```
 
 Here’s the difference:
@@ -735,89 +663,31 @@ eval(expr, envir = mtcars)
 
 You get the same result, with fewer surprises and better compatibility with `{rlang}` tools down the road.
 
-### 5.4 `rlang::env_get()` – Controlled Lookup in Custom Environments
 
-Instead of base `get()`, `{rlang}` provides `env_get()` for controlled and safe lookups:
 
-```{R}
-e <- rlang::env(a = 1, b = 2)
-rlang::env_get(e, "a")
-```
 
-This function:
+### 5.4 `!!` and `expr()` – A Better Way to Inject Variables into Expressions
 
-* Is strict by default (errors if the variable is missing),
-* Can be customized to return a default value if not found:
 
-```{R}
-rlang::env_get(e, "z", default = NA)
-```
-
-You can also **limit** the search to specific environments only. Unlike `get()`, `rlang::env_get()` never looks beyond the given environment unless you tell it to. It avoids surprising lookups through the whole environment chain
-
-### 5.5 Real Example: Lookup by String
+In base R, if you want to create an expression like `hp > 200` programmatically, you need to use `substitute()` and build a list of values. 
 
 Suppose you want to write a function that filters a data frame based on a variable and a cutoff — but both are provided as arguments:
 
 ```{R}
 filter_by_name_base <- function(data, varname, cutoff) {
-  expr <- substitute(v > t, list(v = as.name(varname), t = cutoff))
+  var_sym <- as.name(varname)
+  expr <- substitute(v > t, list(v = var_sym, t = cutoff))
   rows <- eval(expr, envir = data)
   data[rows, ]
 }
 filter_by_name_base(mtcars, "hp", 200)
 ```
 
-This works — but becomes brittle if `data` isn’t a proper environment, or if the expression becomes more complex. `eval_tidy()` solves this by creating a proper data mask, where names are resolved safely.
-
-
-```{R}
-filter_by_name <- function(data, varname, cutoff) {
-  var_sym <- rlang::sym(varname)
-  expr <- substitute(v > t, list(v = as.name(varname), t = cutoff)) 
-  rows <- rlang::eval_tidy(expr, data)
-  data[rows, ]
-}
-
-filter_by_name(mtcars, "hp", 200)
-```
-
-
-### 5.6 `!!` and `expr()` – A Better Way to Inject Variables into Expressions
-
-In base R, if you want to create an expression like `hp > 200` programmatically, you need to use `substitute()` and build a list of values:
-
-```{R}
-var <- "hp"
-cutoff <- 200
-
-expr <- substitute(v > t, list(v = as.name(var), t = cutoff))
-expr
-eval(expr, envir = mtcars)
-```
-
-This works — but it’s not very readable, and becomes hard to manage when expressions get more complex.
-
-#### The `{rlang}` Way: Quoting and Unquoting
-
-`rlang::expr()` lets you build expressions **just like writing them by hand**. And `!!` (called **bang-bang**) lets you inject programmatic values directly into those expressions.
-
-```{R}
-var <- rlang::sym("hp")
-cutoff <- 200
-
-expr <- rlang::expr(!!var > !!cutoff)
-expr
-rlang::eval_tidy(expr, data = mtcars)
-```
-
-Same result — but:
-
-* No need for `substitute()`
-* No need for `list()`
-* You’re writing what looks like natural code
+This works — but becomes brittle if `data` isn’t a proper environment, or if the expression becomes more complex.
 
 #### `{rlang}` Version of the `filter_by_name()`
+
+`rlang::expr()` lets you build expressions **just like writing them by hand**. And `!!` (called **bang-bang**) lets you inject programmatic values directly into those expressions.
 
 ```{R}
 filter_tidy <- function(data, varname, cutoff) {
@@ -830,9 +700,13 @@ filter_tidy <- function(data, varname, cutoff) {
 filter_tidy(mtcars, "hp", 200)
 ```
 
-Both functions return the same result — but the `{rlang}` version is **cleaner**, **composable**, and plays well with the rest of the tidyverse metaprogramming tools.
+Both functions return the same result — but the `{rlang}` version is **cleaner**, **composable**, and plays well with the rest of the tidyverse metaprogramming tools:
 
-### 5.7 `!!!` – Splicing Multiple Arguments into an Expression
+* No need for `substitute()`
+* No need for `list()`
+* You’re writing what looks like natural code
+
+### 5.5 `!!!` – Splicing Multiple Arguments into an Expression
 
 If `!!` lets you inject a **single** value or symbol into an expression, then `!!!` lets you **inject a list of values** — as if you'd written them out one by one.
 
@@ -866,7 +740,6 @@ rlang::eval_tidy(expr, data = data.frame(x = c(1, 2, NA)))
 
 * `!!!` splices the contents of the list into the call to `mean()`.
 * This allows dynamic injection of multiple arguments at once.
-
 
 
 ## 6. Defensive Programming with NSE
@@ -983,10 +856,6 @@ robust_filter(mtcars, "not_a_column", 4)  # Now fails gracefully
 ```
 
 
-
-
-
-
 ### 6.3 Supporting Both Quoted and Unquoted Input
 
 When writing user-facing functions, it’s often helpful to accept both:
@@ -1034,7 +903,6 @@ smart_filter <- function(data, var, cutoff) {
 ```{R}
 smart_filter(mtcars, mpg, 25)         # unquoted NSE
 smart_filter(mtcars, "mpg", 25)       # quoted string
-smart_filter(mtcars, var = "mpg", 25) # still works
 ```
 
 All of these return the same filtered data frame.
@@ -1052,4 +920,125 @@ How does it work?
 4. We then build an expression with `rlang::expr(!!var_sym > !!cutoff)` and evaluate it in the data context using `rlang::eval_tidy()`.
 
 This gives you the best of both worlds: intuitive NSE behavior and robust programmatic support.
+
+## 7. Defensive METAprogramming
+
+When writing metaprogramming-heavy functions—especially those using tidy evaluation—**defensive coding** is essential. This means writing functions that:
+
+* Fail loudly and clearly when misused
+* Guard against ambiguous input
+* Anticipate edge cases (e.g. quosures passed where symbols are expected)
+
+Below we explore key techniques to bulletproof your NSE functions.
+
+### 7.1 Validate Input Types Explicitly
+
+Use `rlang::is_symbol()`, `is_call()`, `is_quosure()`, etc., to check exactly what kind of object you're working with.
+
+```{R}
+#| error: true
+safe_summary <- function(data = NULL, expr) {
+  expr <- rlang::enquo(expr)
+
+  if (!rlang::is_call(rlang::get_expr(expr))) {
+    rlang::abort("`expr` must be a function call like `mean(x)` or `sum(x)`.")
+  }
+
+  result <- rlang::eval_tidy(expr, data = data)
+  result
+}
+
+# Fails early with a clean message
+safe_summary(mtcars, mpg)
+
+# this works
+safe_summary(mtcars, mean(mpg))
+
+```
+
+
+### 7.2 Use `.env` and `.data` Pronouns for Clarity
+
+If your function uses both external variables and a data mask, ambiguity can arise. The solution is to use pronouns to avoid variable name collisions:
+
+```{R}
+safe_mean <- function(data, var) {
+  var <- rlang::enquo(var)
+  rlang::eval_tidy(rlang::expr(mean(.data[[!!var]])), data = data)
+}
+
+safe_mean(mtcars, mpg)
+```
+
+This ensures you're **only** using the data column, even if the same name exists in `.env`.
+
+
+### 7.3 Surface Helpful Errors with `rlang::abort()`
+
+You can make your error messages contextual by using:
+
+* `caller_env()` to find where the error occurred
+* `caller_call()` to name the offending function
+
+
+Imagine you're writing a helper function, but you want the error message to point back to the *user-facing* function that called it, not the helper itself.
+
+```{R}
+# Helper function
+validate_var <- function(var) {
+  if (!rlang::is_symbol(var)) {
+    rlang::abort("`var` must be a symbol.", call = rlang::caller_call())
+  }
+}
+
+# User-facing wrapper
+my_summarize <- function(var) {
+  validate_var(var)
+  # do something...
+}
+
+```
+
+Now try calling `my_summarize()` incorrectly:
+
+```{R}
+#| error: true
+my_summarize("mpg")
+```
+
+Notice that the error is pointing to `my_summarize()`, not to `validate_var()` even though the error is triggered there. THis is useful in you need to ponit the user to the function *they* called — not the internal one that failed.
+
+
+### 7.4 Never Assume an Argument Is a Quosure
+
+Some tidy eval tools require **quosures** (`enquo()`, `expr()`) but others work on raw calls or symbols.
+
+Always test:
+
+```{R}
+maybe_enquo <- function(arg) {
+  if (rlang::is_quosure(arg)) {
+    return(arg)
+  } else {
+    return(rlang::enquo(arg))
+  }
+}
+```
+
+This makes your code compatible with both interactive calls and programmatic use.
+
+
+
+### 7.6 Add Meaningful Defaults and Fail-Safes
+
+You can provide a fallback expression, or skip evaluation when the input is `NULL`.
+
+```{R}
+with_default <- function(expr = NULL) {
+  if (is.null(expr)) {
+    expr <- rlang::expr(42)
+  }
+  rlang::eval_tidy(expr)
+}
+```
 
