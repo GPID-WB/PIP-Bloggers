@@ -419,7 +419,7 @@ rlang::eval_tidy(expr, data = data, env = env)
 
 ```
 
-Here, `eval()` can’t see `threshold`, because it’s not in `data` nore in `env`. But `eval_tidy()` builds a layered environment where both `x` (from `data`) and `threshold` (from `env`) are visible. Notice that if `threshold` is in `data` then it is evaluated there, not in `env`.
+Here, `eval()` can’t see `threshold`, because it’s not in `data` nor in `env`. But `eval_tidy()` builds a layered environment where both `x` (from `data`) and `threshold` (from `env`) are visible. Notice that if `threshold` is in `data` then it is evaluated there, not in `env`.
 
 #### Writing Functions: `eval_tidy()` Makes It Easy
 
@@ -571,7 +571,7 @@ This kind of lookup is useful when you’re writing generic tools that receive t
 #| error: true
 dt <- data.frame(x = c(1:5))
 
-# you need to pass a real enviroment. Otherwise it breaks
+# you need to pass a real environment. Otherwise it breaks
 get("x", envir = dt)
 
 # This works
@@ -581,7 +581,7 @@ get("x", envir = list2env(dt))
 
 ### 5.2 `as.name()` – Build a Symbol from a String
 
-Sometimes you want to **construct an expression** from variable names provided as strings. `as.name()` (or the backtick syntax `` `var` ``) turns a string into a symbol --- the building block of an R expression:
+Sometimes you want to **construct an expression** from variable names provided as strings. `as.name()` (or the back tick syntax `` `var` ``) turns a string into a symbol --- the building block of an R expression:
 
 ```{R}
 x <- 101   # layer 1
@@ -830,7 +830,7 @@ default_filter(mtcars, "not_a_column", 4)  # Now fails gracefully
 
 #### Step 3: Catch and Re-throw Clean Errors
 
-Wrap the evaluation in `tryCatch()` and rethrow helpful messages:
+Wrap the evaluation in `tryCatch()` and throw helpful messages:
 
 ```{R}
 #| error: true 
@@ -1016,5 +1016,5 @@ Now try calling `my_summarize()` incorrectly:
 my_summarize("mpg")
 ```
 
-Notice that the error is pointing to `my_summarize()`, not to `validate_var()` even though the error is triggered there. THis is useful in you need to ponit the user to the function *they* called — not the internal one that failed.
+Notice that the error is pointing to `my_summarize()`, not to `validate_var()` even though the error is triggered there. This is useful if you need to point the user to the function *they* called — not the internal one that failed.
 
