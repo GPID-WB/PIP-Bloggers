@@ -194,7 +194,7 @@ score <- 88
 log_value(score)
 ```
 
-This is cleaner and safer than passing `varname` directly (which would evaluate to the value before we can inspect it).
+This is cleaner and safer than passing `varname` directly to `get()`, which only receives an object name (given as a character string or a symbol). The reason we need to use `substitute()` and `deparse()` is that otherwise, this code would evaluate to the value before we can inspect it.
 
 ### 3.2 `assign()` — Create or Modify a Variable by Name
 
