@@ -132,7 +132,7 @@ code <- quote(x + 1)
 eval(code, envir = env)
 ```
 
-Here, `code` is already a proper unevaluated call object — using `substitute()` on it would just return the symbol `code`, not the inner expression (similar to what happen when you use `quote()` inside a function).
+Here, `code` is already a proper unevaluated call object because it has been capture with `quote()`. So, you don't need to use `substitute()` on `eval()` (as in `eval(sustitute(code))`) because it would just return the symbol `code`, not the inner expression (similar to what happen when you use `quote()` inside a function).
 
 ## 3. Using `get()` and `assign()` for Controlled Evaluation
 
