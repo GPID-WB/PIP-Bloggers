@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="R.Andres Castaneda">
+<meta name="dcterms.date" content="2025-05-09">
+
+<title>Non-Standard Evaluation (NSE) for developers – PIP-Bloggers</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-e84ec1af5c18c64b3922cec9fafcf8c8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">PIP-Bloggers</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Non-Standard Evaluation (NSE) for developers</h1>
+                                <div class="quarto-categories">
+                <div class="quarto-category">R</div>
+                <div class="quarto-category">NSE</div>
+                <div class="quarto-category">Metaprogramming</div>
+              </div>
+                  </div>
+  </div>
+    
+  <div class="quarto-title-meta-author">
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-heading">Affiliations</div>
+    
+      <div class="quarto-title-meta-contents">
+      <p class="author">R.Andres Castaneda <a href="mailto:acastanedaa@worldbank.org" class="quarto-title-author-email"><i class="bi bi-envelope"></i></a> </p>
+    </div>
+    <div class="quarto-title-meta-contents">
+          <p class="affiliation">
+              The World Bank
+            </p>
+          <p class="affiliation">
+              DECDG
+            </p>
+        </div>
+    </div>
+
+  <div class="quarto-title-meta">
+
+        
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">May 9, 2025</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#why-nse-matters-for-developers" id="toc-why-nse-matters-for-developers" class="nav-link active" data-scroll-target="#why-nse-matters-for-developers">1. Why NSE Matters for Developers</a></li>
+  <li><a href="#retrieving-variables-from-custom-environments" id="toc-retrieving-variables-from-custom-environments" class="nav-link" data-scroll-target="#retrieving-variables-from-custom-environments">2. Retrieving Variables from Custom Environments</a>
+  <ul class="collapse">
+  <li><a href="#the-basic-idea-of-get" id="toc-the-basic-idea-of-get" class="nav-link" data-scroll-target="#the-basic-idea-of-get">2.1 The Basic Idea of <code>get()</code></a></li>
+  <li><a href="#why-get-is-not-enough" id="toc-why-get-is-not-enough" class="nav-link" data-scroll-target="#why-get-is-not-enough">2.2 Why <code>get()</code> Is Not Enough</a></li>
+  <li><a href="#using-eval-instead-of-get" id="toc-using-eval-instead-of-get" class="nav-link" data-scroll-target="#using-eval-instead-of-get">2.3 Using <code>eval()</code> Instead of <code>get()</code></a></li>
+  <li><a href="#what-about-substitute" id="toc-what-about-substitute" class="nav-link" data-scroll-target="#what-about-substitute">2.4 What about <code>substitute()</code></a></li>
+  </ul></li>
+  <li><a href="#using-get-and-assign-for-controlled-evaluation" id="toc-using-get-and-assign-for-controlled-evaluation" class="nav-link" data-scroll-target="#using-get-and-assign-for-controlled-evaluation">3. Using <code>get()</code> and <code>assign()</code> for Controlled Evaluation</a>
+  <ul class="collapse">
+  <li><a href="#get-look-up-a-variable-by-name" id="toc-get-look-up-a-variable-by-name" class="nav-link" data-scroll-target="#get-look-up-a-variable-by-name">3.1 <code>get()</code> — Look Up a Variable by Name</a></li>
+  <li><a href="#assign-create-or-modify-a-variable-by-name" id="toc-assign-create-or-modify-a-variable-by-name" class="nav-link" data-scroll-target="#assign-create-or-modify-a-variable-by-name">3.2 <code>assign()</code> — Create or Modify a Variable by Name</a></li>
+  <li><a href="#to-keep-in-mind" id="toc-to-keep-in-mind" class="nav-link" data-scroll-target="#to-keep-in-mind">To keep in mind</a></li>
+  <li><a href="#rlang-equivalents-env_get-env_poke-and-friends" id="toc-rlang-equivalents-env_get-env_poke-and-friends" class="nav-link" data-scroll-target="#rlang-equivalents-env_get-env_poke-and-friends">3.3 <code>{rlang}</code> Equivalents: <code>env_get()</code>, <code>env_poke()</code>, and Friends</a></li>
+  <li><a href="#env_has-and-env_unbind" id="toc-env_has-and-env_unbind" class="nav-link" data-scroll-target="#env_has-and-env_unbind">3.4 <code>env_has()</code> and <code>env_unbind()</code></a></li>
+  </ul></li>
+  <li><a href="#data-masked-evaluation" id="toc-data-masked-evaluation" class="nav-link" data-scroll-target="#data-masked-evaluation">4. Data-Masked Evaluation</a>
+  <ul class="collapse">
+  <li><a href="#what-is-a-data-mask" id="toc-what-is-a-data-mask" class="nav-link" data-scroll-target="#what-is-a-data-mask">4.1 What Is a Data Mask?</a></li>
+  <li><a href="#enquo-vs.-substitute-tidy-capture-vs.-base-capture" id="toc-enquo-vs.-substitute-tidy-capture-vs.-base-capture" class="nav-link" data-scroll-target="#enquo-vs.-substitute-tidy-capture-vs.-base-capture">4.2 <code>enquo()</code> vs.&nbsp;<code>substitute()</code>: Tidy Capture vs.&nbsp;Base Capture</a></li>
+  <li><a href="#eval_tidy-vs.-eval-masked-vs.-regular-evaluation" id="toc-eval_tidy-vs.-eval-masked-vs.-regular-evaluation" class="nav-link" data-scroll-target="#eval_tidy-vs.-eval-masked-vs.-regular-evaluation">4.3 <code>eval_tidy()</code> vs.&nbsp;<code>eval()</code>: Masked vs.&nbsp;Regular Evaluation</a></li>
+  <li><a href="#what-if-you-just-used-eval" id="toc-what-if-you-just-used-eval" class="nav-link" data-scroll-target="#what-if-you-just-used-eval">4.4 What If You Just Used <code>eval()</code>?</a></li>
+  <li><a href="#where-eval-and-eval_tidy-behave-differently-data-masking-in-action" id="toc-where-eval-and-eval_tidy-behave-differently-data-masking-in-action" class="nav-link" data-scroll-target="#where-eval-and-eval_tidy-behave-differently-data-masking-in-action">4.5 Where <code>eval()</code> and <code>eval_tidy()</code> Behave Differently: Data Masking in Action</a></li>
+  </ul></li>
+  <li><a href="#looking-up-variables-dynamically-with-get-and-friends" id="toc-looking-up-variables-dynamically-with-get-and-friends" class="nav-link" data-scroll-target="#looking-up-variables-dynamically-with-get-and-friends">5. Looking Up Variables Dynamically with <code>get()</code> and Friends</a>
+  <ul class="collapse">
+  <li><a href="#get-retrieve-an-object-by-name" id="toc-get-retrieve-an-object-by-name" class="nav-link" data-scroll-target="#get-retrieve-an-object-by-name">5.1 <code>get()</code> – Retrieve an Object by Name</a></li>
+  <li><a href="#as.name-build-a-symbol-from-a-string" id="toc-as.name-build-a-symbol-from-a-string" class="nav-link" data-scroll-target="#as.name-build-a-symbol-from-a-string">5.2 <code>as.name()</code> – Build a Symbol from a String</a></li>
+  <li><a href="#using-rlang-sym-and-parse_expr" id="toc-using-rlang-sym-and-parse_expr" class="nav-link" data-scroll-target="#using-rlang-sym-and-parse_expr">5.3 Using <code>{rlang}</code>: <code>sym()</code> and <code>parse_expr()</code></a></li>
+  <li><a href="#and-expr-a-better-way-to-inject-variables-into-expressions" id="toc-and-expr-a-better-way-to-inject-variables-into-expressions" class="nav-link" data-scroll-target="#and-expr-a-better-way-to-inject-variables-into-expressions">5.4 <code>!!</code> and <code>expr()</code> – A Better Way to Inject Variables into Expressions</a></li>
+  <li><a href="#splicing-multiple-arguments-into-an-expression" id="toc-splicing-multiple-arguments-into-an-expression" class="nav-link" data-scroll-target="#splicing-multiple-arguments-into-an-expression">5.5 <code>!!!</code> – Splicing Multiple Arguments into an Expression</a></li>
+  </ul></li>
+  <li><a href="#defensive-programming-with-nse" id="toc-defensive-programming-with-nse" class="nav-link" data-scroll-target="#defensive-programming-with-nse">6. Defensive Programming with NSE</a>
+  <ul class="collapse">
+  <li><a href="#problem-a-function-that-breaks-silently" id="toc-problem-a-function-that-breaks-silently" class="nav-link" data-scroll-target="#problem-a-function-that-breaks-silently">6.1 Problem: A Function That Breaks Silently</a></li>
+  <li><a href="#solution-develop-deffenses" id="toc-solution-develop-deffenses" class="nav-link" data-scroll-target="#solution-develop-deffenses">6.2 Solution: develop deffenses</a></li>
+  <li><a href="#supporting-both-quoted-and-unquoted-input" id="toc-supporting-both-quoted-and-unquoted-input" class="nav-link" data-scroll-target="#supporting-both-quoted-and-unquoted-input">6.3 Supporting Both Quoted and Unquoted Input</a></li>
+  </ul></li>
+  <li><a href="#defensive-metaprogramming" id="toc-defensive-metaprogramming" class="nav-link" data-scroll-target="#defensive-metaprogramming">7. Defensive METAprogramming</a>
+  <ul class="collapse">
+  <li><a href="#validate-input-types-explicitly" id="toc-validate-input-types-explicitly" class="nav-link" data-scroll-target="#validate-input-types-explicitly">7.1 Validate Input Types Explicitly</a></li>
+  <li><a href="#use-.env-and-.data-pronouns-for-clarity" id="toc-use-.env-and-.data-pronouns-for-clarity" class="nav-link" data-scroll-target="#use-.env-and-.data-pronouns-for-clarity">7.2 Use <code>.env</code> and <code>.data</code> Pronouns for Clarity</a></li>
+  <li><a href="#surface-helpful-errors-with-rlangabort" id="toc-surface-helpful-errors-with-rlangabort" class="nav-link" data-scroll-target="#surface-helpful-errors-with-rlangabort">7.3 Surface Helpful Errors with <code>rlang::abort()</code></a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<section id="why-nse-matters-for-developers" class="level2">
+<h2 class="anchored" data-anchor-id="why-nse-matters-for-developers">1. Why NSE Matters for Developers</h2>
+<p>Non-Standard Evaluation (NSE) is not just a curiosity — it’s a core part of modern R programming, especially for package developers who want to:</p>
+<ul>
+<li>Build clean, expressive interfaces (like <code>dplyr::filter(mpg &gt; 20)</code>)</li>
+<li>Delay or relocate expression evaluation</li>
+<li>Write tools for logging, debugging, or metaprogramming</li>
+</ul>
+<p>To use NSE effectively, you need more than <code>quote()</code> or <code>substitute()</code>. You need tools that work <em>inside functions</em>, play well with environments, and support user-friendly interfaces. That’s where base tools like <code>get()</code> and modern tools from <code>{rlang}</code> come in.</p>
+</section>
+<section id="retrieving-variables-from-custom-environments" class="level2">
+<h2 class="anchored" data-anchor-id="retrieving-variables-from-custom-environments">2. Retrieving Variables from Custom Environments</h2>
+<p>Let’s start with something simple — but deceptive: using <code>get()</code> to evaluate code in a different environment.</p>
+<section id="the-basic-idea-of-get" class="level3">
+<h3 class="anchored" data-anchor-id="the-basic-idea-of-get">2.1 The Basic Idea of <code>get()</code></h3>
+<p><code>get()</code> is a base R function that retrieves the <strong>value bound to a name</strong> from an environment. It’s equivalent to doing <code>env$name</code>, but with more flexibility:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">100</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>, <span class="at">envir =</span> env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+</div>
+<p>This looks simple. But it only works if you <strong>already know the name</strong> as a string.</p>
+<p>If you try:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(var, <span class="at">envir =</span> env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in get(var, envir = env): invalid first argument</code></pre>
+</div>
+</div>
+<p>You’ll get an error: <code>get()</code> doesn’t evaluate expressions — just single <strong>symbols</strong> (variable names). This limitation is why <code>get()</code> is only useful in very narrow NSE contexts.</p>
+</section>
+<section id="why-get-is-not-enough" class="level3">
+<h3 class="anchored" data-anchor-id="why-get-is-not-enough">2.2 Why <code>get()</code> Is Not Enough</h3>
+<p>Suppose you write a generic logging function like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>log_get <span class="ot">&lt;-</span> <span class="cf">function</span>(var_name, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  value <span class="ot">&lt;-</span> <span class="fu">get</span>(var_name, <span class="at">envir =</span> env)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Found"</span>, var_name, <span class="st">"with value:"</span>, value, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>It works:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">42</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_get</span>(<span class="st">"x"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Found x with value: 42 </code></pre>
+</div>
+</div>
+<p>But now try:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">log_get</span>(<span class="st">"x + 1"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in get(var_name, envir = env): object 'x + 1' not found</code></pre>
+</div>
+</div>
+<p>This fails — because <code>"x + 1"</code> is not a symbol. It’s a string that represents an expression, and <code>get()</code> can’t parse or evaluate it.</p>
+</section>
+<section id="using-eval-instead-of-get" class="level3">
+<h3 class="anchored" data-anchor-id="using-eval-instead-of-get">2.3 Using <code>eval()</code> Instead of <code>get()</code></h3>
+<p>To evaluate <strong>expressions</strong>, we need <code>eval()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">100</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 101</code></pre>
+</div>
+</div>
+<p>This works because <code>eval()</code> knows how to process structured expressions (not just names) and can recursively resolve variables.</p>
+<p>Now wrap this in a function:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>log_eval_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(expr, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> env)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"Expression"</span>, <span class="fu">deparse</span>(expr), <span class="st">"evaluated to"</span>, val, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="fu">log_eval_expr</span>(<span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Expression x + 1 evaluated to 6 </code></pre>
+</div>
+</div>
+<p><strong>Takeaway</strong>: Use <code>get()</code> when you have a <strong>name</strong>, use <code>eval()</code> when you have a <strong>language object</strong> (i.e., an expression).</p>
+</section>
+<section id="what-about-substitute" class="level3">
+<h3 class="anchored" data-anchor-id="what-about-substitute">2.4 What about <code>substitute()</code></h3>
+<p>You may wonder why we are not using substitute in this function as we learned in the previous post? Good question. You need <code>substitute()</code> when you’re writing a function that receives <strong>user-typed code</strong> (unevaluated), and you want to <strong>capture the expression itself</strong> — before R evaluates it.</p>
+<p>Example:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>my_logger <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  code <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">"You typed: "</span>, <span class="fu">deparse</span>(code), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> <span class="fu">eval</span>(code)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  val</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here, <code>expr</code> is just a placeholder. Without <code>substitute()</code>, R evaluates it <strong>before</strong> the function body runs, so the function can’t recover the original code.</p>
+<p>If you’re writing a function where <code>expr</code> is <strong>already an expression</strong> (e.g., something like <code>expr &lt;- quote(a + b)</code> or <code>expr &lt;- rlang::expr(a + b)</code>), then you don’t want <code>substitute()</code> — because the expression is already captured.</p>
+<p>For example:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>code <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(code, <span class="at">envir =</span> env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 101</code></pre>
+</div>
+</div>
+<p>Here, <code>code</code> is already a proper unevaluated call object because it has been capture with <code>quote()</code>. So, you don’t need to use <code>substitute()</code> on <code>eval()</code> (as in <code>eval(sustitute(code))</code>) because it would just return the symbol <code>code</code>, not the inner expression (similar to what happen when you use <code>quote()</code> inside a function).</p>
+</section>
+</section>
+<section id="using-get-and-assign-for-controlled-evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="using-get-and-assign-for-controlled-evaluation">3. Using <code>get()</code> and <code>assign()</code> for Controlled Evaluation</h2>
+<p>In some cases, we don’t just want to evaluate expressions or capture what the user typed — we want to <strong>manipulate variables by name</strong>: retrieve their values from a particular environment, or assign new ones dynamically. That’s exactly what <code>get()</code> and <code>assign()</code> let us do.</p>
+<p>These tools operate on variable <em>names as strings</em>, which makes them incredibly flexible — and also risky if not used carefully. In this section, we’ll break down both functions and show how they interact with environments and evaluation.</p>
+<section id="get-look-up-a-variable-by-name" class="level3">
+<h3 class="anchored" data-anchor-id="get-look-up-a-variable-by-name">3.1 <code>get()</code> — Look Up a Variable by Name</h3>
+<p>The base R function <code>get()</code> retrieves the value of a variable, <strong>given its name as a string</strong>, and optionally, an environment in which to look.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+</div>
+<p>It’s equivalent to just writing <code>x</code>, but you can control where to search:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">42</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>, <span class="at">envir =</span> e)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 42</code></pre>
+</div>
+</div>
+<p>If <code>x</code> is not found, <code>get()</code> walks up the chain of parent environments, just like R’s normal variable resolution.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>get_and_print <span class="ot">&lt;-</span> <span class="cf">function</span>(name, <span class="at">env =</span> <span class="fu">parent.frame</span>()) {</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">exists</span>(name, <span class="at">envir =</span> env)) <span class="fu">stop</span>(<span class="st">"Boo! it is not here"</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> <span class="fu">get</span>(name, <span class="at">envir =</span> env)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(val)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>env2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">y =</span> <span class="dv">2</span>)</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>) <span class="co"># 10</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env) <span class="co"># 100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2) <span class="co"># 10 again because of the env chain</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"zz"</span>, <span class="at">env =</span> env2) <span class="co"># error trigger by stop()</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in get_and_print("zz", env = env2): Boo! it is not here</code></pre>
+</div>
+</div>
+<section id="use-case-controlled-lookup-in-logging" class="level4">
+<h4 class="anchored" data-anchor-id="use-case-controlled-lookup-in-logging">Use Case: Controlled Lookup in Logging</h4>
+<p>Suppose you want to log both the <strong>name</strong> of the variable the user passed, and its <strong>value</strong>, without evaluating the entire expression. This is the same that we saw in the previous post with <code>eval()</code> but instead of having an expression, we have a the name of a variable.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>log_value <span class="ot">&lt;-</span> <span class="cf">function</span>(varname) {</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">substitute</span>(varname) <span class="co"># Capture the name (unevaluated)</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  var_str <span class="ot">&lt;-</span> <span class="fu">deparse</span>(name) <span class="co"># Deparse to string</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Lookup the value</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  value <span class="ot">&lt;-</span> <span class="fu">get</span>(var_str, <span class="at">envir =</span> <span class="fu">parent.frame</span>())</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Variable {.code {var_str}} has value: {value}"</span>)</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>score <span class="ot">&lt;-</span> <span class="dv">88</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="fu">log_value</span>(score)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Variable `score` has value: 88</code></pre>
+</div>
+</div>
+<p>This is cleaner and safer than passing <code>varname</code> directly to <code>get()</code>, which only receives an object name (given as a character string or a symbol). The reason we need to use <code>substitute()</code> and <code>deparse()</code> is that otherwise, this code would evaluate to the value before we can inspect it.</p>
+</section>
+</section>
+<section id="assign-create-or-modify-a-variable-by-name" class="level3">
+<h3 class="anchored" data-anchor-id="assign-create-or-modify-a-variable-by-name">3.2 <code>assign()</code> — Create or Modify a Variable by Name</h3>
+<p>Now suppose you want to set a variable dynamically. <code>assign()</code> does the opposite of <code>get()</code> — it takes a <strong>name as a string</strong> and gives it a value:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">assign</span>(<span class="st">"z"</span>, <span class="dv">999</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>z</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 999</code></pre>
+</div>
+</div>
+<p>You can also specify the environment where the variable should be created or updated:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>()</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">assign</span>(<span class="st">"x"</span>, <span class="dv">123</span>, <span class="at">envir =</span> e)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>x</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 123</code></pre>
+</div>
+</div>
+<p>This is useful in programmatic pipelines, custom data transformations, or internal helpers where variable names are passed as arguments.</p>
+<section id="example-dynamic-variable-creation-in-a-custom-environment" class="level4">
+<h4 class="anchored" data-anchor-id="example-dynamic-variable-creation-in-a-custom-environment">Example: Dynamic Variable Creation in a Custom Environment</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>set_and_show <span class="ot">&lt;-</span> <span class="cf">function</span>(name, value) {</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  name_str <span class="ot">&lt;-</span> <span class="fu">deparse</span>(<span class="fu">substitute</span>(name))</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>()</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">assign</span>(name_str, value, <span class="at">envir =</span> env)</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># notice that we are extracting the value using `get()` not `value`</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Created {.code {name_str}} with value {.val {get(name_str, env)}}"</span>)</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set_and_show</span>(score, <span class="dv">75</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Created `score` with value 75</code></pre>
+</div>
+</div>
+<p>This gives you total control over naming, assignment, and lookup — useful for package internals, simulations, or even domain-specific languages (DSLs).</p>
+</section>
+</section>
+<section id="to-keep-in-mind" class="level3">
+<h3 class="anchored" data-anchor-id="to-keep-in-mind">To keep in mind</h3>
+<ul>
+<li><code>get()</code> and <code>assign()</code> allow for <strong>string-based variable manipulation</strong>.</li>
+<li>They respect <strong>environments</strong>, which is critical for reproducibility and scoping.</li>
+<li>Combined with <code>substitute()</code>, you can safely bridge <strong>symbolic expressions</strong> and <strong>string-based evaluation</strong>.</li>
+<li>Use with care: dynamic variable manipulation can make code harder to debug.</li>
+</ul>
+</section>
+<section id="rlang-equivalents-env_get-env_poke-and-friends" class="level3">
+<h3 class="anchored" data-anchor-id="rlang-equivalents-env_get-env_poke-and-friends">3.3 <code>{rlang}</code> Equivalents: <code>env_get()</code>, <code>env_poke()</code>, and Friends</h3>
+<p>If you’re writing packages or advanced tools, it’s usually better to avoid base R’s <code>get()</code> and <code>assign()</code> in favor of <code>{rlang}</code>’s <strong>environment manipulation functions</strong>, which are:</p>
+<ul>
+<li><strong>explicit about scoping</strong></li>
+<li><strong>type-safe and testable</strong></li>
+<li>and <strong>play nicely with modern metaprogramming idioms</strong></li>
+</ul>
+<section id="rlangenv_get-safer-alternative-to-get" class="level4">
+<h4 class="anchored" data-anchor-id="rlangenv_get-safer-alternative-to-get"><code>rlang::env_get()</code>: Safer Alternative to <code>get()</code></h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">42</span>)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"x"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 42</code></pre>
+</div>
+</div>
+<p>You can also provide a <strong>default</strong> value if the variable is missing:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span>  <span class="st">"only in global"</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"y"</span>) <span class="co"># Error</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `rlang::env_get()`:
+! Can't find `y` in environment.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"y"</span>, <span class="at">default =</span> <span class="cn">NA</span>) <span class="co"># default</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] NA</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_get</span>(e, <span class="st">"y"</span>, <span class="at">inherit =</span> <span class="cn">TRUE</span>) <span class="co"># get from Global</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "only in global"</code></pre>
+</div>
+</div>
+<p>By default, <code>rlang::env_get()</code> <strong>does not walk up</strong> the parent environments — unlike <code>get()</code>. If you want it to, use:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>get_and_print_rlang <span class="ot">&lt;-</span> <span class="cf">function</span>(name, </span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>                          <span class="at">env =</span> <span class="fu">parent.frame</span>(), </span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>                          <span class="at">inherit =</span> <span class="cn">FALSE</span>) {</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">exists</span>(name, <span class="at">envir =</span> env)) <span class="fu">stop</span>(<span class="st">"Boo! it is not here"</span>)</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env_get</span>(<span class="at">env =</span> env, </span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">nm =</span> name, </span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>                        <span class="at">inherit =</span> inherit)</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(val)</span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>env2 <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">y =</span> <span class="dv">2</span>)</span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">10</span></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>) <span class="co"># 10</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env) <span class="co"># 100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2) <span class="co"># 10 again because of the env chain</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print_rlang</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2) <span class="co"># error because it does not walk up</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `rlang::env_get()`:
+! Can't find `x` in environment.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="fu">get_and_print_rlang</span>(<span class="st">"x"</span>, <span class="at">env =</span> env2, <span class="cn">TRUE</span>) <span class="co"># 10 again because of the env chain</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10</code></pre>
+</div>
+</div>
+</section>
+<section id="rlangenv_poke-replacement-for-assign" class="level4">
+<h4 class="anchored" data-anchor-id="rlangenv_poke-replacement-for-assign"><code>rlang::env_poke()</code>: Replacement for <code>assign()</code></h4>
+<p><code>env_poke()</code> sets a binding in an environment:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>e <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>()</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_poke</span>(e, <span class="st">"z"</span>, <span class="dv">100</span>)</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>e<span class="sc">$</span>z</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+</div>
+<p>For simple code, <code>rlang::env_poke()</code> and <code>assign()</code> are practically the same. Yet, the former is clearer and more explicit.</p>
+<ul>
+<li><p><code>env_poke()</code> tells you exactly what it’s doing: <strong>modifying the environment <code>e</code></strong> by assigning a value to the name <code>"z"</code>. By contrast, <code>assign("z", 100, envir = e)</code> looks more like a string operation than an environment manipulation.</p></li>
+<li><p><code>{rlang}</code> treats environments as <strong>first-class mutable data structures</strong>, much like lists. So, <code>env_poke(e, "z", 100)</code> reads like “poke the value 100 into environment <code>e</code> at key <code>"z"</code>”, making the analogy to lists and dictionaries clearer:</p></li>
+</ul>
+<div class="sourceCode" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>my_list[[<span class="st">"z"</span>]] <span class="ot">&lt;-</span> <span class="dv">100</span>         <span class="co"># list assignment</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_poke</span>(e, <span class="st">"z"</span>, <span class="dv">100</span>)  <span class="co"># environment assignment</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li><code>{rlang}</code> pairs <code>env_poke()</code> with other tools like <code>env_get()</code>, <code>env_has()</code>, <code>env_names()</code>, etc. They form a <strong>coherent vocabulary</strong>.</li>
+<li>With base R, <code>assign()</code> has quirks (e.g., it doesn’t behave well with missing arguments, or nested scoping) and lacks symmetry with <code>get()</code> in some edge cases.</li>
+<li><code>env_poke()</code> always operates <strong>locally and predictably</strong>. <code>assign()</code> may accidentally modify variables in environments higher up the chain if you’re not careful with the <code>envir</code> argument.</li>
+<li><code>{rlang}</code>’s environment tools never touch parent environments unless you explicitly ask them to.</li>
+<li>In functional pipelines or nested expressions, <code>env_poke()</code> reads cleanly because the first argument is the environment</li>
+</ul>
+</section>
+</section>
+<section id="env_has-and-env_unbind" class="level3">
+<h3 class="anchored" data-anchor-id="env_has-and-env_unbind">3.4 <code>env_has()</code> and <code>env_unbind()</code></h3>
+<p>Want to check if a variable exists?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_has</span>(e, <span class="st">"z"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   z 
+TRUE </code></pre>
+</div>
+</div>
+<p>Remove a variable:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_unbind</span>(e, <span class="st">"z"</span>)</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">env_has</span>(e, <span class="st">"z"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    z 
+FALSE </code></pre>
+</div>
+</div>
+<section id="bonus-why-use-rlang-instead-of-base-r" class="level4">
+<h4 class="anchored" data-anchor-id="bonus-why-use-rlang-instead-of-base-r">BONUS: Why Use <code>{rlang}</code> Instead of Base R?</h4>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task</th>
+<th>Base R</th>
+<th><code>{rlang}</code></th>
+<th>Benefit</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Get value</td>
+<td><code>get("x", envir = e)</code></td>
+<td><code>env_get(e, "x")</code></td>
+<td>No surprises, inherits only if you want</td>
+</tr>
+<tr class="even">
+<td>Set value</td>
+<td><code>assign("x", val, envir = e)</code></td>
+<td><code>env_poke(e, "x", val)</code></td>
+<td>Cleaner and safer</td>
+</tr>
+<tr class="odd">
+<td>Has binding?</td>
+<td><code>exists("x", envir = e)</code></td>
+<td><code>env_has(e, "x")</code></td>
+<td>Vectorized and clear</td>
+</tr>
+<tr class="even">
+<td>Remove binding</td>
+<td><code>rm("x", envir = e)</code></td>
+<td><code>env_unbind(e, "x")</code></td>
+<td>Safer removal</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</section>
+<section id="data-masked-evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="data-masked-evaluation">4. Data-Masked Evaluation</h2>
+<p>When writing user-friendly R packages — especially those involving modeling, plotting, or data manipulation — it’s not enough to evaluate expressions in a custom environment. Often, you want to evaluate expressions <strong>as if columns of a data frame were variables</strong>, the way <code>dplyr::filter()</code> and <code>ggplot2::aes()</code> do it.</p>
+<section id="what-is-a-data-mask" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-a-data-mask">4.1 What Is a Data Mask?</h3>
+<p>A <strong>data mask</strong> is an environment that makes the columns of a data frame behave like variables. In practice, it means users can write expressions like <code>mpg &gt; 25</code> instead of <code>df$mpg &gt; 25</code>, and your function will still understand what they meant.</p>
+<p>The data mask lets you evaluate those expressions in a way that prioritizes the <strong>columns of the data frame</strong> while still allowing access to other objects from parent environments.</p>
+<p>This is where <strong>data-masked evaluation</strong> comes in, and <code>{rlang}</code> provides the perfect tool for this: <code>rlang::eval_tidy()</code>.</p>
+<p>But first, we need to understand the difference between <code>{rlang}</code> and <code>base R</code></p>
+</section>
+<section id="enquo-vs.-substitute-tidy-capture-vs.-base-capture" class="level3">
+<h3 class="anchored" data-anchor-id="enquo-vs.-substitute-tidy-capture-vs.-base-capture">4.2 <code>enquo()</code> vs.&nbsp;<code>substitute()</code>: Tidy Capture vs.&nbsp;Base Capture</h3>
+<p>In base R, you use <code>substitute(expr)</code> to capture the unevaluated expression passed to a function. This gives you access to <em>what the user typed</em>, not the result of evaluation:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>log_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">substitute</span>(expr))</span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a><span class="fu">log_expr</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x + 1</code></pre>
+</div>
+</div>
+<p>However, <code>substitute()</code> has no built-in way to capture <strong>quosures</strong> — expressions <em>plus</em> their environment. This is where <code>rlang::enquo()</code> comes in.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>log_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(expr) {</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>  quo <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(expr)</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(quo)</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a><span class="fu">log_expr</span>(x <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;quosure&gt;
+expr: ^x + 1
+env:  global</code></pre>
+</div>
+</div>
+<ul>
+<li><code>substitute()</code> gives you a <strong>raw expression</strong>.</li>
+<li><code>rlang::enquo()</code> gives you a <strong>quosure</strong>: an expression <em>and</em> the environment where it was typed.</li>
+</ul>
+<p>This matters for tidy evaluation, where functions need to know not just <em>what</em> was written, but also <em>where</em> to evaluate it — especially if variables can be found in different environments.</p>
+</section>
+<section id="eval_tidy-vs.-eval-masked-vs.-regular-evaluation" class="level3">
+<h3 class="anchored" data-anchor-id="eval_tidy-vs.-eval-masked-vs.-regular-evaluation">4.3 <code>eval_tidy()</code> vs.&nbsp;<code>eval()</code>: Masked vs.&nbsp;Regular Evaluation</h3>
+<p>In base R, <code>eval(expr, envir)</code> simply evaluates <code>expr</code> using the environment <code>envir</code> — no special treatment. But it can <strong>fail</strong> if the expression requires variables from <em>both</em> the data and the calling environment.</p>
+<p>In contrast, <code>rlang::eval_tidy(expr, data, env)</code> evaluates <code>expr</code> in a <strong>data mask</strong>: a special layered environment where:</p>
+<ol type="1">
+<li><strong>Variable names</strong> are looked up in <code>data</code> (e.g.&nbsp;column names or list elements),</li>
+<li>If not found, the search continues in the <strong>enclosing environment</strong> — typically the environment where the function was called.</li>
+</ol>
+<p>This allows expressions to blend <strong>data variables</strong> and <strong>contextual variables</strong> naturally — just like in <code>dplyr</code>, <code>ggplot2</code>, or <code>purrr</code>.</p>
+<section id="a-minimal-example" class="level4">
+<h4 class="anchored" data-anchor-id="a-minimal-example">A Minimal Example</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>)</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>env  <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">threshold =</span> <span class="dv">3</span>)</span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">quote</span>(x <span class="sc">&gt;</span> threshold)</span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a><span class="co"># This works: x from data, threshold from env</span></span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a>right <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, <span class="at">data =</span> data, <span class="at">env =</span> env)</span>
+<span id="cb67-7"><a href="#cb67-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-8"><a href="#cb67-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-9"><a href="#cb67-9" aria-hidden="true" tabindex="-1"></a><span class="co"># This fails: base R's eval() only sees data, not env</span></span>
+<span id="cb67-10"><a href="#cb67-10" aria-hidden="true" tabindex="-1"></a><span class="co"># and threshold is not in global</span></span>
+<span id="cb67-11"><a href="#cb67-11" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in eval(expr, envir = data): object 'threshold' not found</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Yet, if we had a threshold in global, we would get </span></span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="co"># the wrong results. </span></span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">2</span></span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>wrong <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> data)</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a><span class="fu">all.equal</span>(right, wrong)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "1 element mismatch"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="co"># If a variable exists in data, it's used first. Only if it’s not in data,</span></span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="co"># eval_tidy() will look in env</span></span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, </span>
+<span id="cb71-5"><a href="#cb71-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">threshold =</span> <span class="dv">4</span>)</span>
+<span id="cb71-6"><a href="#cb71-6" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, <span class="at">data =</span> data, <span class="at">env =</span> env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] FALSE FALSE FALSE FALSE  TRUE</code></pre>
+</div>
+</div>
+<p>Here, <code>eval()</code> can’t see <code>threshold</code>, because it’s not in <code>data</code> nor in <code>env</code>. But <code>eval_tidy()</code> builds a layered environment where both <code>x</code> (from <code>data</code>) and <code>threshold</code> (from <code>env</code>) are visible. Notice that if <code>threshold</code> is in <code>data</code> then it is evaluated there, not in <code>env</code>.</p>
+</section>
+<section id="writing-functions-eval_tidy-makes-it-easy" class="level4">
+<h4 class="anchored" data-anchor-id="writing-functions-eval_tidy-makes-it-easy">Writing Functions: <code>eval_tidy()</code> Makes It Easy</h4>
+<p>Let’s say we want to write a filtering function that behaves like <code>dplyr::filter()</code> — letting users refer to columns <em>and</em> outside variables naturally.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>my_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, expr) {</span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb73-4"><a href="#cb73-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb73-5"><a href="#cb73-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now this works:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter</span>(mtcars, mpg <span class="sc">&gt;</span> <span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter</span>(mtcars, hp <span class="sc">&gt;</span> threshold)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     mpg cyl disp  hp drat    wt  qsec vs am gear carb
+Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+</div>
+</div>
+<p>Inside <code>eval_tidy()</code>, <code>{rlang}</code> creates a <strong>data mask</strong> where:</p>
+<ul>
+<li><code>mpg</code> is found in <code>data</code>, not in the global env.</li>
+<li><code>threshold</code> is found in the parent frame (where the function was called).</li>
+</ul>
+</section>
+</section>
+<section id="what-if-you-just-used-eval" class="level3">
+<h3 class="anchored" data-anchor-id="what-if-you-just-used-eval">4.4 What If You Just Used <code>eval()</code>?</h3>
+<p>You might wonder: does <code>eval(expr, envir = data)</code> already do what we need?</p>
+<p>Sometimes, yes — for simple expressions that only reference columns, it works fine:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>my_filter_eval <span class="ot">&lt;-</span> <span class="cf">function</span>(data, expr) {</span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> data)</span>
+<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb78-6"><a href="#cb78-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb78-7"><a href="#cb78-7" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter_eval</span>(mtcars, mpg <span class="sc">&gt;</span> <span class="dv">25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">150</span></span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a><span class="fu">my_filter_eval</span>(mtcars, hp <span class="sc">&gt;</span> threshold)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
+Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+</div>
+</div>
+<p>This also works — but only because <code>eval()</code> implicitly builds an environment from <code>data</code> whose <strong>parent is the calling frame</strong>. That’s why <code>threshold</code> is still visible.</p>
+<p>So what’s the issue?</p>
+</section>
+<section id="where-eval-and-eval_tidy-behave-differently-data-masking-in-action" class="level3">
+<h3 class="anchored" data-anchor-id="where-eval-and-eval_tidy-behave-differently-data-masking-in-action">4.5 Where <code>eval()</code> and <code>eval_tidy()</code> Behave Differently: Data Masking in Action</h3>
+<p>So far, we’ve seen that <code>eval()</code> works fine when evaluating simple expressions in a user-provided environment. But what happens when there are <strong>multiple environments involved</strong> — e.g.&nbsp;the global environment, the function environment, and the data environment?</p>
+<p>Let’s see an example where the <strong>same symbol</strong> exists in three different scopes:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>fruit <span class="ot">&lt;-</span> <span class="st">"apple"</span>  <span class="co"># global</span></span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">fruit =</span> <span class="st">"banana"</span>)  <span class="co"># passed data</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we define a function where <code>fruit</code> is redefined again:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a>with_data <span class="ot">&lt;-</span> <span class="cf">function</span>(data, expr, <span class="at">print =</span> <span class="cn">FALSE</span>) {</span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>  fruit <span class="ot">&lt;-</span> <span class="st">"avocado"</span>  <span class="co"># local inside function</span></span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>  quo <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(expr)</span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (print) <span class="fu">print</span>(quo)</span>
+<span id="cb83-5"><a href="#cb83-5" aria-hidden="true" tabindex="-1"></a>  rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(quo, data)</span>
+<span id="cb83-6"><a href="#cb83-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s call it with and without data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="fu">with_data</span>(data, fruit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "banana"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="fu">with_data</span>(<span class="cn">NULL</span>, fruit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "apple"</code></pre>
+</div>
+</div>
+<ul>
+<li><p>When <code>data</code> is provided, <code>eval_tidy()</code> finds <code>fruit</code> in the <strong>data mask</strong> and returns <code>"banana"</code>.</p></li>
+<li><p>When no data is provided, it looks in the <strong>quosure’s environment</strong>, that is the env of <code>expr</code>, which is the global environment — so it returns <code>"apple"</code>.</p></li>
+</ul>
+<p>Now try the same with <code>eval()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a>with_data_eval <span class="ot">&lt;-</span> <span class="cf">function</span>(data, expr) {</span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>  fruit <span class="ot">&lt;-</span> <span class="st">"avocado"</span></span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(expr)</span>
+<span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">eval</span>(expr, <span class="at">envir =</span> data)</span>
+<span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="fu">with_data_eval</span>(data, fruit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "banana"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="fu">with_data_eval</span>(<span class="cn">NULL</span>, fruit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "avocado"</code></pre>
+</div>
+</div>
+<p>This what happens under the hood.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="fu">with_data</span>(<span class="cn">NULL</span>, fruit, <span class="at">print =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;quosure&gt;
+expr: ^fruit
+env:  global</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "apple"</code></pre>
+</div>
+</div>
+<p>Here’s the difference:</p>
+<ul>
+<li><p><code>substitute(expr)</code> captures the symbol <code>fruit</code>.</p></li>
+<li><p><code>eval(expr, envir = data)</code> creates an environment (if <code>data</code> is a list) whose <strong>parent is the current frame</strong>, i.e.&nbsp;the body of <code>with_data_eval()</code>.</p></li>
+<li><p>So when <code>data</code> is <code>NULL</code>, the lookup falls back to the <strong>local <code>fruit &lt;- "avocado"</code></strong>, not the global <code>"apple"</code>.</p></li>
+<li><p><code>eval()</code> is <strong>frame-dependent</strong> and unpredictable when multiple layers of scoping are involved.</p></li>
+<li><p><code>eval_tidy()</code> uses a <strong>clean and layered lookup system</strong>:</p>
+<ol type="1">
+<li>Look in <code>.data</code></li>
+<li>Then in <code>.env</code> (the quosure’s environment)</li>
+</ol></li>
+<li><p>This guarantees consistent and predictable behavior for user-written expressions.</p></li>
+</ul>
+</section>
+</section>
+<section id="looking-up-variables-dynamically-with-get-and-friends" class="level2">
+<h2 class="anchored" data-anchor-id="looking-up-variables-dynamically-with-get-and-friends">5. Looking Up Variables Dynamically with <code>get()</code> and Friends</h2>
+<p>So far, we’ve worked with static or captured expressions. But what if you need to look up a variable <strong>by name</strong>, programmatically? This is where <code>get()</code>, <code>as.name()</code>, and their <code>{rlang}</code> equivalents come in.</p>
+<section id="get-retrieve-an-object-by-name" class="level3">
+<h3 class="anchored" data-anchor-id="get-retrieve-an-object-by-name">5.1 <code>get()</code> – Retrieve an Object by Name</h3>
+<p>The base R function <code>get()</code> retrieves the value of a variable <strong>by string name</strong>, from a specified environment.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+</div>
+<p>This returns <code>100</code>, because <code>"x"</code> is resolved in the global environment by default (<code>env = parent.frame()</code>).</p>
+<p>You can change the lookup environment explicitly:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb98"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a>env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">env</span>(<span class="at">x =</span> <span class="dv">999</span>)</span>
+<span id="cb98-2"><a href="#cb98-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>, <span class="at">envir =</span> env)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 999</code></pre>
+</div>
+</div>
+<p>This kind of lookup is useful when you’re writing generic tools that receive the <strong>name</strong> of a variable and need to fetch its value dynamically.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a>dt <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>))</span>
+<span id="cb100-2"><a href="#cb100-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb100-3"><a href="#cb100-3" aria-hidden="true" tabindex="-1"></a><span class="co"># you need to pass a real environment. Otherwise it breaks</span></span>
+<span id="cb100-4"><a href="#cb100-4" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>, <span class="at">envir =</span> dt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in get("x", envir = dt): invalid 'envir' argument</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="co"># This works</span></span>
+<span id="cb102-2"><a href="#cb102-2" aria-hidden="true" tabindex="-1"></a><span class="fu">get</span>(<span class="st">"x"</span>, <span class="at">envir =</span> <span class="fu">list2env</span>(dt))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1 2 3 4 5</code></pre>
+</div>
+</div>
+</section>
+<section id="as.name-build-a-symbol-from-a-string" class="level3">
+<h3 class="anchored" data-anchor-id="as.name-build-a-symbol-from-a-string">5.2 <code>as.name()</code> – Build a Symbol from a String</h3>
+<p>Sometimes you want to <strong>construct an expression</strong> from variable names provided as strings. <code>as.name()</code> (or the back tick syntax <code>`var`</code>) turns a string into a symbol — the building block of an R expression:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">101</span>   <span class="co"># layer 1</span></span>
+<span id="cb104-2"><a href="#cb104-2" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"x"</span> <span class="co"># layer 2</span></span>
+<span id="cb104-3"><a href="#cb104-3" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">as.name</span>(var) <span class="co">#layer 3</span></span>
+<span id="cb104-4"><a href="#cb104-4" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a>expr2 <span class="ot">&lt;-</span> <span class="fu">quote</span>(var) <span class="co">#layer 4</span></span>
+<span id="cb106-2"><a href="#cb106-2" aria-hidden="true" tabindex="-1"></a>expr2 <span class="co"># too literal</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>var</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb108"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr)  <span class="co"># same as eval(quote(x))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 101</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr2)  <span class="co"># just the name</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "x"</code></pre>
+</div>
+</div>
+<p><code>quote(var)</code> captures the symbol var literally — it doesn’t evaluate <code>var</code> to get “x”. That’s why we need <code>as.name(var)</code>.</p>
+<p>This is how you build dynamic expressions:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb112"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"hp"</span></span>
+<span id="cb112-2"><a href="#cb112-2" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb112-3"><a href="#cb112-3" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(v <span class="sc">&gt;</span> t, <span class="fu">list</span>(<span class="at">v =</span> <span class="fu">as.name</span>(var), </span>
+<span id="cb112-4"><a href="#cb112-4" aria-hidden="true" tabindex="-1"></a>                               <span class="at">t =</span> threshold))</span>
+<span id="cb112-5"><a href="#cb112-5" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb114"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
+</div>
+</div>
+<p>This evaluates <code>hp &gt; 200</code> inside <code>mtcars</code>.</p>
+</section>
+<section id="using-rlang-sym-and-parse_expr" class="level3">
+<h3 class="anchored" data-anchor-id="using-rlang-sym-and-parse_expr">5.3 Using <code>{rlang}</code>: <code>sym()</code> and <code>parse_expr()</code></h3>
+<p>While base R tools like <code>as.name()</code> and <code>parse()</code> work well for simple metaprogramming, <code>{rlang}</code> provides cleaner, safer, and more composable alternatives: <code>sym()</code> and <code>parse_expr()</code>.</p>
+<section id="sym-safer-alternative-to-as.name" class="level4">
+<h4 class="anchored" data-anchor-id="sym-safer-alternative-to-as.name"><code>sym()</code> – Safer Alternative to <code>as.name()</code></h4>
+<p><code>rlang::sym()</code> turns a character string into a <strong>symbol</strong>, just like <code>as.name()</code>, but is designed to integrate seamlessly with <code>{rlang}</code>’s metaprogramming toolkit.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb116"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">101</span></span>
+<span id="cb116-2"><a href="#cb116-2" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"x"</span></span>
+<span id="cb116-3"><a href="#cb116-3" aria-hidden="true" tabindex="-1"></a>sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(var)</span>
+<span id="cb116-4"><a href="#cb116-4" aria-hidden="true" tabindex="-1"></a>sym</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>x</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb118"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(sym)  <span class="co"># equivalent to eval(quote(x))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 101</code></pre>
+</div>
+</div>
+<p>Like <code>as.name()</code>, this converts the string <code>"x"</code> into the symbol <code>x</code>, which can be evaluated in the usual way.</p>
+<p>You can also use it inside <code>substitute()</code> or <code>bquote()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb120"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb120-2"><a href="#cb120-2" aria-hidden="true" tabindex="-1"></a>var <span class="ot">&lt;-</span> <span class="st">"hp"</span></span>
+<span id="cb120-3"><a href="#cb120-3" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(v <span class="sc">&gt;</span> t, <span class="fu">list</span>(<span class="at">v =</span> rlang<span class="sc">::</span><span class="fu">sym</span>(var), </span>
+<span id="cb120-4"><a href="#cb120-4" aria-hidden="true" tabindex="-1"></a>                               <span class="at">t =</span> threshold))</span>
+<span id="cb120-5"><a href="#cb120-5" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb122"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>At this point, <code>sym()</code> is just a drop-in replacement for <code>as.name()</code> — but when we move to building more advanced programmatic expressions, its advantages will become more evident.</p>
+</blockquote>
+</section>
+<section id="parse_expr-cleaner-alternative-to-parsetext-..." class="level4">
+<h4 class="anchored" data-anchor-id="parse_expr-cleaner-alternative-to-parsetext-..."><code>parse_expr()</code> – Cleaner Alternative to <code>parse(text = ...)</code></h4>
+<p>In base R, <code>parse()</code> turns a string into an <strong>expression list</strong>, which is slightly awkward:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb124"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb124-1"><a href="#cb124-1" aria-hidden="true" tabindex="-1"></a>expr_list <span class="ot">&lt;-</span> <span class="fu">parse</span>(<span class="at">text =</span> <span class="st">"hp &gt; 200"</span>)</span>
+<span id="cb124-2"><a href="#cb124-2" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(expr_list)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb126"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a>expr_list[[<span class="dv">1</span>]]  <span class="co"># You have to extract the first element</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb128"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr_list[[<span class="dv">1</span>]], <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
+</div>
+</div>
+<p><code>rlang::parse_expr()</code> returns a <strong>single expression</strong>, not a list, so it’s cleaner and more consistent:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb130"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb130-1"><a href="#cb130-1" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">parse_expr</span>(<span class="st">"hp &gt; 200"</span>)</span>
+<span id="cb130-2"><a href="#cb130-2" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hp &gt; 200</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb132"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(expr, <span class="at">envir =</span> mtcars)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE
+[13] FALSE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[25] FALSE FALSE FALSE FALSE  TRUE FALSE  TRUE FALSE</code></pre>
+</div>
+</div>
+<p>You get the same result, with fewer surprises and better compatibility with <code>{rlang}</code> tools down the road.</p>
+</section>
+</section>
+<section id="and-expr-a-better-way-to-inject-variables-into-expressions" class="level3">
+<h3 class="anchored" data-anchor-id="and-expr-a-better-way-to-inject-variables-into-expressions">5.4 <code>!!</code> and <code>expr()</code> – A Better Way to Inject Variables into Expressions</h3>
+<p>In base R, if you want to create an expression like <code>hp &gt; 200</code> programmatically, you need to use <code>substitute()</code> and build a list of values.</p>
+<p>Suppose you want to write a function that filters a data frame based on a variable and a cutoff — but both are provided as arguments:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a>filter_by_name_base <span class="ot">&lt;-</span> <span class="cf">function</span>(data, varname, cutoff) {</span>
+<span id="cb134-2"><a href="#cb134-2" aria-hidden="true" tabindex="-1"></a>  var_sym <span class="ot">&lt;-</span> <span class="fu">as.name</span>(varname)</span>
+<span id="cb134-3"><a href="#cb134-3" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> <span class="fu">substitute</span>(v <span class="sc">&gt;</span> t, <span class="fu">list</span>(<span class="at">v =</span> var_sym, <span class="at">t =</span> cutoff))</span>
+<span id="cb134-4"><a href="#cb134-4" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> <span class="fu">eval</span>(expr, <span class="at">envir =</span> data)</span>
+<span id="cb134-5"><a href="#cb134-5" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb134-6"><a href="#cb134-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb134-7"><a href="#cb134-7" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_by_name_base</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">200</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     mpg cyl disp  hp drat    wt  qsec vs am gear carb
+Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+</div>
+</div>
+<p>This works — but becomes brittle if <code>data</code> isn’t a proper environment, or if the expression becomes more complex.</p>
+<section id="rlang-version-of-the-filter_by_name" class="level4">
+<h4 class="anchored" data-anchor-id="rlang-version-of-the-filter_by_name"><code>{rlang}</code> Version of the <code>filter_by_name()</code></h4>
+<p><code>rlang::expr()</code> lets you build expressions <strong>just like writing them by hand</strong>. And <code>!!</code> (called <strong>bang-bang</strong>) lets you inject programmatic values directly into those expressions.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb136"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb136-1"><a href="#cb136-1" aria-hidden="true" tabindex="-1"></a>filter_tidy <span class="ot">&lt;-</span> <span class="cf">function</span>(data, varname, cutoff) {</span>
+<span id="cb136-2"><a href="#cb136-2" aria-hidden="true" tabindex="-1"></a>  var_sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(varname)</span>
+<span id="cb136-3"><a href="#cb136-3" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>var_sym <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb136-4"><a href="#cb136-4" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb136-5"><a href="#cb136-5" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb136-6"><a href="#cb136-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb136-7"><a href="#cb136-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb136-8"><a href="#cb136-8" aria-hidden="true" tabindex="-1"></a><span class="fu">filter_tidy</span>(mtcars, <span class="st">"hp"</span>, <span class="dv">200</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                     mpg cyl disp  hp drat    wt  qsec vs am gear carb
+Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre>
+</div>
+</div>
+<p>Both functions return the same result — but the <code>{rlang}</code> version is <strong>cleaner</strong>, <strong>composable</strong>, and plays well with the rest of the tidyverse metaprogramming tools:</p>
+<ul>
+<li>No need for <code>substitute()</code></li>
+<li>No need for <code>list()</code></li>
+<li>You’re writing what looks like natural code</li>
+</ul>
+</section>
+</section>
+<section id="splicing-multiple-arguments-into-an-expression" class="level3">
+<h3 class="anchored" data-anchor-id="splicing-multiple-arguments-into-an-expression">5.5 <code>!!!</code> – Splicing Multiple Arguments into an Expression</h3>
+<p>If <code>!!</code> lets you inject a <strong>single</strong> value or symbol into an expression, then <code>!!!</code> lets you <strong>inject a list of values</strong> — as if you’d written them out one by one.</p>
+<p>This is called <strong>unquote-splicing</strong>, and it’s especially useful when building calls with a variable number of arguments.</p>
+<section id="base-r-comparison" class="level4">
+<h4 class="anchored" data-anchor-id="base-r-comparison">Base R Comparison</h4>
+<p>In base R, if you want to programmatically build <code>mean(x, na.rm = TRUE)</code>, you’d do something like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb138"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb138-1"><a href="#cb138-1" aria-hidden="true" tabindex="-1"></a>args <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">quote</span>(x), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb138-2"><a href="#cb138-2" aria-hidden="true" tabindex="-1"></a>call <span class="ot">&lt;-</span> <span class="fu">as.call</span>(<span class="fu">c</span>(<span class="fu">quote</span>(mean), args))</span>
+<span id="cb138-3"><a href="#cb138-3" aria-hidden="true" tabindex="-1"></a>call</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mean(x = x, na.rm = TRUE)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb140"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb140-1"><a href="#cb140-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eval</span>(call, <span class="at">envir =</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="cn">NA</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.5</code></pre>
+</div>
+</div>
+<p>It works — but it’s awkward and hard to read.</p>
+</section>
+<section id="rlang-with" class="level4">
+<h4 class="anchored" data-anchor-id="rlang-with"><code>{rlang}</code> with <code>!!!</code></h4>
+<p>With <code>rlang</code>, this becomes more readable:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb142"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb142-1"><a href="#cb142-1" aria-hidden="true" tabindex="-1"></a>args <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">x =</span> rlang<span class="sc">::</span><span class="fu">sym</span>(<span class="st">"x"</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb142-2"><a href="#cb142-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb142-3"><a href="#cb142-3" aria-hidden="true" tabindex="-1"></a>expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="fu">mean</span>(<span class="sc">!!!</span>args))</span>
+<span id="cb142-4"><a href="#cb142-4" aria-hidden="true" tabindex="-1"></a>expr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mean(x = x, na.rm = TRUE)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb144"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a>rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, <span class="at">data =</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="cn">NA</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.5</code></pre>
+</div>
+</div>
+<ul>
+<li><code>!!!</code> splices the contents of the list into the call to <code>mean()</code>.</li>
+<li>This allows dynamic injection of multiple arguments at once.</li>
+</ul>
+</section>
+</section>
+</section>
+<section id="defensive-programming-with-nse" class="level2">
+<h2 class="anchored" data-anchor-id="defensive-programming-with-nse">6. Defensive Programming with NSE</h2>
+<p>Non-Standard Evaluation gives you tremendous power — but with power comes the responsibility to <strong>handle user input safely</strong>. NSE functions often delay evaluation, manipulate environments, or work with variable names as symbols. That means things can fail in subtle ways.</p>
+<p>In this section, we’ll learn how to write <strong>robust, user-friendly functions</strong> that:</p>
+<ul>
+<li>Catch invalid or missing inputs early,</li>
+<li>Validate symbols or expressions,</li>
+<li>Provide clear fallback behavior when something goes wrong.</li>
+</ul>
+<section id="problem-a-function-that-breaks-silently" class="level3">
+<h3 class="anchored" data-anchor-id="problem-a-function-that-breaks-silently">6.1 Problem: A Function That Breaks Silently</h3>
+<p>Suppose you write a dynamic filter like this:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb146"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb146-1"><a href="#cb146-1" aria-hidden="true" tabindex="-1"></a>bad_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var, cutoff) {</span>
+<span id="cb146-2"><a href="#cb146-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>rlang<span class="sc">::</span><span class="fu">sym</span>(var) <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb146-3"><a href="#cb146-3" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb146-4"><a href="#cb146-4" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb146-5"><a href="#cb146-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb146-6"><a href="#cb146-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb146-7"><a href="#cb146-7" aria-hidden="true" tabindex="-1"></a><span class="fu">bad_filter</span>(mtcars, <span class="st">"mpg"</span>, <span class="dv">25</span>)  <span class="co"># Works</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb148"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb148-1"><a href="#cb148-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bad_filter</span>(mtcars, <span class="st">"not_a_column"</span>, <span class="dv">25</span>)  <span class="co"># Breaks with cryptic error</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error: object 'not_a_column' not found</code></pre>
+</div>
+</div>
+<p>This is hard to debug for users because it is not telling that <code>not_a_column</code> is not part of <code>mtcars</code>.</p>
+</section>
+<section id="solution-develop-deffenses" class="level3">
+<h3 class="anchored" data-anchor-id="solution-develop-deffenses">6.2 Solution: develop deffenses</h3>
+<section id="step-1-validate-variable-names" class="level4">
+<h4 class="anchored" data-anchor-id="step-1-validate-variable-names">Step 1: Validate Variable Names</h4>
+<p>Let’s check that <code>var</code> exists in the data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb150"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb150-1"><a href="#cb150-1" aria-hidden="true" tabindex="-1"></a>safe_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var, cutoff) {</span>
+<span id="cb150-2"><a href="#cb150-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>var <span class="sc">%in%</span> <span class="fu">names</span>(data)) {</span>
+<span id="cb150-3"><a href="#cb150-3" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(</span>
+<span id="cb150-4"><a href="#cb150-4" aria-hidden="true" tabindex="-1"></a>      <span class="at">message =</span> glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Variable '{var}' not found in data."</span>),</span>
+<span id="cb150-5"><a href="#cb150-5" aria-hidden="true" tabindex="-1"></a>      <span class="at">class =</span> <span class="st">"invalid_column"</span></span>
+<span id="cb150-6"><a href="#cb150-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb150-7"><a href="#cb150-7" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb150-8"><a href="#cb150-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb150-9"><a href="#cb150-9" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>rlang<span class="sc">::</span><span class="fu">sym</span>(var) <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb150-10"><a href="#cb150-10" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb150-11"><a href="#cb150-11" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb150-12"><a href="#cb150-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb150-13"><a href="#cb150-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb150-14"><a href="#cb150-14" aria-hidden="true" tabindex="-1"></a><span class="fu">safe_filter</span>(mtcars, <span class="st">"gear"</span>, <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt qsec vs am gear carb
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.7  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.9  1  1    5    2
+Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.5  0  1    5    4
+Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
+Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb152"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb152-1"><a href="#cb152-1" aria-hidden="true" tabindex="-1"></a><span class="fu">safe_filter</span>(mtcars, <span class="st">"not_a_column"</span>, <span class="dv">4</span>)  <span class="co"># Now fails gracefully</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `safe_filter()`:
+! Variable 'not_a_column' not found in data.</code></pre>
+</div>
+</div>
+<p><code>rlang::abort()</code> gives you structured errors, which can be caught or logged. This is something that we learn in a previous post.</p>
+</section>
+<section id="step-2-provide-default-values" class="level4">
+<h4 class="anchored" data-anchor-id="step-2-provide-default-values">Step 2: Provide Default Values</h4>
+<p>Sometimes you want your function to <strong>fall back to a default variable</strong> if none is provided.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb154"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb154-1"><a href="#cb154-1" aria-hidden="true" tabindex="-1"></a>default_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">var =</span> <span class="cn">NULL</span>, <span class="at">cutoff =</span> <span class="dv">0</span>) {</span>
+<span id="cb154-2"><a href="#cb154-2" aria-hidden="true" tabindex="-1"></a>  var <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">is.null</span>(var)) {</span>
+<span id="cb154-3"><a href="#cb154-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"mpg"</span>  <span class="co"># fallback to "mpg" if NULL</span></span>
+<span id="cb154-4"><a href="#cb154-4" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb154-5"><a href="#cb154-5" aria-hidden="true" tabindex="-1"></a>    var</span>
+<span id="cb154-6"><a href="#cb154-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb154-7"><a href="#cb154-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb154-8"><a href="#cb154-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>var <span class="sc">%in%</span> <span class="fu">names</span>(data)) {</span>
+<span id="cb154-9"><a href="#cb154-9" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(</span>
+<span id="cb154-10"><a href="#cb154-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">message =</span> glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Variable '{var}' not found in data."</span>),</span>
+<span id="cb154-11"><a href="#cb154-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">class =</span> <span class="st">"invalid_column"</span></span>
+<span id="cb154-12"><a href="#cb154-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb154-13"><a href="#cb154-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb154-14"><a href="#cb154-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb154-15"><a href="#cb154-15" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>rlang<span class="sc">::</span><span class="fu">sym</span>(var) <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb154-16"><a href="#cb154-16" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb154-17"><a href="#cb154-17" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb154-18"><a href="#cb154-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb154-19"><a href="#cb154-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb154-20"><a href="#cb154-20" aria-hidden="true" tabindex="-1"></a><span class="fu">default_filter</span>(mtcars, <span class="st">"gear"</span>, <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt qsec vs am gear carb
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.7  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.9  1  1    5    2
+Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.5  0  1    5    4
+Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
+Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb156"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb156-1"><a href="#cb156-1" aria-hidden="true" tabindex="-1"></a><span class="fu">default_filter</span>(mtcars, <span class="st">"not_a_column"</span>, <span class="dv">4</span>)  <span class="co"># Now fails gracefully</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `default_filter()`:
+! Variable 'not_a_column' not found in data.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb158"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a><span class="fu">default_filter</span>(mtcars, <span class="at">cutoff =</span> <span class="dv">30</span>)  <span class="co"># fallback to "mpg" if NULL</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4 78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4 75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4 71.1  65 4.22 1.835 19.90  1  1    4    1
+Lotus Europa   30.4   4 95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+</div>
+</section>
+<section id="step-3-catch-and-re-throw-clean-errors" class="level4">
+<h4 class="anchored" data-anchor-id="step-3-catch-and-re-throw-clean-errors">Step 3: Catch and Re-throw Clean Errors</h4>
+<p>Wrap the evaluation in <code>tryCatch()</code> and throw helpful messages:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb160"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a>robust_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var, cutoff) {</span>
+<span id="cb160-2"><a href="#cb160-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>rlang<span class="sc">::</span><span class="fu">sym</span>(var) <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb160-3"><a href="#cb160-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb160-4"><a href="#cb160-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
+<span id="cb160-5"><a href="#cb160-5" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb160-6"><a href="#cb160-6" aria-hidden="true" tabindex="-1"></a>      rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb160-7"><a href="#cb160-7" aria-hidden="true" tabindex="-1"></a>      data[rows, ]</span>
+<span id="cb160-8"><a href="#cb160-8" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb160-9"><a href="#cb160-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb160-10"><a href="#cb160-10" aria-hidden="true" tabindex="-1"></a>      rlang<span class="sc">::</span><span class="fu">abort</span>(</span>
+<span id="cb160-11"><a href="#cb160-11" aria-hidden="true" tabindex="-1"></a>        glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Filtering failed for column '{var}': </span></span>
+<span id="cb160-12"><a href="#cb160-12" aria-hidden="true" tabindex="-1"></a><span class="st">                   {e$message}"</span>),</span>
+<span id="cb160-13"><a href="#cb160-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">class =</span> <span class="st">"filter_error"</span></span>
+<span id="cb160-14"><a href="#cb160-14" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb160-15"><a href="#cb160-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb160-16"><a href="#cb160-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb160-17"><a href="#cb160-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb160-18"><a href="#cb160-18" aria-hidden="true" tabindex="-1"></a><span class="fu">robust_filter</span>(mtcars, <span class="st">"gear"</span>, <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt qsec vs am gear carb
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.7  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.9  1  1    5    2
+Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.5  0  1    5    4
+Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
+Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb162"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb162-1"><a href="#cb162-1" aria-hidden="true" tabindex="-1"></a><span class="fu">robust_filter</span>(mtcars, <span class="st">"not_a_column"</span>, <span class="dv">4</span>)  <span class="co"># Now fails gracefully</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `value[[3L]]()`:
+! Filtering failed for column 'not_a_column': 
+object 'not_a_column' not found</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="supporting-both-quoted-and-unquoted-input" class="level3">
+<h3 class="anchored" data-anchor-id="supporting-both-quoted-and-unquoted-input">6.3 Supporting Both Quoted and Unquoted Input</h3>
+<p>When writing user-facing functions, it’s often helpful to accept both:</p>
+<ul>
+<li><code>var = mpg</code> (unquoted, NSE)</li>
+<li><code>var = "mpg"</code> (quoted, SE)</li>
+</ul>
+<p>This makes your function more intuitive and versatile — just like <code>library("dplyr")</code> and <code>library(dplyr)</code> both work.</p>
+<p>To support this, we’ll combine <code>rlang::enquo()</code> (to capture NSE input) with logic to convert strings to symbols when needed.</p>
+<section id="a-flexible-filter-function" class="level4">
+<h4 class="anchored" data-anchor-id="a-flexible-filter-function">A Flexible Filter Function</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb164"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb164-1"><a href="#cb164-1" aria-hidden="true" tabindex="-1"></a>smart_filter <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var, cutoff) {</span>
+<span id="cb164-2"><a href="#cb164-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Capture the input</span></span>
+<span id="cb164-3"><a href="#cb164-3" aria-hidden="true" tabindex="-1"></a>  quo <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(var)</span>
+<span id="cb164-4"><a href="#cb164-4" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">quo_get_expr</span>(quo)</span>
+<span id="cb164-5"><a href="#cb164-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb164-6"><a href="#cb164-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Determine symbol from input</span></span>
+<span id="cb164-7"><a href="#cb164-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (rlang<span class="sc">::</span><span class="fu">is_symbol</span>(expr)) {</span>
+<span id="cb164-8"><a href="#cb164-8" aria-hidden="true" tabindex="-1"></a>    var_sym <span class="ot">&lt;-</span> expr</span>
+<span id="cb164-9"><a href="#cb164-9" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (rlang<span class="sc">::</span><span class="fu">is_string</span>(expr)) {</span>
+<span id="cb164-10"><a href="#cb164-10" aria-hidden="true" tabindex="-1"></a>    var_sym <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">sym</span>(expr)</span>
+<span id="cb164-11"><a href="#cb164-11" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb164-12"><a href="#cb164-12" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(<span class="st">"`var` must be a column name (unquoted) or a string."</span>)</span>
+<span id="cb164-13"><a href="#cb164-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb164-14"><a href="#cb164-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb164-15"><a href="#cb164-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Check if column exists</span></span>
+<span id="cb164-16"><a href="#cb164-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">as.character</span>(var_sym) <span class="sc">%in%</span> <span class="fu">names</span>(data)) {</span>
+<span id="cb164-17"><a href="#cb164-17" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(glue<span class="sc">::</span><span class="fu">glue</span>(<span class="st">"Column '{var_sym}' not found in data."</span>))</span>
+<span id="cb164-18"><a href="#cb164-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb164-19"><a href="#cb164-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb164-20"><a href="#cb164-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Build and evaluate the expression</span></span>
+<span id="cb164-21"><a href="#cb164-21" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="sc">!!</span>var_sym <span class="sc">&gt;</span> <span class="sc">!!</span>cutoff)</span>
+<span id="cb164-22"><a href="#cb164-22" aria-hidden="true" tabindex="-1"></a>  rows <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, data)</span>
+<span id="cb164-23"><a href="#cb164-23" aria-hidden="true" tabindex="-1"></a>  data[rows, ]</span>
+<span id="cb164-24"><a href="#cb164-24" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="examples" class="level4">
+<h4 class="anchored" data-anchor-id="examples">Examples</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb165"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a><span class="fu">smart_filter</span>(mtcars, mpg, <span class="dv">25</span>)         <span class="co"># unquoted NSE</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb167"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb167-1"><a href="#cb167-1" aria-hidden="true" tabindex="-1"></a><span class="fu">smart_filter</span>(mtcars, <span class="st">"mpg"</span>, <span class="dv">25</span>)       <span class="co"># quoted string</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+Fiat 128       32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+Honda Civic    30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+Fiat X1-9      27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2</code></pre>
+</div>
+</div>
+<p>All of these return the same filtered data frame.</p>
+<p>This function allows the user to pass the column name <strong>as a bare symbol</strong> (e.g.&nbsp;<code>mpg</code>) or <strong>as a string</strong> (e.g.&nbsp;<code>"mpg"</code>), just like many tidyverse functions do.</p>
+<p>How does it work?</p>
+<ol type="1">
+<li><p><code>rlang::enquo(var)</code> captures the input as a <strong>quosure</strong> — preserving both the expression and its environment.</p></li>
+<li><p><code>rlang::quo_get_expr()</code> retrieves the raw expression typed by the user.</p></li>
+<li><p>We test:</p>
+<ul>
+<li>If the expression is a <strong>symbol</strong> (e.g.&nbsp;<code>mpg</code>), we use it directly.</li>
+<li>If it is a <strong>string</strong> (e.g.&nbsp;<code>"mpg"</code>), we convert it to a symbol using <code>rlang::sym()</code>.</li>
+</ul></li>
+<li><p>We then build an expression with <code>rlang::expr(!!var_sym &gt; !!cutoff)</code> and evaluate it in the data context using <code>rlang::eval_tidy()</code>.</p></li>
+</ol>
+<p>This gives you the best of both worlds: intuitive NSE behavior and robust programmatic support.</p>
+</section>
+</section>
+</section>
+<section id="defensive-metaprogramming" class="level2">
+<h2 class="anchored" data-anchor-id="defensive-metaprogramming">7. Defensive METAprogramming</h2>
+<p>When writing metaprogramming-heavy functions—especially those using tidy evaluation—<strong>defensive coding</strong> is essential. This means writing functions that:</p>
+<ul>
+<li>Fail loudly and clearly when misused</li>
+<li>Guard against ambiguous input</li>
+<li>Anticipate edge cases (e.g.&nbsp;quosures passed where symbols are expected)</li>
+</ul>
+<p>Below we explore key techniques to bulletproof your NSE functions.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Programming Vs. Metaprogramming
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Programming is about manipulating values.</p>
+<p>Metaprogramming is about manipulating the code that manipulates values.</p>
+</div>
+</div>
+<section id="validate-input-types-explicitly" class="level3">
+<h3 class="anchored" data-anchor-id="validate-input-types-explicitly">7.1 Validate Input Types Explicitly</h3>
+<p>Use <code>rlang::is_symbol()</code>, <code>is_call()</code>, <code>is_quosure()</code>, etc., to check exactly what kind of object you’re working with.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb169"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb169-1"><a href="#cb169-1" aria-hidden="true" tabindex="-1"></a>safe_summary <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">data =</span> <span class="cn">NULL</span>, expr) {</span>
+<span id="cb169-2"><a href="#cb169-2" aria-hidden="true" tabindex="-1"></a>  expr <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(expr)</span>
+<span id="cb169-3"><a href="#cb169-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb169-4"><a href="#cb169-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>rlang<span class="sc">::</span><span class="fu">is_call</span>(rlang<span class="sc">::</span><span class="fu">get_expr</span>(expr))) {</span>
+<span id="cb169-5"><a href="#cb169-5" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(<span class="st">"`expr` must be a function call like `mean(x)` or `sum(x)`."</span>)</span>
+<span id="cb169-6"><a href="#cb169-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb169-7"><a href="#cb169-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb169-8"><a href="#cb169-8" aria-hidden="true" tabindex="-1"></a>  result <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr, <span class="at">data =</span> data)</span>
+<span id="cb169-9"><a href="#cb169-9" aria-hidden="true" tabindex="-1"></a>  result</span>
+<span id="cb169-10"><a href="#cb169-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb169-11"><a href="#cb169-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb169-12"><a href="#cb169-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Fails early with a clean message</span></span>
+<span id="cb169-13"><a href="#cb169-13" aria-hidden="true" tabindex="-1"></a><span class="fu">safe_summary</span>(mtcars, mpg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `safe_summary()`:
+! `expr` must be a function call like `mean(x)` or `sum(x)`.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb171"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb171-1"><a href="#cb171-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this works</span></span>
+<span id="cb171-2"><a href="#cb171-2" aria-hidden="true" tabindex="-1"></a><span class="fu">safe_summary</span>(mtcars, <span class="fu">mean</span>(mpg))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 20.090625</code></pre>
+</div>
+</div>
+</section>
+<section id="use-.env-and-.data-pronouns-for-clarity" class="level3">
+<h3 class="anchored" data-anchor-id="use-.env-and-.data-pronouns-for-clarity">7.2 Use <code>.env</code> and <code>.data</code> Pronouns for Clarity</h3>
+<p>If your function uses both external variables and a data mask, ambiguity can arise. The solution is to use pronouns to avoid variable name collisions:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb173"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb173-1"><a href="#cb173-1" aria-hidden="true" tabindex="-1"></a>safe_mean <span class="ot">&lt;-</span> <span class="cf">function</span>(data, var) {</span>
+<span id="cb173-2"><a href="#cb173-2" aria-hidden="true" tabindex="-1"></a>  var <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(var)</span>
+<span id="cb173-3"><a href="#cb173-3" aria-hidden="true" tabindex="-1"></a>  rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(rlang<span class="sc">::</span><span class="fu">expr</span>(<span class="fu">mean</span>(.data[[<span class="sc">!!</span>var]])), <span class="at">data =</span> data)</span>
+<span id="cb173-4"><a href="#cb173-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb173-5"><a href="#cb173-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb173-6"><a href="#cb173-6" aria-hidden="true" tabindex="-1"></a><span class="fu">safe_mean</span>(mtcars, mpg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 20.090625</code></pre>
+</div>
+</div>
+<p>This ensures you’re <strong>only</strong> using the data column, even if the same name exists in <code>.env</code>.</p>
+</section>
+<section id="surface-helpful-errors-with-rlangabort" class="level3">
+<h3 class="anchored" data-anchor-id="surface-helpful-errors-with-rlangabort">7.3 Surface Helpful Errors with <code>rlang::abort()</code></h3>
+<p>You can make your error messages contextual by using:</p>
+<ul>
+<li><code>caller_env()</code> to find where the error occurred</li>
+<li><code>caller_call()</code> to name the offending function</li>
+</ul>
+<section id="using-caller_call-to-find-users-function" class="level4">
+<h4 class="anchored" data-anchor-id="using-caller_call-to-find-users-function">Using <code>caller_call()</code> to find user’s function</h4>
+<p>Imagine you’re writing a helper function, but you want the error message to point back to the <em>user-facing</em> function that called it, not the helper itself.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb175"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Helper function</span></span>
+<span id="cb175-2"><a href="#cb175-2" aria-hidden="true" tabindex="-1"></a>validate_var <span class="ot">&lt;-</span> <span class="cf">function</span>(var) {</span>
+<span id="cb175-3"><a href="#cb175-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span>rlang<span class="sc">::</span><span class="fu">is_symbol</span>(var)) {</span>
+<span id="cb175-4"><a href="#cb175-4" aria-hidden="true" tabindex="-1"></a>    rlang<span class="sc">::</span><span class="fu">abort</span>(<span class="st">"`var` must be a symbol."</span>, <span class="at">call =</span> rlang<span class="sc">::</span><span class="fu">caller_call</span>())</span>
+<span id="cb175-5"><a href="#cb175-5" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb175-6"><a href="#cb175-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb175-7"><a href="#cb175-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb175-8"><a href="#cb175-8" aria-hidden="true" tabindex="-1"></a><span class="co"># User-facing wrapper</span></span>
+<span id="cb175-9"><a href="#cb175-9" aria-hidden="true" tabindex="-1"></a>my_summarize <span class="ot">&lt;-</span> <span class="cf">function</span>(var) {</span>
+<span id="cb175-10"><a href="#cb175-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">validate_var</span>(var)</span>
+<span id="cb175-11"><a href="#cb175-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># do something...</span></span>
+<span id="cb175-12"><a href="#cb175-12" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now try calling <code>my_summarize()</code> incorrectly:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb176"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb176-1"><a href="#cb176-1" aria-hidden="true" tabindex="-1"></a><span class="fu">my_summarize</span>(<span class="st">"mpg"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<pre><code>Error in `my_summarize()`:
+! `var` must be a symbol.</code></pre>
+</div>
+</div>
+<p>Notice that the error is pointing to <code>my_summarize()</code>, not to <code>validate_var()</code> even though the error is triggered there. This is useful if you need to point the user to the function <em>they</em> called — not the internal one that failed.</p>
+</section>
+<section id="using-caller_env-to-evaluate-in-the-users-environment" class="level4">
+<h4 class="anchored" data-anchor-id="using-caller_env-to-evaluate-in-the-users-environment">Using <code>caller_env()</code> to Evaluate in the User’s Environment</h4>
+<p>Imagine you’re writing a helper function that receivesa <strong>expression</strong> (not a string), and you want to evaluate the value of that variable — but in the environment of the user-facing function:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb178"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb178-1"><a href="#cb178-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Helper that evaluates an expression in the caller's environment</span></span>
+<span id="cb178-2"><a href="#cb178-2" aria-hidden="true" tabindex="-1"></a>resolve_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(expr_quo) {</span>
+<span id="cb178-3"><a href="#cb178-3" aria-hidden="true" tabindex="-1"></a>  expr_raw <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">get_expr</span>(expr_quo)</span>
+<span id="cb178-4"><a href="#cb178-4" aria-hidden="true" tabindex="-1"></a>  caller_env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">caller_env</span>()</span>
+<span id="cb178-5"><a href="#cb178-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-6"><a href="#cb178-6" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr_raw, <span class="at">env =</span> caller_env)</span>
+<span id="cb178-7"><a href="#cb178-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-8"><a href="#cb178-8" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Resolved expression {.code {deparse(expr_raw)}} to {.val {val}}"</span>)</span>
+<span id="cb178-9"><a href="#cb178-9" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Evaluated in environment: {.emph {rlang::env_label(caller_env)}}"</span>)</span>
+<span id="cb178-10"><a href="#cb178-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-11"><a href="#cb178-11" aria-hidden="true" tabindex="-1"></a>  val</span>
+<span id="cb178-12"><a href="#cb178-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb178-13"><a href="#cb178-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-14"><a href="#cb178-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-15"><a href="#cb178-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Now use it in a user-facing wrapper:</span></span>
+<span id="cb178-16"><a href="#cb178-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-17"><a href="#cb178-17" aria-hidden="true" tabindex="-1"></a>my_resolver <span class="ot">&lt;-</span> <span class="cf">function</span>(var) {</span>
+<span id="cb178-18"><a href="#cb178-18" aria-hidden="true" tabindex="-1"></a>  var_quo <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(var)</span>
+<span id="cb178-19"><a href="#cb178-19" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb178-20"><a href="#cb178-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">resolve_expr</span>(var_quo)</span>
+<span id="cb178-21"><a href="#cb178-21" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Try it out:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb179"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb179-1"><a href="#cb179-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">99</span></span>
+<span id="cb179-2"><a href="#cb179-2" aria-hidden="true" tabindex="-1"></a><span class="fu">my_resolver</span>(x<span class="sc">+</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Resolved expression `x + 1` to 4
+Evaluated in environment: 0x0000018d82a419d8</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4</code></pre>
+</div>
+</div>
+
+
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
