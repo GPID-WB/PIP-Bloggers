@@ -304,7 +304,23 @@ rlang::env_poke(e, "z", 100)
 e$z
 ```
 
-This is clearer and more explicit than using `assign()` with a string.
+For simple code, `rlang::env_poke()` and `assign()` are practically the same. Yet, the former  is clearer and more explicit.
+
+* `env_poke()` tells you exactly what it's doing: **modifying the environment `e`** by assigning a value to the name `"z"`. By contrast, `assign("z", 100, envir = e)` looks more like a string operation than an environment manipulation.
+
+* `{rlang}` treats environments as **first-class mutable data structures**, much like lists. So, `env_poke(e, "z", 100)` reads like “poke the value 100 into environment `e` at key `"z"`”, making the analogy to lists and dictionaries clearer:
+
+```r
+my_list[["z"]] <- 100         # list assignment
+rlang::env_poke(e, "z", 100)  # environment assignment
+```
+
+* `{rlang}` pairs `env_poke()` with other tools like `env_get()`, `env_has()`, `env_names()`, etc. They form a **coherent vocabulary**.
+* With base R, `assign()` has quirks (e.g., it doesn't behave well with missing arguments, or nested scoping) and lacks symmetry with `get()` in some edge cases.
+* `env_poke()` always operates **locally and predictably**. `assign()` may accidentally modify variables in environments higher up the chain if you're not careful with the `envir` argument.
+* `{rlang}`’s environment tools never touch parent environments unless you explicitly ask them to.
+* In functional pipelines or nested expressions, `env_poke()` reads cleanly because the first argument is the environment
+
 
 
 ### 3.4 `env_has()` and `env_unbind()`
