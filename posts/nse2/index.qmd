@@ -842,6 +842,7 @@ default_filter <- function(data, var = NULL, cutoff = 0) {
 
 default_filter(mtcars, "gear", 4)
 default_filter(mtcars, "not_a_column", 4)  # Now fails gracefully
+default_filter(mtcars, cutoff = 4)
 ```
 
 #### Step 3: Catch and Re-throw Clean Errors
