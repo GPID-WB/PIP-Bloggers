@@ -1007,7 +1007,7 @@ You can make your error messages contextual by using:
 * `caller_env()` to find where the error occurred
 * `caller_call()` to name the offending function
 
-
+#### Using `caller_call()` to find user's function
 Imagine you're writing a helper function, but you want the error message to point back to the *user-facing* function that called it, not the helper itself.
 
 ```{R}
@@ -1034,4 +1034,44 @@ my_summarize("mpg")
 ```
 
 Notice that the error is pointing to `my_summarize()`, not to `validate_var()` even though the error is triggered there. This is useful if you need to point the user to the function *they* called — not the internal one that failed.
+
+####  Using `caller_env()` to Evaluate in the User's Environment
+
+Imagine you're writing a helper function that receivesa **expression** (not a string), and you want to evaluate the value of that variable — but in the environment of the user-facing function:
+
+```{R}
+# Helper that evaluates an expression in the caller's environment
+resolve_expr <- function(expr_quo) {
+  expr_raw <- rlang::get_expr(expr_quo)
+  caller_env <- rlang::caller_env()
+
+  val <- rlang::eval_tidy(expr_raw, env = caller_env)
+
+  cli::cli_inform("Resolved expression {.code {deparse(expr_raw)}} to {.val {val}}")
+  cli::cli_inform("Evaluated in environment: {.emph {rlang::env_label(caller_env)}}")
+
+  val
+}
+
+
+# Now use it in a user-facing wrapper:
+
+my_resolver <- function(var) {
+  var_quo <- rlang::enquo(var)
+  x <- 3
+  resolve_expr(var_quo)
+}
+```
+
+Try it out:
+
+```{R}
+x <- 99
+my_resolver(x+1)
+```
+
+
+
+
+
 

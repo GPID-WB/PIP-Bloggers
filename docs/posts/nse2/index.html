@@ -1468,6 +1468,8 @@ Programming Vs. Metaprogramming
 <li><code>caller_env()</code> to find where the error occurred</li>
 <li><code>caller_call()</code> to name the offending function</li>
 </ul>
+<section id="using-caller_call-to-find-users-function" class="level4">
+<h4 class="anchored" data-anchor-id="using-caller_call-to-find-users-function">Using <code>caller_call()</code> to find user’s function</h4>
 <p>Imagine you’re writing a helper function, but you want the error message to point back to the <em>user-facing</em> function that called it, not the helper itself.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb175"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Helper function</span></span>
@@ -1492,8 +1494,48 @@ Programming Vs. Metaprogramming
 </div>
 </div>
 <p>Notice that the error is pointing to <code>my_summarize()</code>, not to <code>validate_var()</code> even though the error is triggered there. This is useful if you need to point the user to the function <em>they</em> called — not the internal one that failed.</p>
+</section>
+<section id="using-caller_env-to-evaluate-in-the-users-environment" class="level4">
+<h4 class="anchored" data-anchor-id="using-caller_env-to-evaluate-in-the-users-environment">Using <code>caller_env()</code> to Evaluate in the User’s Environment</h4>
+<p>Imagine you’re writing a helper function that receivesa <strong>expression</strong> (not a string), and you want to evaluate the value of that variable — but in the environment of the user-facing function:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb178"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb178-1"><a href="#cb178-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Helper that evaluates an expression in the caller's environment</span></span>
+<span id="cb178-2"><a href="#cb178-2" aria-hidden="true" tabindex="-1"></a>resolve_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(expr_quo) {</span>
+<span id="cb178-3"><a href="#cb178-3" aria-hidden="true" tabindex="-1"></a>  expr_raw <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">get_expr</span>(expr_quo)</span>
+<span id="cb178-4"><a href="#cb178-4" aria-hidden="true" tabindex="-1"></a>  caller_env <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">caller_env</span>()</span>
+<span id="cb178-5"><a href="#cb178-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-6"><a href="#cb178-6" aria-hidden="true" tabindex="-1"></a>  val <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">eval_tidy</span>(expr_raw, <span class="at">env =</span> caller_env)</span>
+<span id="cb178-7"><a href="#cb178-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-8"><a href="#cb178-8" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Resolved expression {.code {deparse(expr_raw)}} to {.val {val}}"</span>)</span>
+<span id="cb178-9"><a href="#cb178-9" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_inform</span>(<span class="st">"Evaluated in environment: {.emph {rlang::env_label(caller_env)}}"</span>)</span>
+<span id="cb178-10"><a href="#cb178-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-11"><a href="#cb178-11" aria-hidden="true" tabindex="-1"></a>  val</span>
+<span id="cb178-12"><a href="#cb178-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb178-13"><a href="#cb178-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-14"><a href="#cb178-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-15"><a href="#cb178-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Now use it in a user-facing wrapper:</span></span>
+<span id="cb178-16"><a href="#cb178-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb178-17"><a href="#cb178-17" aria-hidden="true" tabindex="-1"></a>my_resolver <span class="ot">&lt;-</span> <span class="cf">function</span>(var) {</span>
+<span id="cb178-18"><a href="#cb178-18" aria-hidden="true" tabindex="-1"></a>  var_quo <span class="ot">&lt;-</span> rlang<span class="sc">::</span><span class="fu">enquo</span>(var)</span>
+<span id="cb178-19"><a href="#cb178-19" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb178-20"><a href="#cb178-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">resolve_expr</span>(var_quo)</span>
+<span id="cb178-21"><a href="#cb178-21" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Try it out:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb179"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb179-1"><a href="#cb179-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">99</span></span>
+<span id="cb179-2"><a href="#cb179-2" aria-hidden="true" tabindex="-1"></a><span class="fu">my_resolver</span>(x<span class="sc">+</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Resolved expression `x + 1` to 4
+Evaluated in environment: 0x0000018d82a419d8</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 4</code></pre>
+</div>
+</div>
 
 
+</section>
 </section>
 </section>
 
