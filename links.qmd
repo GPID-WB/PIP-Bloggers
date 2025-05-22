@@ -1,0 +1,10 @@
+---
+title: "Other content"
+---
+
+## Advance R sessions
+
+- Chapter 8: [Conditions](https://dana89co.quarto.pub/condition-handling/#/title-slide)
+- Chapter 13: [S3 methods (Part 1)](https://rossanatat.github.io/Advanced_R_trainings/#/title-slide)
+
+## Other
