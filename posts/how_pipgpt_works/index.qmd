@@ -2,7 +2,7 @@
 title: "How PIP GPT Works: A Technical Walkthrough"
 description: "A deep dive into the architecture of PIP GPT — a Shiny chatbot that answers poverty data questions using GPT-4o-mini and the World Bank PIP database."
 author: "Ronak Shah"
-date: "06/09/2026"
+date: "2026-06-09"
 categories: [Shiny, LLM, PIP, R, Architecture]
 format:
   html:
