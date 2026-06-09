@@ -1,0 +1,529 @@
+---
+title: "How PIP GPT Works: A Technical Walkthrough"
+description: "A deep dive into the architecture of PIP GPT — a Shiny chatbot that answers poverty data questions using GPT-4o-mini and the World Bank PIP database."
+author: "Ronak Shah"
+date: "2026-06-09"
+categories: [Shiny, LLM, PIP, R, Architecture]
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    code-fold: false
+    highlight-style: github
+editor_options:
+  chunk_output_type: console
+---
+
+## What is PIP GPT?
+
+Imagine being able to ask a question like *"What was Nigeria's poverty rate in 2018?"* and getting a direct, data-backed answer — instead of downloading a spreadsheet, finding the right row, and doing the lookup yourself. That is exactly what **PIP GPT** does.
+
+PIP stands for the [World Bank's Poverty and Inequality Platform](https://pip.worldbank.org/), a database that tracks poverty and inequality statistics for over 100 countries across decades. PIP GPT is a chat interface built on top of that data — you type a question in plain English, and the app figures out what data you need, fetches it, and answers you.
+
+Under the hood it is a **Shiny web app** written in R, powered by a large language model (GPT-4o-mini) accessed through the World Bank's internal AI gateway (mAI Factory). This post walks through every layer of how it works.
+
+---
+
+## The Big Picture
+
+Before diving into individual files, here is the end-to-end journey of a single user question:
+
+```{mermaid}
+flowchart TD
+    A([You type a question]) --> B["app.R<br/>Starts the app"]
+    B --> C["ui.R<br/>Draws the chat interface"]
+    B --> D["server.R<br/>Handles the logic"]
+    D --> E{Is this a<br/>poverty data question?}
+    E -->|Yes| F["prompt_helpers.R<br/>Ask AI to extract<br/>filter parameters"]
+    F --> G["data_access.R<br/>Fetch & filter<br/>poverty data"]
+    G --> H{Did user<br/>ask for a plot?}
+    H -->|Yes| I["plot_helpers.R<br/>Build a chart"]
+    H -->|No| J["prompt_helpers.R<br/>Ask AI to write<br/>a plain-language answer"]
+    I --> J
+    E -->|No| K["utils.R<br/>Ask AI to answer<br/>directly"]
+    J --> L([Answer shown in chat])
+    K --> L
+```
+
+Each box corresponds to a file in the `R/` folder. Let's walk through them one by one.
+
+---
+
+## The Entry Point: `app.R`
+
+```{.r filename="app.R"}
+pkgload::load_all()
+
+shiny::shinyApp(
+  ui     = pip_chatbot_ui(),
+  server = pip_chatbot_server()
+)
+```
+
+This is the simplest file in the project — just three lines. `pkgload::load_all()` loads all the R functions defined in the `R/` folder, and then `shinyApp()` wires together the two halves of a Shiny app: the **UI** (what the user sees) and the **server** (what happens when the user does something).
+
+---
+
+## The Interface: `R/ui.R`
+
+The UI is what appears in your browser. It is deliberately minimal — a title, a scrollable chat history box, an optional plot area, a text input, and a Send button.
+
+```{.r filename="R/ui.R"}
+pip_chatbot_ui <- function() {
+  shiny::fluidPage(
+    theme = bslib::bs_theme(version = 5, bootswatch = "minty"),
+    shiny::tags$head(
+      shiny::includeCSS("www/chatbot.css"),
+      shiny::includeScript("www/chatbot.js")
+    ),
+    shiny::titlePanel("PIP GPT"),
+    shiny::fluidRow(
+      shiny::column(
+        12,
+        shiny::wellPanel(
+          class = "pip-chatbot-panel",
+          shiny::tags$div(id = "chat_history"),
+          shiny::uiOutput("chat_plot_ui"),
+          shiny::textInput("user_input", "Ask a question:", ""),
+          shiny::actionButton("send", "Send", class = "btn btn-primary")
+        )
+      )
+    )
+  )
+}
+```
+
+A few small but useful details:
+
+- **`bslib::bs_theme("minty")`** — applies a clean green-accented Bootstrap 5 theme so the app looks polished without extra design work.
+- **`www/chatbot.js`** — a small JavaScript file that handles updating the chat history div whenever the server sends a new message. Without this, Shiny would not know how to push HTML updates into that specific div.
+- **Enter to send** — there is an inline JavaScript snippet that listens for the `Enter` key on the text input and clicks the Send button automatically, just like a real chat app.
+- **`uiOutput("chat_plot_ui")`** — a placeholder that only appears when the server decides a plot should be shown. If the user's question does not ask for a chart, this slot stays empty.
+
+---
+
+## The Brain: `R/server.R`
+
+This is where all the logic lives. Every time the user hits Send, the server runs through a sequence of decisions. Let us walk through it step by step.
+
+### Step 1 — Get an AI token
+
+```{.r filename="R/server.R (excerpt)"}
+azure_token <- shiny::reactive({
+  tryCatch(
+    get_azure_token(),
+    error = function(e) {
+      shiny::showNotification(paste("Token error:", e$message), type = "error")
+      NULL
+    }
+  )
+})
+```
+
+Before the app can talk to the AI, it needs to prove who it is. `get_azure_token()` (defined in `utils.R`) handles this — it fetches a short-lived security credential from the World Bank's identity system. This runs once per user session using Shiny's `reactive()`, so the same credential is reused for all questions in that session rather than fetched on every single message.
+
+### Step 2 — Decide if the question is about poverty data
+
+This is the most important decision in the whole app. The answer determines two very different paths:
+
+- **"Yes, it's about data"** → fetch real numbers from the PIP database, then use the AI to explain them
+- **"No, it's a general question"** → send the question straight to the AI and let it answer from its general knowledge
+
+The server uses a **two-stage classifier** to make this decision efficiently.
+
+```{.r filename="R/server.R (excerpt)"}
+# Stage 1: fast keyword check (no AI call, zero cost)
+keyword_hit <- is_data_keyword(user_question)
+
+if (keyword_hit) {
+  is_data_query <- "yes"
+} else {
+  # Stage 2: AI classify (only when keywords are inconclusive)
+  classify_prompt <- build_classify_prompt(dict_text, get_stats_args, user_question)
+  is_data_query   <- tolower(trimws(openai_chat_response(classify_prompt, token)))
+}
+```
+
+Think of it as two security checks at a door: the first is a fast visual scan (keywords), and the second is a more careful ID check (AI). Only questions that pass the first scan without a clear answer go to the second check. This saves time and cost on every single interaction.
+
+### Step 3 — If it is a data question: extract, fetch, answer
+
+```{.r filename="R/server.R (excerpt)"}
+if (is_data_query == "yes") {
+
+  # Ask AI to read the question and return R filter parameters
+  param_prompt     <- build_param_prompt(country_map, user_question)
+  param_code       <- openai_chat_response(param_prompt, token)
+  param_code_clean <- clean_code(param_code)
+  params <- tryCatch(
+    eval(parse(text = param_code_clean)),
+    error = function(e) {
+      shiny::showNotification(
+        paste("Param parse error:", e$message, "\nRaw LLM output:", param_code_clean),
+        type = "warning", duration = 10
+      )
+      list()
+    }
+  )
+
+  # Fetch & filter data
+  pov_data <- get_poverty_data(povline)
+  filtered <- pov_data
+  for (nm in names(params)) {
+    if (nm != "poverty_line") {
+      filtered <- dplyr::filter(filtered, .data[[nm]] %in% params[[nm]])
+    }
+  }
+
+  # Build a plot if the question asked for one
+  if (plot_required && nrow(filtered) > 0) {
+    current_plot(build_chat_plot(filtered, question = user_question, dict = pip_dict))
+  }
+
+  # Ask AI to turn the filtered data rows into a human-readable answer
+  result_json      <- jsonlite::toJSON(filtered, dataframe = "rows", pretty = TRUE, na = "null")
+  extract_prompt   <- build_extract_prompt(user_question, result_json)
+  extracted_answer <- openai_chat_response(extract_prompt, token)
+```
+
+There are three AI calls happening here in sequence:
+
+1. **Param extraction** — the AI reads the question and returns a small R list like `list(country_code = "IND", year = 2019)`.
+2. **Data fetch** — real data is pulled from the local PIP cache and filtered using those parameters.
+3. **Answer extraction** — the filtered rows are sent back to the AI, which writes a concise plain-language answer.
+
+The AI is never making up numbers. It reads the real data and explains it. The data itself always comes from the PIP database.
+
+### Step 4 — If it is NOT a data question: answer directly
+
+```{.r filename="R/server.R (excerpt)"}
+} else {
+  answer_prompt <- paste0(
+    "Answer the following question as a helpful assistant. ",
+    "If the question is about poverty data, say so, otherwise answer directly. ",
+    "Question: ", user_question
+  )
+  answer     <- openai_chat_response(answer_prompt, token)
+  bot_answer <- paste0("**Answer:**\n", answer)
+}
+```
+
+For questions like *"What is the difference between income and consumption poverty measures?"*, no data lookup is needed. The AI answers from its general knowledge directly.
+
+---
+
+## The AI Connection: `R/utils.R`
+
+This file handles everything related to talking to the AI. There are three functions in it.
+
+### Connecting to the World Bank AI gateway
+
+```{.r filename="R/utils.R"}
+API_BASE_URLS <- list(
+  DEV  = "https://azapimdev.worldbank.org/conversationalai/v2/openai/deployments",
+  QA   = "https://azapimqa.worldbank.org/conversationalai/v2/openai/deployments",
+  PROD = "https://azapim.worldbank.org/conversationalai/v2/openai/deployments"
+)
+API_VERSION    <- "2025-01-01-preview"
+DEFAULT_MODEL  <- "gpt-4o-mini"
+```
+
+The World Bank does not allow direct calls to OpenAI's public website from inside its network. Instead it has its own internal gateway — called **mAI Factory** — that sits in front of the AI models. Think of it as a company-managed door to the AI, with proper access controls and usage tracking. The three URLs above are the DEV, QA, and PROD doors respectively.
+
+### Getting the security credential
+
+```{.r filename="R/utils.R"}
+get_azure_token <- function() {
+  connect_server  <- "https://datanalytics-int.worldbank.org/"
+  connect_api_key <- Sys.getenv('API_KEY')
+
+  client      <- connectapi::connect(server = connect_server, api_key = connect_api_key)
+  credentials <- connectapi::get_oauth_content_credentials(
+    connect  = client,
+    audience = OAUTH_INTEGRATION_GUID   # "20c434c5-78f1-431f-a286-76980748bc93"
+  )
+  credentials$access_token
+}
+```
+
+The `API_KEY` here is not an OpenAI key — it is a Posit Connect server key. The app is deployed on the World Bank's internal Posit Connect server, and Connect acts as a trusted middleman: it holds the Azure AD credentials and hands a short-lived token to the app when asked. This keeps secrets out of the app's source code entirely.
+
+### Sending a message to the AI
+
+```{.r filename="R/utils.R"}
+openai_chat_response <- function(prompt, token, model = DEFAULT_MODEL) {
+  api_url <- paste0(API_BASE_URLS$DEV, "/", model, "/chat/completions")
+
+  headers <- c(
+    "Authorization" = paste("Bearer", token),
+    "x-source-type" = "interactive",
+    "x-team-name"   = "pip",
+    "Content-Type"  = "application/json"
+  )
+
+  payload <- list(
+    messages   = list(list(role = "user", content = prompt)),
+    max_tokens = 4000
+  )
+
+  response <- httr::POST(
+    url    = api_url,
+    query  = list(`api-version` = API_VERSION),
+    httr::add_headers(.headers = headers),
+    body   = payload,
+    encode = "json",
+    httr::timeout(REQUEST_TIMEOUT)
+  )
+
+  parsed <- httr::content(response, "parsed", "application/json")
+  parsed$choices[[1]]$message$content
+}
+```
+
+This is a standard HTTP POST request — the same kind your browser makes when you submit a form. The `Authorization` header carries the security token. The two extra headers (`x-source-type` and `x-team-name`) are required by the mAI gateway to track which team is using how much AI capacity. The AI's reply comes back as JSON, and the function extracts just the text content from it.
+
+There is also a small helper function, `clean_code()`, that strips markdown code fences (`` ```r ... ``` ``) from AI responses before the app tries to run them as R code.
+
+---
+
+## The Question Router: `R/plot_helpers.R`
+
+### Stage 1 of the classifier — keyword detection
+
+```{.r filename="R/plot_helpers.R"}
+is_data_keyword <- function(question) {
+  pip_keywords <- c(
+    "PIP", "poverty line", "poverty gap", "poverty rate", "poverty data",
+    "headcount", "welfare", "povline",
+    "\\$\\s*\\d",                 # matches $2.15, $3.65 etc.
+    "\\d+\\.?\\d*\\s*(usd|\\$)", # matches "2.15 USD" etc.
+    "gini", "inequality", "mean consumption", "mean income",
+    "income distribution", "consumption distribution",
+    "reporting level", "welfare type", "fill.?gaps", "nowcast",
+    "\\bget_stats\\b", "\\bpipapi\\b", "\\bpip\\b"
+  )
+
+  any(grepl(paste(pip_keywords, collapse = "|"), question,
+            ignore.case = TRUE, perl = TRUE))
+}
+```
+
+This function scans the question for poverty-domain words and patterns. If any match, the question is immediately classified as a data query — no AI needed, no cost, no delay.
+
+### Detecting plot requests
+
+```{.r filename="R/plot_helpers.R"}
+needs_plot <- function(question) {
+  keywords <- c("plot", "visuali[sz]e", "chart", "graph", "draw", "trend", "show.*over.*year")
+  any(grepl(paste(keywords, collapse = "|"), question, ignore.case = TRUE))
+}
+```
+
+A similarly simple pattern match, but this time for chart-related words.
+
+### Building the chart automatically
+
+`build_chat_plot()` is the most interesting function in this file. It receives the filtered data and the user's question, and has to decide *what* to put on the y-axis — all without being explicitly told.
+
+It does this in two steps:
+
+**Step 1 — Direct name match.** If the user's question contains a column name exactly (e.g. they said "gini"), use that column.
+
+**Step 2 — Description scoring.** If no direct match, take every word in the question and count how many appear in each column's description in the data dictionary. The column with the most overlapping words wins.
+
+```{.r filename="R/plot_helpers.R (excerpt)"}
+# Score each available column against the question words
+q_words <- tolower(unlist(strsplit(question, "\\W+")))
+
+scores <- vapply(available, function(col) {
+  desc_words <- tolower(unlist(strsplit(dict[[col]], "\\W+")))
+  sum(q_words %in% desc_words)
+}, integer(1))
+```
+
+If no column scores above zero, it falls back to a sensible default priority: `headcount` → `poverty_gap` → `pop` → `mean` → `gini`.
+
+Finally, if the filtered data contains more than one country, the chart automatically adds a colour per country — no manual configuration needed.
+
+---
+
+## The Prompt Templates: `R/prompt_helpers.R`
+
+Prompts are the instructions the app sends to the AI. Each of the three tasks that require an AI call has its own carefully written prompt template.
+
+### 1. The classifier prompt
+
+```{.r filename="R/prompt_helpers.R"}
+build_classify_prompt <- function(dict_text, get_stats_args, user_question) {
+  paste0(
+    "You are a classifier. Your only job is to answer 'yes' or 'no'.\n",
+    "Answer 'yes' if the question asks about ANY of the following:\n",
+    "  - PIP data, poverty data, or World Bank poverty statistics\n",
+    # ... more criteria ...
+    "Respond with ONLY the single word 'yes' or 'no'. No explanation.\n\n",
+    "Variables and descriptions:\n", dict_text, "\n",
+    get_stats_args,
+    "\nQuestion: ", user_question
+  )
+}
+```
+
+The data dictionary (48 field definitions) is embedded in this prompt. This is important: without it, the AI would not know that `headcount` and `welfare_type` are poverty-specific terms, and might return `"no"` for a question that clearly is about PIP data.
+
+### 2. The parameter extraction prompt
+
+```{.r filename="R/prompt_helpers.R"}
+build_param_prompt <- function(country_map, user_question) {
+  paste0(
+    "Given the following user question, extract only the specified values ... as a named R list.",
+    " For country_code, use ONLY the valid codes from this mapping: ", country_map, ".\n",
+    "Columns: country_code, year, reporting_level, welfare_type, region_code, poverty_line.\n",
+    "Question: ", user_question
+  )
+}
+```
+
+The full 180+ country name-to-ISO3 code mapping is injected here. This ensures the AI returns `"IND"` rather than `"India"` or `"india"` — the database only understands ISO3 codes.
+
+The AI returns something like:
+```r
+list(country_code = c("IND", "NGA", "BRA"), poverty_line = 2.15)
+```
+That R code is then run directly by the app to get the filter parameters.
+
+### 3. The answer extraction prompt
+
+```{.r filename="R/prompt_helpers.R"}
+build_extract_prompt <- function(user_question, result_json) {
+  paste0(
+    "Given the following user question and the filtered data in JSON format, ",
+    "extract and present only the relevant information that answers the question.\n",
+    "User question: ", user_question, "\n",
+    "Filtered data (JSON): ", result_json,
+    "\nRespond concisely."
+  )
+}
+```
+
+At this stage the AI receives the actual numbers from the database and is asked to write a concise human-readable answer. It is translating data rows into a sentence, not inventing numbers.
+
+---
+
+## The Data Layer: `R/data_access.R`
+
+```{.r filename="R/data_access.R"}
+get_poverty_data <- function(povline = 3) {
+  fst_path <- file.path("data", paste0("pov_", povline, ".fst"))
+  if (!file.exists(fst_path)) {
+    df <- pipr::get_stats(country = "all", year = "all", povline = as.numeric(povline))
+    fst::write_fst(df, fst_path)
+  }
+  fst::read_fst(fst_path) |> dplyr::as_tibble()
+}
+```
+
+This function manages a local data cache. The first time data for a specific poverty line is requested, it calls the PIP API via the `pipr` package to download the full dataset and saves it as an `.fst` file — a binary format that reads roughly ten times faster than a CSV. Every subsequent request for the same poverty line just reads the local file, making it nearly instant.
+
+The `data/pov_3.fst` file included in the repository is the pre-built cache for the $3/day poverty line (1.2 MB).
+
+---
+
+## The Country Lookup: `R/country_lookup.R`
+
+A named vector mapping every ISO3 country code the PIP database uses to its human-readable name:
+
+```r
+country_lookup <- c(
+  "IND" = "India",
+  "NGA" = "Nigeria",
+  "BRA" = "Brazil",
+  # ... 180+ more
+  "WLD" = "World"
+)
+```
+
+This lookup is reversed and passed to `build_param_prompt()` so the AI can convert country names in the user's question into the ISO3 codes that the database expects.
+
+---
+
+## Testing: `tests/testthat/`
+
+The project includes three test suites that collectively cover all the logic that does not require a live AI connection.
+
+| Test file | What it covers |
+|---|---|
+| `test-utils.R` | `clean_code()` — does it correctly strip markdown fences in all variations? |
+| `test-prompt_helpers.R` | Do all three prompt builders include the right content? Do they return a single string? |
+| `test-plot_helpers.R` | Does keyword detection work? Does `build_chat_plot()` pick the right y-axis variable? Does it colour by country when needed? |
+
+A representative example from `test-plot_helpers.R`:
+
+```{.r filename="tests/testthat/test-plot_helpers.R (excerpt)"}
+test_that("build_chat_plot picks gini for inequality question", {
+  data <- make_india_data()
+  p <- build_chat_plot(
+    data,
+    question = "plot the gini index for India",
+    dict = test_dict
+  )
+  expect_s3_class(p, "gg")
+  expect_equal(rlang::as_label(p$mapping$y), "gini")
+})
+```
+
+The tests use a small synthetic dataset (`make_india_data()`) and a trimmed dictionary so they run quickly without needing the real PIP data file or an AI connection.
+
+---
+
+## Putting It All Together
+
+Here is the complete flow for the question *"Plot the headcount poverty rate for India and Brazil from 2000 to 2019 at the $2.15 poverty line"*:
+
+```{mermaid}
+sequenceDiagram
+    participant User
+    participant Server
+    participant Keywords as Keyword Check
+    participant AI as mAI Factory (GPT-4o-mini)
+    participant Data as PIP Data Cache
+
+    User->>Server: Types question, hits Send
+    Server->>Keywords: is_data_keyword(question)
+    Keywords-->>Server: TRUE (matched "headcount", "$2.15")
+    Note over Server: Skips AI classifier entirely
+
+    Server->>AI: build_param_prompt(question)
+    AI-->>Server: list(country_code=c("IND","BRA"), poverty_line=2.15)
+
+    Server->>Data: get_poverty_data(2.15)
+    Data-->>Server: Full dataset at $2.15 line
+    Server->>Server: Filter to IND, BRA, years 2000-2019
+
+    Server->>Server: needs_plot? → TRUE
+    Server->>Server: build_chat_plot() → ggplot coloured by country
+
+    Server->>AI: build_extract_prompt(question, filtered_json)
+    AI-->>Server: "India's headcount fell from X% to Y%..."
+
+    Server->>User: Shows chart + text answer
+```
+
+Three AI calls in total. The keyword check avoids a fourth (the classifier). The numbers in the answer always come from the real PIP database — the AI only interprets them.
+
+---
+
+## Summary
+
+| File | Role | Key function |
+|---|---|---|
+| `app.R` | Entry point | Wires UI and server together |
+| `R/ui.R` | Interface | `pip_chatbot_ui()` |
+| `R/server.R` | Orchestration | `pip_chatbot_server()` |
+| `R/utils.R` | AI connection | `openai_chat_response()`, `get_azure_token()` |
+| `R/plot_helpers.R` | Classification & charting | `is_data_keyword()`, `build_chat_plot()` |
+| `R/prompt_helpers.R` | Prompt construction | Three `build_*_prompt()` functions |
+| `R/data_access.R` | Data caching | `get_poverty_data()` |
+| `R/country_lookup.R` | Code mapping | `country_lookup` vector |
+
+The design philosophy throughout is **keep the AI out of the critical path wherever possible**: keywords are checked before the AI classifier runs, the data cache is read locally rather than hitting an API, and the AI is only called when its judgment or language ability is genuinely needed.
